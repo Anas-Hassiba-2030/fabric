@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+
+# FABRIC: designs, configs, runbooks ARE versioned (charter §5 — "version every design").
+# Keep deliverables/ tracked. Only ignore scratch.
+deliverables/_scratch/
