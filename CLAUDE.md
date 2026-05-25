@@ -143,10 +143,12 @@ Agents load these on demand (three-level loading: metadata → body → referenc
 - `requirements-intake` — structured capture into a gap-free brief + clarifying-question set.
 - `hld-generator` — requirements → tech trade-off table → reference topology → decision log.
 - `topology-diagram` — generate network diagrams (Mermaid first; `scripts/to_mermaid.py` helper).
+- `lld-generator` — approved HLD → IPAM, IGP/BGP, SR-SID/label plan, QoS, zones, per-device sheet.
+- `config-generator` — approved LLD → idempotent multi-vendor config + automation (per-vendor refs).
+- `config-audit` — deterministic lint pre-pass (`scripts/config_lint.py`) + audit checklist for the Validator gate.
 
-More skills (`lld-generator`, `config-generator`, `config-audit`, `migration-runbook`, `rca-playbook`,
-`bom-builder`, `sow-writer`, `exec-deck`, `adoption-plan`, `telemetry-design`, `standards-checker`)
-land with their phases.
+More skills (`migration-runbook`, `rca-playbook`, `bom-builder`, `sow-writer`, `exec-deck`,
+`adoption-plan`, `telemetry-design`, `standards-checker`) land with their phases.
 
 ---
 

@@ -33,7 +33,8 @@ README.md            ← this file
 .claude/
   settings.json      ← hooks: destructive-action-guard + session-start
   agents/            ← 16 specialist subagents (Task-invocable)
-  skills/            ← fabric (entry), requirements-intake, hld-generator, topology-diagram
+  skills/            ← fabric (entry), requirements-intake, hld-generator, topology-diagram,
+                       lld-generator, config-generator, config-audit
   hooks/             ← destructive_action_guard.py, session_start.py
 fabric/
   ORCHESTRATOR.md    ← pointer: where the orchestrator lives (→ CLAUDE.md)
@@ -51,7 +52,7 @@ Built per the charter's build order (`fabric/PROTOCOL.md` §8). Each phase is us
 | Phase | Theme | Components | Status |
 |---|---|---|---|
 | **1** | Design | Orchestrator + `discovery` + `designer-hld` + `critic`; skills `requirements-intake`, `hld-generator`, `topology-diagram`; `destructive-action-guard` + `session-start` hooks | ✅ **Operational (deep)** |
-| **2** | Implement | `designer-lld` + `config-engineer` + `validator`; the gate rules that enforce validation | 🟡 Agents scaffolded to charter depth; skills (`config-generator`, `config-audit`, `lld-generator`) pending |
+| **2** | Implement | `designer-lld` + `config-engineer` + `validator`; the gate rules that enforce validation | 🟢 Agents + skills built — `lld-generator`, `config-generator` (per-vendor refs), `config-audit` (lint pre-pass); deepen via real engagements |
 | **3** | Sell | `bom-commercials` + `sow-writer` + `exec-storyteller`; docx/pptx/xlsx | 🟡 Agents scaffolded; deliverable skills pending |
 | **4** | Operate | `migration-planner` + `assurance-architect` + `troubleshooter` | 🟡 Agents scaffolded |
 | **5** | Scale & connect | `librarian` + episodic memory + `standards-officer` + `multivendor-translator` + `adoption-success`; Docs/Standards & read-only Network-state MCPs | 🟡 Agents + memory scaffolded; custom MCPs are a future build |
