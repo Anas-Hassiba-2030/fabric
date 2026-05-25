@@ -146,9 +146,16 @@ Agents load these on demand (three-level loading: metadata → body → referenc
 - `lld-generator` — approved HLD → IPAM, IGP/BGP, SR-SID/label plan, QoS, zones, per-device sheet.
 - `config-generator` — approved LLD → idempotent multi-vendor config + automation (per-vendor refs).
 - `config-audit` — deterministic lint pre-pass (`scripts/config_lint.py`) + audit checklist for the Validator gate.
+- `bom-builder` — design → traceable BoM (hardware/optics/licenses/support) + commercial narrative.
+- `sow-writer` — solution → SoW (scope, assumptions, **exclusions**, RACI, acceptance) + reusable clauses.
+- `exec-deck` — solution → business narrative (outcome/risk/TCO) + slide arc + "why this matters" line.
+- `migration-runbook` — brownfield cutover, phased, **rollback at every step**, blast radius, go/no-go.
+- `telemetry-design` — SLAs → KPIs → gNMI/gRPC sensor paths → SLO catalog → safe closed-loop hooks.
+- `rca-playbook` — structured root-cause: symptom → layered hypothesis tree → evidence → fix + verify.
+- `adoption-plan` — barriers → actions → owners → milestones + value scorecard tied to business drivers.
+- `standards-checker` — verify-or-block compliance matrix; real standards index, no invented RFCs.
 
-More skills (`migration-runbook`, `rca-playbook`, `bom-builder`, `sow-writer`, `exec-deck`,
-`adoption-plan`, `telemetry-design`, `standards-checker`) land with their phases.
+All five build phases now have their skills in place; depth grows with real engagements.
 
 ---
 

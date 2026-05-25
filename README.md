@@ -33,9 +33,10 @@ README.md            ← this file
 .claude/
   settings.json      ← hooks: destructive-action-guard + session-start
   agents/            ← 16 specialist subagents (Task-invocable)
-  skills/            ← fabric (entry), requirements-intake, hld-generator, topology-diagram,
-                       lld-generator, config-generator, config-audit
-  hooks/             ← destructive_action_guard.py, session_start.py
+  skills/            ← fabric, requirements-intake, hld-generator, topology-diagram, lld-generator,
+                       config-generator, config-audit, bom-builder, sow-writer, exec-deck,
+                       migration-runbook, telemetry-design, rca-playbook, adoption-plan, standards-checker
+  hooks/             ← destructive_action_guard.py, session_start.py, csirt_guard.py
 fabric/
   ORCHESTRATOR.md    ← pointer: where the orchestrator lives (→ CLAUDE.md)
   PROTOCOL.md        ← the charter, verbatim (source of truth — do not edit)
@@ -53,14 +54,14 @@ Built per the charter's build order (`fabric/PROTOCOL.md` §8). Each phase is us
 |---|---|---|---|
 | **1** | Design | Orchestrator + `discovery` + `designer-hld` + `critic`; skills `requirements-intake`, `hld-generator`, `topology-diagram`; `destructive-action-guard` + `session-start` hooks | ✅ **Operational (deep)** |
 | **2** | Implement | `designer-lld` + `config-engineer` + `validator`; the gate rules that enforce validation | 🟢 Agents + skills built — `lld-generator`, `config-generator` (per-vendor refs), `config-audit` (lint pre-pass); deepen via real engagements |
-| **3** | Sell | `bom-commercials` + `sow-writer` + `exec-storyteller`; docx/pptx/xlsx | 🟡 Agents scaffolded; deliverable skills pending |
-| **4** | Operate | `migration-planner` + `assurance-architect` + `troubleshooter` | 🟡 Agents scaffolded |
-| **5** | Scale & connect | `librarian` + episodic memory + `standards-officer` + `multivendor-translator` + `adoption-success`; Docs/Standards & read-only Network-state MCPs | 🟡 Agents + memory scaffolded; custom MCPs are a future build |
+| **3** | Sell | `bom-commercials` + `sow-writer` + `exec-storyteller`; docx/pptx/xlsx | 🟢 Agents + skills built — `bom-builder`, `sow-writer`, `exec-deck`; doc-format export via the generation connector |
+| **4** | Operate | `migration-planner` + `assurance-architect` + `troubleshooter` | 🟢 Agents + skills built — `migration-runbook`, `telemetry-design`, `rca-playbook` |
+| **5** | Scale & connect | `librarian` + episodic memory + `standards-officer` + `multivendor-translator` + `adoption-success`; Docs/Standards & read-only Network-state MCPs | 🟢 Agents + skills built — `standards-checker`, `adoption-plan` (multi-vendor reuses `config-generator` refs); custom MCPs remain a future build |
 
-**Deep / Phase-1 operational:** `discovery`, `designer-hld`, `critic` — written with full method and
-worked examples. **Scaffolded to charter depth:** the other 13 agents — real and invocable, written to
-the protocol's §2 spec, to be deepened as their phase lands. The system never pretends a scaffolded
-component is more than it is (House Rule 7).
+**All five phases now have their skills built** — every agent has the method skill it loads, and the
+config/standards paths have deterministic helpers (`config_lint.py`) and a verified standards index.
+`discovery`, `designer-hld`, and `critic` remain the deepest (full worked examples); the rest grow with
+real engagements. The system never pretends a component is more than it is (House Rule 7).
 
 ### What's real vs. what needs building
 
