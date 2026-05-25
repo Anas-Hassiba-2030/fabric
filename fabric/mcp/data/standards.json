@@ -1,0 +1,41 @@
+{
+  "_note": "Curated, hand-verified index of commonly cited standards for the FABRIC Standards/Docs MCP. Titles transcribed from the public record. The MCP treats this as ground truth for offline grounding; agents must still confirm currency (obsoletes/updates) before a customer deliverable (House Rule 4). To extend: add an entry with a real, verified reference only.",
+  "rfc": {
+    "4271": {"title": "A Border Gateway Protocol 4 (BGP-4)", "topic": "BGP base", "url": "https://www.rfc-editor.org/rfc/rfc4271"},
+    "4760": {"title": "Multiprotocol Extensions for BGP-4", "topic": "MP-BGP address families", "url": "https://www.rfc-editor.org/rfc/rfc4760"},
+    "4364": {"title": "BGP/MPLS IP Virtual Private Networks (VPNs)", "topic": "L3VPN", "url": "https://www.rfc-editor.org/rfc/rfc4364"},
+    "7432": {"title": "BGP MPLS-Based Ethernet VPN (EVPN)", "topic": "EVPN control plane", "url": "https://www.rfc-editor.org/rfc/rfc7432"},
+    "8365": {"title": "A Network Virtualization Overlay Solution Using Ethernet VPN (EVPN)", "topic": "EVPN-VXLAN", "url": "https://www.rfc-editor.org/rfc/rfc8365"},
+    "5082": {"title": "The Generalized TTL Security Mechanism (GTSM)", "topic": "multi-hop eBGP protection", "url": "https://www.rfc-editor.org/rfc/rfc5082"},
+    "7454": {"title": "BGP Operations and Security", "topic": "BCP 194 eBGP hardening", "url": "https://www.rfc-editor.org/rfc/rfc7454"},
+    "8212": {"title": "Default External BGP (EBGP) Route Propagation Behavior Without Policies", "topic": "default-deny eBGP", "url": "https://www.rfc-editor.org/rfc/rfc8212"},
+    "6811": {"title": "BGP Prefix Origin Validation", "topic": "RPKI ROV", "url": "https://www.rfc-editor.org/rfc/rfc6811"},
+    "8205": {"title": "BGPsec Protocol Specification", "topic": "BGP path validation", "url": "https://www.rfc-editor.org/rfc/rfc8205"},
+    "1195": {"title": "Use of OSI IS-IS for Routing in TCP/IP and Dual Environments", "topic": "IS-IS", "url": "https://www.rfc-editor.org/rfc/rfc1195"},
+    "2328": {"title": "OSPF Version 2", "topic": "OSPFv2", "url": "https://www.rfc-editor.org/rfc/rfc2328"},
+    "5340": {"title": "OSPF for IPv6", "topic": "OSPFv3", "url": "https://www.rfc-editor.org/rfc/rfc5340"},
+    "8402": {"title": "Segment Routing Architecture", "topic": "SR", "url": "https://www.rfc-editor.org/rfc/rfc8402"},
+    "8660": {"title": "Segment Routing with the MPLS Data Plane", "topic": "SR-MPLS", "url": "https://www.rfc-editor.org/rfc/rfc8660"},
+    "8754": {"title": "IPv6 Segment Routing Header (SRH)", "topic": "SRv6 data plane", "url": "https://www.rfc-editor.org/rfc/rfc8754"},
+    "8986": {"title": "Segment Routing over IPv6 (SRv6) Network Programming", "topic": "SRv6", "url": "https://www.rfc-editor.org/rfc/rfc8986"},
+    "5880": {"title": "Bidirectional Forwarding Detection (BFD)", "topic": "fast failure detection", "url": "https://www.rfc-editor.org/rfc/rfc5880"},
+    "5881": {"title": "Bidirectional Forwarding Detection (BFD) for IPv4 and IPv6 (Single Hop)", "topic": "single-hop BFD", "url": "https://www.rfc-editor.org/rfc/rfc5881"},
+    "1191": {"title": "Path MTU Discovery", "topic": "MTU/MSS (IPv4)", "url": "https://www.rfc-editor.org/rfc/rfc1191"},
+    "8201": {"title": "Path MTU Discovery for IP version 6", "topic": "MTU/MSS (IPv6)", "url": "https://www.rfc-editor.org/rfc/rfc8201"},
+    "8200": {"title": "Internet Protocol, Version 6 (IPv6) Specification", "topic": "IPv6 base", "url": "https://www.rfc-editor.org/rfc/rfc8200"},
+    "4861": {"title": "Neighbor Discovery for IP version 6 (IPv6)", "topic": "IPv6 ND", "url": "https://www.rfc-editor.org/rfc/rfc4861"},
+    "2865": {"title": "Remote Authentication Dial In User Service (RADIUS)", "topic": "AAA", "url": "https://www.rfc-editor.org/rfc/rfc2865"},
+    "8907": {"title": "The Terminal Access Controller Access-Control System Plus (TACACS+) Protocol", "topic": "AAA device admin", "url": "https://www.rfc-editor.org/rfc/rfc8907"},
+    "5424": {"title": "The Syslog Protocol", "topic": "logging", "url": "https://www.rfc-editor.org/rfc/rfc5424"}
+  },
+  "ieee": {
+    "802.1AE": {"title": "IEEE Standard for Local and metropolitan area networks - Media Access Control (MAC) Security", "topic": "MACsec"},
+    "802.1AX": {"title": "IEEE Standard for Local and Metropolitan Area Networks - Link Aggregation", "topic": "LACP / LAG"},
+    "802.1Q": {"title": "IEEE Standard for Local and Metropolitan Area Networks - Bridges and Bridged Networks", "topic": "VLAN tagging"}
+  },
+  "framework": {
+    "NIST SP 800-53": {"title": "Security and Privacy Controls for Information Systems and Organizations", "topic": "security controls catalog"},
+    "CIS Benchmarks": {"title": "CIS Benchmarks (incl. Cisco IOS/NX-OS hardening)", "topic": "device hardening"},
+    "PCI DSS": {"title": "Payment Card Industry Data Security Standard", "topic": "cardholder-data environment requirements"}
+  }
+}

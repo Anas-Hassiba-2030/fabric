@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "fabric-standards": {
+      "command": "python",
+      "args": ["fabric/mcp/standards_server.py"]
+    },
+    "fabric-netstate": {
+      "command": "python",
+      "args": ["fabric/mcp/network_state_server.py"]
+    }
+  }
+}

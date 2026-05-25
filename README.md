@@ -41,7 +41,9 @@ fabric/
   ORCHESTRATOR.md    ← pointer: where the orchestrator lives (→ CLAUDE.md)
   PROTOCOL.md        ← the charter, verbatim (source of truth — do not edit)
   memory/            ← episodic (customers/) + semantic (patterns/)
+  mcp/               ← read-only MCP servers: fabric-standards + fabric-netstate (registered in .mcp.json)
 deliverables/        ← run outputs land here
+.mcp.json            ← registers the FABRIC MCP servers for Claude Code
 ```
 
 ---
@@ -56,7 +58,7 @@ Built per the charter's build order (`fabric/PROTOCOL.md` §8). Each phase is us
 | **2** | Implement | `designer-lld` + `config-engineer` + `validator`; the gate rules that enforce validation | 🟢 Agents + skills built — `lld-generator`, `config-generator` (per-vendor refs), `config-audit` (lint pre-pass); deepen via real engagements |
 | **3** | Sell | `bom-commercials` + `sow-writer` + `exec-storyteller`; docx/pptx/xlsx | 🟢 Agents + skills built — `bom-builder`, `sow-writer`, `exec-deck`; doc-format export via the generation connector |
 | **4** | Operate | `migration-planner` + `assurance-architect` + `troubleshooter` | 🟢 Agents + skills built — `migration-runbook`, `telemetry-design`, `rca-playbook` |
-| **5** | Scale & connect | `librarian` + episodic memory + `standards-officer` + `multivendor-translator` + `adoption-success`; Docs/Standards & read-only Network-state MCPs | 🟢 Agents + skills built — `standards-checker`, `adoption-plan` (multi-vendor reuses `config-generator` refs); custom MCPs remain a future build |
+| **5** | Scale & connect | `librarian` + episodic memory + `standards-officer` + `multivendor-translator` + `adoption-success`; Docs/Standards & read-only Network-state MCPs | 🟢 Agents + skills built — `standards-checker`, `adoption-plan`; **both MCPs built** (`fabric-standards`, read-only `fabric-netstate`) — offline-grounded now, live data source is a config swap |
 
 **All five phases now have their skills built** — every agent has the method skill it loads, and the
 config/standards paths have deterministic helpers (`config_lint.py`) and a verified standards index.
@@ -65,9 +67,9 @@ real engagements. The system never pretends a component is more than it is (Hous
 
 ### What's real vs. what needs building
 
-- **Real now:** subagents, skills, hooks, model tiers, the orchestration patterns — all standard Claude Code primitives.
+- **Real now:** subagents, skills, hooks, the two custom MCP servers, model tiers, the orchestration patterns — all standard Claude Code primitives.
 - **Available connectors:** filesystem, Git, web search, document generation.
-- **Custom builds (future):** the Docs/Standards MCP and the **read-only** Network-state MCP. These turn FABRIC from "very good reasoning assistant" into "plugged into the live estate." They are the build, not the given.
+- **Custom builds — now built (`fabric/mcp/`):** the Docs/Standards MCP (`fabric-standards`) and the **read-only** Network-state MCP (`fabric-netstate`). These are what turn FABRIC from "very good reasoning assistant" into "plugged into the live estate." They run today against a curated standards index and JSON state snapshots; pointing them at a live docs source / pyATS-gNMI-NetBox feed is a data-source swap, not a rebuild. Honest caveat: live wiring to a customer's estate still needs that estate's credentials/access — that's the remaining real-world step, not more code.
 
 ---
 

@@ -103,10 +103,16 @@ rules you must follow — not as settings.json hooks.** They are not optional.
   command patterns (`ssh … conf t`, `napalm`, `netmiko`, `scp …​.cfg`, `ansible-playbook … push`,
   `clogin`/`jlogin`) and asks Kamal to confirm before they run. It deliberately **allows `git push`**
   (source control, not a device push). This is House Rule 6 in code.
+- **`csirt-guard`** (PreToolUse on Write/Edit/MultiEdit/Bash) — hard-blocks non-official plugin sources
+  and forbidden AI-agent platform dirs (see the HARD RULE sections below). Exit-2 block, not an ask.
 - **`session-start`** (SessionStart) — surfaces active customer memory so you never start cold.
 
-Any MCP that can *change* the network is read-only by default and gated behind the destructive guard.
-Write access to a live network is a separate, later, deliberately-hard decision — not in scope here.
+**MCP connections (built, `fabric/mcp/`, registered in `.mcp.json`):** `fabric-standards` (grounded
+RFC/IEEE/framework lookup + citation verification — backs the citation-guard) and `fabric-netstate`
+(read-only `show`/telemetry/inventory). Both are **read-only**; the network-state server exposes no
+write/config tool at all. Any MCP that could *change* the network stays read-only by default and gated
+behind the destructive guard — write access to a live network is a separate, later, deliberately-hard
+decision, not in scope here.
 
 ---
 

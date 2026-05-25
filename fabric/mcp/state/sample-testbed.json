@@ -1,0 +1,34 @@
+{
+  "_note": "Sample read-only network-state snapshot (NetBox/pyATS-style) so the Network-state MCP works offline and is testable. Replace FABRIC_NETSTATE_DIR with a directory of real read-only snapshots, or wire the server to a live read-only source (pyATS learn / gNMI subscribe / NetBox API). The MCP NEVER writes to this or to any device.",
+  "devices": {
+    "PE1": {
+      "role": "provider-edge", "platform": "ios-xr", "version": "7.9.2", "site": "DC1",
+      "interfaces": [
+        {"name": "Loopback0", "ip": "10.255.0.1/32", "oper": "up", "desc": "router-id / SR"},
+        {"name": "GigabitEthernet0/0/0/0", "ip": "10.0.0.0/31", "oper": "up", "desc": "to:P1", "mtu": 9216},
+        {"name": "GigabitEthernet0/0/0/1", "ip": "192.0.2.1/30", "oper": "down", "desc": "to:CustA-CE", "mtu": 1500}
+      ],
+      "bgp_neighbors": [
+        {"neighbor": "10.255.0.254", "remote_as": 65000, "afi": "vpnv4", "state": "Established", "prefixes": 1420},
+        {"neighbor": "192.0.2.2", "remote_as": 65010, "afi": "ipv4", "state": "Idle", "prefixes": 0}
+      ],
+      "routes": {
+        "10.255.0.2/32": {"protocol": "isis", "nexthop": "10.0.0.1", "label": 16002},
+        "0.0.0.0/0": {"protocol": "bgp", "nexthop": "10.255.0.254"}
+      },
+      "inventory": {"chassis": "NCS-540", "serial": "FOC-SAMPLE-PE1", "psu": "1+1", "rp": "single"}
+    },
+    "P1": {
+      "role": "core", "platform": "ios-xr", "version": "7.9.2", "site": "DC1",
+      "interfaces": [
+        {"name": "Loopback0", "ip": "10.255.0.2/32", "oper": "up", "desc": "router-id / SR"},
+        {"name": "GigabitEthernet0/0/0/0", "ip": "10.0.0.1/31", "oper": "up", "desc": "to:PE1", "mtu": 9216}
+      ],
+      "bgp_neighbors": [],
+      "routes": {
+        "10.255.0.1/32": {"protocol": "isis", "nexthop": "10.0.0.0", "label": 16001}
+      },
+      "inventory": {"chassis": "NCS-5500", "serial": "FOC-SAMPLE-P1", "psu": "1+1", "rp": "dual"}
+    }
+  }
+}
