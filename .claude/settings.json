@@ -10,6 +10,15 @@
             "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/destructive_action_guard.py\""
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/csirt_guard.py\""
+          }
+        ]
       }
     ],
     "SessionStart": [

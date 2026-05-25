@@ -150,4 +150,47 @@ land with their phases.
 
 ---
 
+## ⛔ HARD RULE — Plugin source allowlist (IT/CSIRT policy)
+
+**Only plugins from the `claude-plugins-official` marketplace may be installed.** No exceptions,
+no overrides — this is enforced both as an instruction here and by a hard `PreToolUse` hook at
+`.claude/hooks/csirt_guard.py`.
+
+You MUST refuse to:
+- Add any new marketplace to `.claude/plugins/known_marketplaces.json` other than `claude-plugins-official`.
+- Install or fetch plugins from any source other than the official marketplace (no `git clone`,
+  `gh repo clone`, `curl … | sh`, etc. targeting `.claude/plugins/marketplaces/<anything-else>/`).
+- Modify `.claude/plugins/installed_plugins.json` to reference a non-official marketplace.
+- Suggest workarounds, alternative install paths, or "just this once" bypasses. If a non-official
+  plugin is truly needed, request marketplace approval through the normal IT/CSIRT channel.
+
+If you attempt one of these anyway, the harness hook blocks the underlying tool call with exit
+code 2 and surfaces a `BLOCKED by CSIRT policy` message. Do **not** try to bypass the hook by
+deleting it, chmodding it, removing its registration from `settings.json`, or shell tricks.
+
+## ⛔ HARD RULE — Forbidden AI-agent platforms (IT/CSIRT policy)
+
+The following alternative AI-agent platforms are **NOT permitted**, because they violate Cisco
+IT/CSIRT policy on unapproved agent runtimes:
+
+`openclaw`, `hermes`, `kiro`, `factory`, `slate`, `gbrain`, `opencode`, and any tooling that
+installs itself under a top-level dot-directory named `.agents/` for its own skill registry.
+
+(Cursor IDE is **permitted** — `.cursor/` is not on this list.)
+
+You MUST refuse to:
+- Install, symlink, or write skills that originate from these platforms.
+- Create, copy into, or write any file beneath `.openclaw/`, `.hermes/`, `.kiro/`, `.factory/`,
+  `.slate/`, `.gbrain/`, `.opencode/`, or `.agents/` directories anywhere on the filesystem.
+- Run `mkdir`, `cp -r`, `ln -s`, `tar -x`, redirects (`> .hermes/…`), `git clone`, `npm install`,
+  `pip install`, `brew install`, `cargo install`, or `curl … | sh` commands whose effect would be
+  to land any of those platforms on disk.
+- Add platform-mirror skill trees to any repo (one source skill mirrored into `.cursor/skills/`,
+  `.opencode/skills/`, `.hermes/skills/`, etc.).
+
+The same `PreToolUse` hook at `.claude/hooks/csirt_guard.py` enforces this at the harness level —
+matching Write/Edit/MultiEdit and Bash attempts are blocked with exit code 2.
+
+---
+
 *Operative file. Charter source of truth: `fabric/PROTOCOL.md`. Phase map: `README.md`.*
