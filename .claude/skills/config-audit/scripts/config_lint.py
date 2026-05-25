@@ -76,12 +76,18 @@ def check_generic(text, findings):
         if n > 1:
             add(findings, "CRITICAL", f"duplicate IP address {ip} used {n} times in this file")
 
-    # invalid IPs
-    for m in re.finditer(r"(\d+\.\d+\.\d+\.\d+)", text):
-        try:
-            ipaddress.ip_address(m.group(1))
-        except ValueError:
-            add(findings, "HIGH", f"invalid IPv4 address literal: {m.group(1)}")
+    # invalid IPs — dotted-quad only; skip IS-IS NET/NSAP addresses (e.g. 49.0001.0100.0000.0001.00,
+    # which look dotted-numeric but are not IPv4). The lookarounds prevent matching a slice of a
+    # longer dotted string.
+    ip_candidate = re.compile(r"(?<![\d.])(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?![\d.])")
+    for line in text.splitlines():
+        if re.search(r"\bnet\s+\d|\bnsap\b", line, re.I):  # IS-IS NET / NSAP, not IPv4
+            continue
+        for m in ip_candidate.finditer(line):
+            try:
+                ipaddress.ip_address(m.group(1))
+            except ValueError:
+                add(findings, "HIGH", f"invalid IPv4 address literal: {m.group(1)}")
 
     # eBGP multihop without TTL-security (session-killer / spoofing risk)
     if re.search(r"ebgp-multihop", text, re.I) and not re.search(r"ttl-security|ttl\s+\d", text, re.I):
