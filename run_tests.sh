@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# FABRIC consolidated test runner — runs every deterministic check in the repo with one command.
+# Usage: bash run_tests.sh   (exit 0 = all green). Safe to wire into a SessionStart hook or CI.
+set -u
+cd "$(dirname "$0")"
+PY="$(command -v python || command -v python3)"
+fail=0
+step() { echo; echo "==> $1"; }
+ok()   { echo "    PASS — $1"; }
+bad()  { echo "    FAIL — $1"; fail=1; }
+
+step "JSON config validity"
+for f in .claude/settings.json .mcp.json \
+         fabric/mcp/data/standards.json fabric/mcp/state/sample-testbed.json; do
+  if "$PY" -c "import json,sys; json.load(open('$f'))" 2>/dev/null; then ok "$f"; else bad "$f"; fi
+done
+
+step "CSIRT guard hook battery"
+if bash .claude/hooks/test_csirt_guard.sh >/tmp/_csirt.out 2>&1; then ok "csirt_guard ($(grep -c PASS /tmp/_csirt.out) checks)"; else bad "csirt_guard"; cat /tmp/_csirt.out; fi
+
+step "config_lint self-test"
+if "$PY" .claude/skills/config-audit/scripts/config_lint.py --self-test >/tmp/_lint.out 2>&1 && grep -q "SELF-TEST PASS" /tmp/_lint.out; then ok "config_lint self-test"; else bad "config_lint self-test"; cat /tmp/_lint.out; fi
+
+step "MCP servers (stdio JSON-RPC)"
+if bash fabric/mcp/test_servers.sh >/tmp/_mcp.out 2>&1; then ok "fabric-standards + fabric-netstate ($(grep -c PASS /tmp/_mcp.out) checks)"; else bad "mcp servers"; cat /tmp/_mcp.out; fi
+
+step "Worked-example configs pass the audit gate"
+for cfg in deliverables/example-acme-sp/03-config-pe1.cfg deliverables/example-acme-sp/03b-config-pe3.cfg; do
+  if "$PY" .claude/skills/config-audit/scripts/config_lint.py "$cfg" >/tmp/_cfg.out 2>&1; then ok "$(basename "$cfg") (no CRITICAL/HIGH)"; else bad "$(basename "$cfg") — $(grep -E '^\[' /tmp/_cfg.out | head -3)"; fi
+done
+
+step "Skills + MCP servers present"
+sk=$(find .claude/skills -name SKILL.md | wc -l); mc=$(ls fabric/mcp/*_server.py 2>/dev/null | wc -l)
+[ "$sk" -ge 15 ] && ok "$sk skills" || bad "only $sk skills"
+[ "$mc" -eq 2 ]  && ok "$mc MCP servers" || bad "expected 2 MCP servers, found $mc"
+
+echo
+if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; else echo "FAILURES ABOVE"; fi
+exit $fail

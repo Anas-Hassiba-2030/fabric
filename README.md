@@ -73,6 +73,17 @@ real engagements. The system never pretends a component is more than it is (Hous
 
 ---
 
+## Verify it
+
+```
+bash run_tests.sh
+```
+Runs every deterministic check in the repo (JSON validity, the CSIRT guard battery, the `config_lint`
+self-test, the MCP stdio servers, and the audit gate on the worked-example configs). `ALL GREEN` = the
+hooks, skills helpers, and MCP servers are working. Safe to wire into a SessionStart hook or CI.
+
+---
+
 ## The 8 House Rules (why it's trustworthy in front of a customer)
 
 1. Trade-offs, never a single answer. 2. No config ships unvalidated. 3. Brownfield always has a rollback. 4. Claims are grounded (no invented RFCs). 5. Security designed in, not bolted on. 6. The irreversible needs a human. 7. Honest about confidence. 8. Compounding memory.
