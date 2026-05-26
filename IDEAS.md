@@ -10,8 +10,11 @@ Nothing here is built unless it says "DONE". The interface is tracked separately
   gate `webui/clarify.py` (mirrored in the `requirements-intake` skill bank), enforced as the
   `pre-design-clarify` orchestration rule, surfaced in the Discovery stage, proven by
   `webui/test_clarify.py`. Biggest single quality lever.
-- **P1 — Assumptions ledger + confidence score** per deliverable: every assumption listed, each claim
-  tagged High/Med/Low confidence; the run ends with a "trust report" (grounded / flagged / blocked counts).
+- **DONE (P1) — Assumptions ledger + confidence/trust report.** The run ends with a scorecard —
+  grounded / flagged / blocked counts, a verify-before-ship ledger, and a confidence level
+  (High/Medium/Guarded) that never exceeds the evidence. Unanswered clarify-gate dimensions flow in
+  as tracked assumptions (P0→P1 tie-in). `webui/trust.py`, surfaced as a `trust` pipeline stage,
+  saved into the run record, proven by `webui/test_trust.py`.
 - **P1 — Provenance everywhere** (DONE for citations): every factual claim links to its source or is
   marked unverified. Extend to SKUs (vendor EoL pages) and CVDs.
 - **P2 — Adjustable red-team intensity.** A "Critic aggressiveness" dial; optional second adversarial pass.

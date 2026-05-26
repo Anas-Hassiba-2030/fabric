@@ -33,6 +33,7 @@ from urllib.parse import urlparse, parse_qs
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import clarify  # noqa: E402
 import grounding  # noqa: E402
+import trust  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -99,6 +100,7 @@ STAGES = [
     {"id": "exec",      "label": "Exec one-pager","agent": "exec-storyteller","phase": "Sell",     "kind": "llm"},
     {"id": "migration", "label": "Migration",    "agent": "migration-planner","phase": "Operate",  "kind": "llm"},
     {"id": "standards", "label": "Standards",    "agent": "standards-officer","phase": "Scale",    "kind": "tool-standards"},
+    {"id": "trust",     "label": "Trust report", "agent": "orchestrator",     "phase": "Scale",    "kind": "report"},
 ]
 
 
@@ -216,6 +218,8 @@ def emit(q, obj):
             rec["deliverables"][obj["stage"]] = {"title": obj["title"], "content": obj["content"]}
         elif t == "grounding":
             rec["grounding"][obj["stage"]] = {"status": obj["status"], "checks": obj.get("checks", [])}
+        elif t == "trust":
+            rec["trust"] = {k: obj[k] for k in ("confidence", "headline", "counts", "ledger", "assumptions")}
 
 
 def demo_config(attempt):
@@ -396,6 +400,7 @@ def run_pipeline(run_id, problem, mode):
                 # any design is attempted (House Rule 7). Blocking gaps => brief is "not ready".
                 start("discovery")
                 analysis = clarify.analyze(problem)
+                ctx["__clarify__"] = analysis
                 text = gen(stage, problem, ctx, live, extra=clarify.live_extra(analysis))
                 if not (live and has_key()):
                     text = clarify.render_brief(problem, analysis)
@@ -481,6 +486,24 @@ def run_pipeline(run_id, problem, mode):
                 start("standards")
                 run_standards_stage(q, problem)
                 done("standards")
+
+            elif stage["kind"] == "report":
+                # Closing scorecard: aggregate every grounding verdict the run produced into an
+                # honest confidence report + verify-before-ship ledger (House Rule 7).
+                start("trust")
+                grnd = REC.get(id(q), {}).get("grounding", {})
+                analysis = ctx.get("__clarify__")
+                assumptions = ([f"{m['label']} not specified at intake — proceeding on assumption"
+                                for m in analysis["missing"] if m["blocking"]]
+                               if analysis and not analysis["ready"] else [])
+                rep = trust.report(grnd, assumptions=assumptions)
+                emit(q, {"type": "output", "stage": "trust", "title": "Trust report · orchestrator",
+                         "content": trust.render(rep)})
+                emit(q, {"type": "trust", "stage": "trust", "confidence": rep["confidence"],
+                         "headline": rep["headline"], "counts": rep["counts"],
+                         "ledger": rep["ledger"], "assumptions": rep["assumptions"]})
+                emit(q, {"type": "log", "stage": "trust", "text": "trust: " + rep["headline"]})
+                done("trust")
 
             else:
                 start(sid)

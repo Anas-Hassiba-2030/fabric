@@ -27,6 +27,9 @@ if "$PY" webui/test_grounding.py >/tmp/_grnd.out 2>&1; then ok "grounding net ho
 step "Clarifying-questions gate proof (no API key)"
 if "$PY" webui/test_clarify.py >/tmp/_clar.out 2>&1; then ok "clarify-gate holds (vague blocked, fully-specified ready)"; else bad "clarify gate"; cat /tmp/_clar.out; fi
 
+step "Trust report fidelity proof (no API key)"
+if "$PY" webui/test_trust.py >/tmp/_trust.out 2>&1; then ok "trust report faithful (grounded/flagged/blocked, ledger, confidence)"; else bad "trust report"; cat /tmp/_trust.out; fi
+
 step "Live-mode wiring proof (mocked Claude, no API key)"
 if "$PY" webui/test_live.py >/tmp/_live.out 2>&1; then ok "live wiring chains, gates bite, hallucination caught"; else bad "live wiring"; cat /tmp/_live.out; fi
 

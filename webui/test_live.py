@@ -74,12 +74,17 @@ def main():
 
     print("=== LIVE-mode wiring (mocked Claude, no key) ===")
     check("meta emitted (pipeline booted in live)", bool(meta) and meta[0]["mode"] == "live")
-    check("all 11 stages completed", len(set(done)) == 11)
+    check("all 12 stages completed", len(set(done)) == 12)
     check("Critic bounced HLD back then accepted", ("critic", "hld") in rejects and _state["critic"] >= 2)
     check("Validator rejected the bad config", ("validate", "config") in rejects)
     check("Validator verdicts went FAIL -> PASS (real fix loop)", vverdicts[:2] == ["FAIL", "PASS"] or ("FAIL" in vverdicts and vverdicts[-1] == "PASS"))
     check("grounding BLOCKED the live hallucination (fake RFC in LLD)", grounding.get("lld") == "blocked")
     check("standards stage grounded", grounding.get("standards") == "grounded")
+
+    trust_ev = [e for e in ev if e.get("type") == "trust"]
+    check("trust report emitted at run close", bool(trust_ev))
+    check("trust report counted the blocked hallucination", trust_ev and trust_ev[0]["counts"]["blocked"] >= 1)
+    check("trust confidence is Guarded (a stage was blocked)", trust_ev and trust_ev[0]["confidence"] == "Guarded")
 
     print()
     print("RESULT:", "ALL GREEN — live wiring chains, gates bite, and hallucinations are caught."
