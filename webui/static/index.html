@@ -105,30 +105,34 @@
     filter:drop-shadow(0 0 6px rgba(255,107,138,.85))}
   @keyframes march{to{stroke-dashoffset:-26}}@keyframes marchrev{to{stroke-dashoffset:26}}
 
-  .rows{display:flex;gap:20px;align-items:flex-start;position:relative;z-index:2;padding:6px 8px 78px;width:max-content;margin:0 auto}
-  .group{display:flex;flex-direction:column;gap:11px;border:1px solid var(--gc,var(--brd));border-radius:16px;
-    background:var(--gb,rgba(255,255,255,.018));padding:11px 13px 13px}
-  .ghead{font-size:11px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;text-align:center;
-    color:var(--gh,#fff);display:flex;align-items:center;justify-content:center;gap:7px}
+  .rows{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:center;position:relative;z-index:2;
+    padding:4px 8px 30px;width:auto;margin:0 auto}
+  .group{display:flex;flex-direction:column;gap:9px;border:1px solid var(--gc,var(--brd));border-radius:16px;
+    background:var(--gb,rgba(255,255,255,.018));padding:10px 12px 12px}
+  .ghead{font-size:10.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;text-align:center;
+    color:var(--gh,#fff);display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:1px}
   .ghead .dotp{width:7px;height:7px;border-radius:50%;background:var(--gh,#fff);box-shadow:0 0 10px var(--gh,#fff)}
-  .gnodes{display:flex;flex-direction:row;gap:12px}
+  .gnodes{display:flex;flex-direction:column;gap:9px}
 
-  .node{position:relative;width:150px;border:1px solid var(--brd);border-radius:14px;padding:11px 12px;cursor:pointer;
+  .node{position:relative;width:172px;border:1px solid var(--brd);border-radius:13px;padding:9px 11px;cursor:pointer;
     background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
     transition:transform .2s,border-color .2s,box-shadow .25s,opacity .3s;overflow:hidden;
-    animation:pop .4s ease backwards}
+    animation:pop .4s ease backwards;display:flex;flex-direction:column;gap:7px}
   @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
-  .node:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 12px 30px rgba(0,0,0,.3)}
-  .node .ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;margin-bottom:9px;
+  .node:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 12px 30px rgba(0,0,0,.3)}
+  .node .top{display:flex;align-items:center;gap:10px}
+  .node .ico{width:30px;height:30px;flex:none;border-radius:9px;display:grid;place-items:center;
     color:var(--nc,var(--accent));background:color-mix(in srgb,var(--nc,var(--accent)) 16%,transparent);
     border:1px solid color-mix(in srgb,var(--nc,var(--accent)) 35%,transparent)}
   .node .ico svg{width:16px;height:16px}
-  .node .nm{font-weight:680;font-size:13px;line-height:1.25}
-  .node .ag{font-size:10px;color:var(--muted);margin-top:2px;font-family:ui-monospace,Menlo,Consolas,monospace}
-  .node .b{position:absolute;top:11px;right:11px;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;
-    font-size:10px;background:rgba(255,255,255,.10);color:var(--ink);transition:.25s}
-  .node .g{margin-top:9px;font-size:9px;font-weight:800;letter-spacing:.4px;display:none;border-radius:6px;
-    padding:2px 7px;width:fit-content;text-transform:uppercase}
+  .node .meta{min-width:0;flex:1}
+  .node .nm{font-weight:680;font-size:12.5px;line-height:1.2}
+  .node .ag{font-size:9.5px;color:var(--muted);margin-top:1px;font-family:ui-monospace,Menlo,Consolas,monospace;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .node .b{position:absolute;top:8px;right:9px;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;
+    font-size:9px;background:rgba(255,255,255,.10);color:var(--ink);transition:.25s}
+  .node .g{font-size:8px;font-weight:800;letter-spacing:.3px;display:none;border-radius:5px;
+    padding:2px 6px;width:fit-content;text-transform:uppercase;align-self:flex-start}
   .node .g.show{display:inline-block;animation:pop .3s ease}
   .g.grounded{color:#06121f;background:var(--ok)}.g.flagged{color:#06121f;background:var(--warn)}.g.blocked{color:#fff;background:var(--bad)}
   .node.idle{opacity:.45}
@@ -307,7 +311,7 @@ function buildPipeline(stages){
     stages.filter(s=>s.phase===ph).forEach(s=>{const nd=document.createElement("div");
       nd.className="node idle"+(s.kind==="gate"?" gate":"");nd.id="n-"+s.id;
       nd.style.setProperty("--nc",c);nd.style.animationDelay=(n++*55)+"ms";
-      nd.innerHTML=`<div class="ico">${ico(s.id)}</div><div class="nm">${s.label}</div><div class="ag">${s.agent}</div><div class="b"></div><div class="g" id="g-${s.id}"></div>`;
+      nd.innerHTML=`<div class="top"><div class="ico">${ico(s.id)}</div><div class="meta"><div class="nm">${s.label}</div><div class="ag">${s.agent}</div></div></div><div class="b"></div><div class="g" id="g-${s.id}"></div>`;
       nd.onclick=()=>{autoFollow=false;showDetail(s.id);};nodes.appendChild(nd);});
     group.appendChild(nodes);wrap.appendChild(group);
   });
