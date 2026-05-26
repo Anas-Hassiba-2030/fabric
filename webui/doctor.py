@@ -53,6 +53,7 @@ run("memory recall proof", [sys.executable, "webui/test_recall.py"])
 run("auto topology diagram proof", [sys.executable, "webui/test_topology.py"])
 run("cost/TCO + risk register honesty proof", [sys.executable, "webui/test_tco.py"])
 run("trust report fidelity proof", [sys.executable, "webui/test_trust.py"])
+run("run export proof", [sys.executable, "webui/test_export.py"])
 run("live-mode wiring proof (mocked)", [sys.executable, "webui/test_live.py"])
 run("config_lint self-test", [sys.executable, ".claude/skills/config-audit/scripts/config_lint.py", "--self-test"])
 

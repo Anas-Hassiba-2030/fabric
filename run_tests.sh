@@ -39,6 +39,9 @@ if "$PY" webui/test_tco.py >/tmp/_tco.out 2>&1; then ok "cost/TCO honest (driver
 step "Trust report fidelity proof (no API key)"
 if "$PY" webui/test_trust.py >/tmp/_trust.out 2>&1; then ok "trust report faithful (grounded/flagged/blocked, ledger, confidence)"; else bad "trust report"; cat /tmp/_trust.out; fi
 
+step "Run export proof (no API key)"
+if "$PY" webui/test_export.py >/tmp/_exp.out 2>&1; then ok "run export bundles the stack (order, deliverables, grounding, trust)"; else bad "run export"; cat /tmp/_exp.out; fi
+
 step "Live-mode wiring proof (mocked Claude, no API key)"
 if "$PY" webui/test_live.py >/tmp/_live.out 2>&1; then ok "live wiring chains, gates bite, hallucination caught"; else bad "live wiring"; cat /tmp/_live.out; fi
 

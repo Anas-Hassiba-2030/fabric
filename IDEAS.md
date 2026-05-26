@@ -37,7 +37,9 @@ Nothing here is built unless it says "DONE". The interface is tracked separately
   failure domains as subgraphs. `webui/topology.py` (reuses the skill's `to_mermaid.py`, which was
   hardened to emit Mermaid-valid subgraph ids), proven by `webui/test_topology.py`. _SVG/PNG export
   still open._
-- **P1 — Export to real formats.** BoM → XLSX, Exec one-pager → PPTX/PDF, SoW → DOCX (today: Markdown, DONE).
+- **DONE — Export the deliverable stack.** A whole run (recalled memory + every stage in order with
+  grounding verdicts + trust report) bundles to one Markdown document via `webui/export_run.py` and
+  `GET /api/export?id=`, proven by `webui/test_export.py`. _XLSX/PPTX/DOCX still open (needs deps)._
 - **DONE (P1) — Cost/TCO + risk register.** A `Cost & Risk` stage generates capex/opex TCO drivers
   (each naming its figure source: BoM/SoW/quote/customer) and a design-adaptive risk register
   (likelihood/impact/mitigation/owner) — with **no invented currency** (House Rule 4). `webui/tco.py`,

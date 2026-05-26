@@ -34,7 +34,7 @@ OPEX = [
 
 
 def cost_drivers(problem):
-    return {"horizon": "3–5 year TCO horizon (confirm against the customer's refresh cycle)",
+    return {"horizon": "3–5 year horizon, confirmed against the customer's refresh cycle",
             "capex": list(CAPEX), "opex": list(OPEX)}
 
 
@@ -76,7 +76,7 @@ def risk_register(problem):
 
 def render(problem):
     cd = cost_drivers(problem)
-    lines = [f"## Cost model — TCO drivers ({cd['horizon']})",
+    lines = [f"## Cost model — TCO drivers — {cd['horizon']}",
              "_No currency figures are invented (House Rule 4); each line names where its number comes from._",
              "", "**Capex**", "| Category | Cost driver | Figure source |", "|---|---|---|"]
     lines += [f"| {c['item']} | {c['driver']} | {c['source']} |" for c in cd["capex"]]
