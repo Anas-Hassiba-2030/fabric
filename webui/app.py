@@ -40,7 +40,46 @@ STANDARDS = os.path.join(REPO, "fabric", "mcp", "data", "standards.json")
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 PORT = int(os.environ.get("FABRIC_UI_PORT", "8765"))
 
-RUNS = {}  # run_id -> Queue
+RUNS = {}   # run_id -> Queue
+REC = {}    # id(queue) -> run record being captured (for memory)
+MEM = os.path.join(REPO, "fabric", "memory", "runs")  # saved runs (compounding memory)
+
+
+def save_run(rec):
+    """Persist a converged run so it can be recalled later (House Rule 8 — compounding memory)."""
+    try:
+        os.makedirs(MEM, exist_ok=True)
+        with open(os.path.join(MEM, rec["id"] + ".json"), "w", encoding="utf-8") as fh:
+            json.dump(rec, fh)
+        idx_path = os.path.join(MEM, "index.json")
+        idx = []
+        if os.path.isfile(idx_path):
+            try:
+                idx = json.load(open(idx_path))
+            except Exception:
+                idx = []
+        idx = [e for e in idx if e.get("id") != rec["id"]]
+        idx.insert(0, {"id": rec["id"], "ts": rec["ts"], "problem": rec["problem"], "mode": rec["mode"]})
+        with open(idx_path, "w", encoding="utf-8") as fh:
+            json.dump(idx[:50], fh)
+    except Exception as e:
+        sys.stderr.write(f"save_run failed: {e}\n")
+
+
+def list_runs():
+    p = os.path.join(MEM, "index.json")
+    try:
+        return json.load(open(p)) if os.path.isfile(p) else []
+    except Exception:
+        return []
+
+
+def load_run(rid):
+    p = os.path.join(MEM, rid + ".json")
+    try:
+        return json.load(open(p)) if os.path.isfile(p) else None
+    except Exception:
+        return None
 
 # --- the FABRIC pipeline definition (maps to phases/agents) ---------------------------------
 STAGES = [
@@ -132,6 +171,15 @@ def demo_content(stage_id, problem, ctx):
 # --- pipeline runner ------------------------------------------------------------------------
 def emit(q, obj):
     q.put(obj)
+    rec = REC.get(id(q))
+    if rec is not None:
+        t = obj.get("type")
+        if t == "meta":
+            rec.update(problem=obj.get("problem", ""), mode=obj.get("mode", ""), stages=obj.get("stages", []))
+        elif t == "output":
+            rec["deliverables"][obj["stage"]] = {"title": obj["title"], "content": obj["content"]}
+        elif t == "grounding":
+            rec["grounding"][obj["stage"]] = {"status": obj["status"], "checks": obj.get("checks", [])}
 
 
 def demo_config(attempt):
@@ -198,8 +246,8 @@ def run_standards_stage(q, problem):
     emit(q, {"type": "output", "stage": "standards",
              "title": "Compliance matrix (real citation-guard)",
              "content": "\n".join(rows) + "\n\nThe citation-guard cannot invent an RFC — a fabricated reference is blocked."})
-    checks = [{"kind": "citation", "item": f"RFC {n}", "verdict": "verified", "note": idx[n]["title"]}
-              for n, _ in cites if n in idx]
+    checks = [{"kind": "citation", "item": f"RFC {n}", "verdict": "verified", "note": idx[n]["title"],
+               "url": idx[n].get("url", "")} for n, _ in cites if n in idx]
     checks.append({"kind": "citation", "item": "RFC 9999", "verdict": "BLOCKED", "note": "fabricated — blocked by the citation-guard"})
     emit(q, {"type": "grounding", "stage": "standards", "status": "grounded",
              "checks": checks, "note": "citation-guard executed"})
@@ -284,6 +332,8 @@ def critic_eval(q, problem, ctx, live, attempt):
 def run_pipeline(run_id, problem, mode):
     q = RUNS[run_id]
     q_global.set(q)
+    REC[id(q)] = {"id": run_id, "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                  "problem": problem, "mode": mode, "stages": [], "deliverables": {}, "grounding": {}}
     live = (mode == "live")
     by_id = {s["id"]: s for s in STAGES}
     emit(q, {"type": "meta", "mode": ("live" if live and has_key() else "demo"),
@@ -361,9 +411,12 @@ def run_pipeline(run_id, problem, mode):
                 done(sid)
 
         emit(q, {"type": "log", "stage": "_", "text": "✅ Converged — every gate cleared, deliverable stack ready."})
+        save_run(REC.get(id(q), {}))
+        emit(q, {"type": "saved", "id": run_id})
     except Exception as e:
         emit(q, {"type": "log", "stage": "_", "text": f"error: {e}"})
     finally:
+        REC.pop(id(q), None)
         emit(q, {"type": "done"})
 
 
@@ -387,6 +440,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, "application/json", json.dumps({"hasKey": has_key(), "model": MODEL}).encode())
         if u.path == "/api/stream":
             return self._stream(parse_qs(u.query).get("run_id", [""])[0])
+        if u.path == "/api/runs":
+            return self._send(200, "application/json", json.dumps(list_runs()).encode())
+        if u.path == "/api/run":
+            rec = load_run(parse_qs(u.query).get("id", [""])[0])
+            return self._send(200 if rec else 404, "application/json", json.dumps(rec or {"error": "not found"}).encode())
         if u.path.startswith("/static/"):
             return self._serve_static(u.path[len("/static/"):], self._ctype(u.path))
         self._send(404, "text/plain", b"not found")

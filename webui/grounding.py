@@ -51,7 +51,7 @@ def ground_text(text):
     for num in sorted(set(_RFC_RE.findall(text))):
         if num in idx:
             checks.append({"kind": "citation", "item": f"RFC {num}", "verdict": "verified",
-                           "note": idx[num]["title"]})
+                           "note": idx[num]["title"], "url": idx[num].get("url", "")})
         else:
             checks.append({"kind": "citation", "item": f"RFC {num}", "verdict": "BLOCKED",
                            "note": "not in the grounded standards index — cannot ship (House Rule 4)"})

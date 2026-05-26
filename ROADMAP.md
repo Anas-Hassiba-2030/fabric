@@ -14,7 +14,7 @@ RFCs, SKUs, or numbers.
 
 ---
 
-## Phase 1 — Make Live mode real + grounded  ★ start here
+## Phase 1 — Make Live mode real + grounded  ✅ DONE
 **Goal:** in Live mode FABRIC genuinely designs, and nothing ships unverified.
 **Build:**
 - Each stage uses its **real agent definition + skill** (loaded from the repo) as the system prompt — the
@@ -25,7 +25,7 @@ RFCs, SKUs, or numbers.
 **Kills hallucination:** every claim is verified or visibly flagged; a fabricated RFC is blocked (already proven).
 **Done when:** a Live run yields a real design where every factual claim is verified or flagged.
 
-## Phase 2 — Real chaining + reject→revise loops
+## Phase 2 — Real chaining + reject→revise loops  ✅ DONE
 **Goal:** stages build on each other; gates have teeth.
 **Build:** HLD→LLD→Config pass real context forward; a Critic/Validator **FAIL visibly routes back** and the
 stage re-runs on screen (the design→critique→revise loop, live).

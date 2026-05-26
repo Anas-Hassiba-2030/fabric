@@ -36,6 +36,8 @@
   .chips{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin-top:9px}.chips::-webkit-scrollbar{display:none}
   .chip{font-size:11px;color:var(--muted);border:1px dashed var(--brd);border-radius:999px;padding:4px 10px;cursor:pointer;white-space:nowrap;transition:.15s}
   .chip:hover{color:var(--ink);border-color:var(--accent);background:rgba(110,168,255,.08)}
+  .hist{background:rgba(0,0,0,.28);color:var(--muted);border:1px solid var(--brd);border-radius:999px;padding:5px 10px;font:inherit;font-size:11px;cursor:pointer;max-width:220px}
+  .hist:focus{outline:none;border-color:var(--accent)}
   .main{display:grid;grid-template-columns:1.62fr 1fr;gap:14px;min-height:0}
   .card{background:var(--panel);border:1px solid var(--brd);border-radius:16px;padding:14px;backdrop-filter:blur(8px);min-height:0;display:flex;flex-direction:column}
   .ct{font-size:11px;text-transform:uppercase;letter-spacing:1.3px;color:var(--muted);margin:0 0 8px;flex:none}
@@ -102,7 +104,10 @@
       <div class="toggle"><span>Demo</span><div class="switch" id="modeSwitch"><i></i></div><span>Live <span class="pill" id="livePill">Claude API</span></span></div>
       <button class="run" id="runBtn">▶ Run FABRIC</button>
     </div>
-    <div class="chips" id="chips"></div>
+    <div style="display:flex;gap:9px;align-items:center;margin-top:9px">
+      <div class="chips" id="chips" style="flex:1"></div>
+      <select id="history" class="hist" title="Reload a saved run (compounding memory)"><option value="">↺ Recent runs…</option></select>
+    </div>
   </div>
   <div class="main">
     <div class="card">
@@ -190,7 +195,7 @@ function storeOutput(o){outputs[o.stage]={title:o.title,content:o.content};if(au
 function showGround(m){grounds[m.stage]=m;const g=$("#g-"+m.stage);if(g){g.textContent={grounded:"✓ grounded",flagged:"⚠ verify",blocked:"⛔ blocked"}[m.status];g.className="g show "+m.status;}if(selected===m.stage)showDetail(m.stage);}
 function groundHtml(g){if(!g)return"";const lbl={grounded:"✓ Grounded — every claim checked",flagged:"⚠ Needs verification",blocked:"⛔ Blocked — unverified claim"}[g.status];
   const mk={verified:"✅",PASS:"✅",flag:"⚠",BLOCKED:"⛔",FAIL:"⛔"};
-  const items=(g.checks||[]).map(c=>`<li>${mk[c.verdict]||"•"} <b>${c.item}</b> — ${c.note}</li>`).join("");
+  const items=(g.checks||[]).map(c=>{const it=c.url?`<a href="${c.url}" target="_blank" style="color:var(--accent2);text-decoration:underline">${c.item}</a>`:`<b>${c.item}</b>`;return `<li>${mk[c.verdict]||"•"} ${it} — ${c.note}</li>`;}).join("");
   return `<div class="grnd ${g.status}"><b>${lbl}</b>${items?`<ul>${items}</ul>`:""}</div>`;}
 function showDetail(id,isRun){selected=id;document.querySelectorAll(".node").forEach(n=>n.classList.remove("sel"));$("#n-"+id)?.classList.add("sel");
   const d=$("#detail"),o=outputs[id];
@@ -208,16 +213,29 @@ async function run(){if(running)return;const problem=$("#problem").value.trim();
     else if(m.type==="output")storeOutput(m);
     else if(m.type==="grounding")showGround(m);
     else if(m.type==="reject")onReject(m);
+    else if(m.type==="saved")loadHistory();
     else if(m.type==="done"){es.close();finish();}};
   es.onerror=()=>{es.close();finish();};}
 function onReject(m){const g=$("#n-"+m.gate);if(g){g.classList.add("reject");setTimeout(()=>g.classList.remove("reject"),1500);}
   const pi=order.indexOf(m.producer);if(pi>=0)setEdge(pi,"reject");logLine("↩ "+m.reason,m.gate);}
 function finish(){running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run FABRIC";}
+async function loadHistory(){try{const runs=await(await fetch("/api/runs")).json();const h=$("#history");
+  h.innerHTML='<option value="">↺ Recent runs ('+runs.length+')…</option>'+runs.map(r=>`<option value="${r.id}">${(r.problem||"").slice(0,42)} · ${r.mode}</option>`).join("");}catch(e){}}
+async function openSaved(id){if(!id)return;let rec;try{rec=await(await fetch("/api/run?id="+id)).json();}catch(e){return;}
+  if(!rec||!rec.stages)return;buildPipeline(rec.stages);autoFollow=false;
+  setTimeout(()=>{order.forEach((sid,i)=>{const n=$("#n-"+sid);if(n){n.classList.remove("idle","run");n.classList.add("done");
+      const b=n.querySelector(".b");if(b)b.textContent=n.classList.contains("gate")?"⚑":"✓";}if(i>0)setEdge(i-1,"done");});
+    Object.entries(rec.deliverables||{}).forEach(([sid,o])=>{outputs[sid]=o;});
+    Object.entries(rec.grounding||{}).forEach(([sid,g])=>showGround({stage:sid,status:g.status,checks:g.checks}));
+    const first=order.find(s=>outputs[s]);if(first)showDetail(first);
+    logLine("loaded saved run "+id.slice(0,8)+" from memory","_");},70);}
 let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(drawEdges,120);});
 (async function(){initChips();try{const c=await(await fetch("/api/config")).json();hasKey=c.hasKey;}catch(e){}
   if(!hasKey)$("#livePill").textContent="set ANTHROPIC_API_KEY";setMode(false);
   $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;
-  $("#problem").addEventListener("keydown",e=>{if(e.key==="Enter")run();});})();
+  $("#history").onchange=e=>openSaved(e.target.value);
+  $("#problem").addEventListener("keydown",e=>{if(e.key==="Enter")run();});
+  loadHistory();})();
 </script>
 </body>
 </html>
