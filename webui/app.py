@@ -134,25 +134,19 @@ def emit(q, obj):
     q.put(obj)
 
 
-def run_validate_stage(q, problem, live):
-    """Real tool: write a representative IOS-XR config and run config_lint on it."""
-    cfg = f"""! Generated config (FABRIC Console demo) for: {problem[:60]}
-hostname PE-EDGE
-interface Loopback0
- description router-id / SR prefix-SID 16001
- ipv4 address 10.255.0.1 255.255.255.255
-interface GigabitEthernet0/0/0/0
- description to:CORE [core]
- ipv4 address 10.0.0.0 255.255.255.254
- mtu 9216
- no shutdown
-router bgp 65000
- bgp router-id 10.255.0.1
- neighbor 192.0.2.2
-  remote-as 65010
-  ttl-security
-end
-"""
+def demo_config(attempt):
+    """Demo config-engineer output. Attempt 1 has a real, fixable defect (guessable SNMP community)
+    that config_lint catches -> Validator rejects -> attempt 2 fixes it -> PASS. Makes the gate real."""
+    snmp = ("snmp-server community public RO\n" if attempt == 1
+            else "snmp-server host 10.30.0.10 traps version 3 priv\n")
+    return (f"hostname PE1\n{snmp}"
+            "interface Loopback0\n description router-id / SR prefix-SID 16001\n ipv4 address 10.255.0.1 255.255.255.255\n"
+            "interface GigabitEthernet0/0/0/0\n description to:CORE [core]\n ipv4 address 10.0.0.0 255.255.255.254\n mtu 9216\n no shutdown\n"
+            "router bgp 65000\n bgp router-id 10.255.0.1\n neighbor 192.0.2.2\n  remote-as 65010\n  ttl-security\nend\n")
+
+
+def validate_cfg(q, cfg):
+    """Real validator gate: run config_lint on the given config. Returns (verdict, output)."""
     with tempfile.NamedTemporaryFile("w", suffix=".cfg", delete=False) as fh:
         fh.write(cfg)
         path = fh.name
@@ -160,18 +154,16 @@ end
     try:
         proc = subprocess.run([sys.executable, LINT, path, "--vendor", "ios-xr"],
                               capture_output=True, text=True, timeout=30)
-        out = (proc.stdout or "") + (proc.stderr or "")
-        for line in out.strip().splitlines():
+        out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+        for line in out.splitlines():
             emit(q, {"type": "log", "stage": "validate", "text": line})
-            time.sleep(0.05)
+            time.sleep(0.04)
         verdict = "PASS" if proc.returncode == 0 else "FAIL"
-        emit(q, {"type": "output", "stage": "validate",
-                 "title": "Validator gate (real config_lint run)",
-                 "content": f"```\n{out.strip()}\n```\n\n**VERDICT: {verdict}** — no config ships until this passes (House Rule 2)."})
-        emit(q, {"type": "grounding", "stage": "validate",
-                 "status": "grounded" if verdict == "PASS" else "blocked",
+        emit(q, {"type": "output", "stage": "validate", "title": "Validator gate (real config_lint run)",
+                 "content": f"```\n{out}\n```\n\n**VERDICT: {verdict}** — no config ships until this passes (House Rule 2)."})
+        emit(q, {"type": "grounding", "stage": "validate", "status": "grounded" if verdict == "PASS" else "blocked",
                  "checks": [{"kind": "config", "item": "config_lint", "verdict": verdict, "note": "deterministic validator gate"}]})
-        return verdict
+        return verdict, out
     finally:
         try:
             os.unlink(path)
@@ -241,44 +233,134 @@ def real_system_prompt(agent):
             f"=== AGENT ===\n{agent_md}\n\n=== SKILL ===\n{skill_md}\n\n=== HOUSE RULES (excerpt) ===\n{house}")
 
 
-def llm_stage(q, stage, problem, ctx, live):
-    sid = stage["id"]
+def gen(stage, problem, ctx, live, extra=""):
+    """Produce a stage's text — real Claude (Live, with the real agent+skill) or demo content."""
     if live and has_key():
         system = real_system_prompt(stage["agent"])
-        prior = "\n".join(f"- {k}: {v[:240]}" for k, v in ctx.items())
-        prompt = f"Network problem:\n{problem}\n\nPrior stage outputs:\n{prior}\n\nProduce your stage's deliverable."
-        emit(q, {"type": "log", "stage": sid, "text": f"calling Claude ({MODEL}) as {stage['agent']} (real agent + skill loaded)…"})
-        text = call_claude(system, prompt) or demo_content(sid, problem, ctx)
-    else:
-        for step in ("loading agent + skill", "reasoning", "drafting deliverable"):
-            emit(q, {"type": "log", "stage": sid, "text": f"[{stage['agent']}] {step}…"})
-            time.sleep(0.45)
-        text = demo_content(sid, problem, ctx)
-    ctx[sid] = text
-    emit(q, {"type": "output", "stage": sid, "title": f"{stage['label']} · {stage['agent']}", "content": text})
-    # Anti-hallucination gate: ground every claim before it reaches the user.
+        prior = "\n".join(f"- {k}: {v[:240]}" for k, v in ctx.items() if not k.startswith("__"))
+        prompt = f"Network problem:\n{problem}\n\nPrior stage outputs:\n{prior}\n{extra}\n\nProduce your stage's deliverable."
+        emit(q_global.get(), {"type": "log", "stage": stage["id"], "text": f"calling Claude ({MODEL}) as {stage['agent']}…"})
+        return call_claude(system, prompt) or demo_content(stage["id"], problem, ctx)
+    for step in ("loading agent + skill", "reasoning", "drafting deliverable"):
+        emit(q_global.get(), {"type": "log", "stage": stage["id"], "text": f"[{stage['agent']}] {step}…"})
+        time.sleep(0.4)
+    return demo_content(stage["id"], problem, ctx)
+
+
+class q_global:
+    """Tiny thread-local-ish holder so gen() can emit without threading the queue everywhere."""
+    _q = None
+    @classmethod
+    def set(cls, q): cls._q = q
+    @classmethod
+    def get(cls): return cls._q
+
+
+def emit_text_stage(q, stage, problem, ctx, live, extra=""):
+    text = gen(stage, problem, ctx, live, extra)
+    ctx[stage["id"]] = text
+    emit(q, {"type": "output", "stage": stage["id"], "title": f"{stage['label']} · {stage['agent']}", "content": text})
     status, checks = grounding.ground_text(text)
-    emit(q, {"type": "grounding", "stage": sid, "status": status, "checks": checks})
+    emit(q, {"type": "grounding", "stage": stage["id"], "status": status, "checks": checks})
+    return text
+
+
+def critic_eval(q, problem, ctx, live, attempt):
+    """The Critic gate. Demo: pass 1 -> ACCEPT-WITH-FIXES (findings), pass 2 -> ACCEPT.
+    Returns (accept, findings_text)."""
+    if live and has_key():
+        sys_p = real_system_prompt("critic")
+        verdict = call_claude(sys_p, f"Problem:\n{problem}\n\nHLD to review:\n{ctx.get('hld','')}\n\n"
+                              "Return VERDICT: ACCEPT or ACCEPT-WITH-FIXES, then a short severity-tagged defect list.") or ""
+        accept = "ACCEPT-WITH-FIXES" not in verdict.upper() and "REJECT" not in verdict.upper()
+        return accept, verdict
+    if attempt == 1:
+        return False, ("**VERDICT: ACCEPT-WITH-FIXES** (separate adversarial agent)\n\n"
+                       "- [HIGH] failure/convergence claim must state its hardware (BFD-in-HW) dependency.\n"
+                       "- [MEDIUM] MTU budget + rollback coverage not explicit.\n\nRouting back to the designer.")
+    return True, "**VERDICT: ACCEPT** — the revised HLD clears the earlier findings."
 
 
 def run_pipeline(run_id, problem, mode):
     q = RUNS[run_id]
+    q_global.set(q)
     live = (mode == "live")
+    by_id = {s["id"]: s for s in STAGES}
     emit(q, {"type": "meta", "mode": ("live" if live and has_key() else "demo"),
              "problem": problem, "stages": [{k: s[k] for k in ("id", "label", "agent", "phase", "kind")} for s in STAGES]})
     ctx = {}
+
+    def start(sid): emit(q, {"type": "stage", "id": sid, "status": "running"}); time.sleep(0.2)
+    def done(sid): emit(q, {"type": "stage", "id": sid, "status": "done"})
+
     try:
         for stage in STAGES:
-            emit(q, {"type": "stage", "id": stage["id"], "status": "running"})
-            time.sleep(0.2)
-            if stage["kind"] == "tool-validate":
-                run_validate_stage(q, problem, live)
+            sid = stage["id"]
+
+            if sid == "critic":
+                # Gate: review the HLD; if it doesn't pass, bounce back to the designer and revise.
+                start("critic")
+                accept, findings = critic_eval(q, problem, ctx, live, attempt=1)
+                emit(q, {"type": "output", "stage": "critic", "title": "Critic gate · critic", "content": findings})
+                emit(q, {"type": "grounding", "stage": "critic", **dict(zip(["status", "checks"], grounding.ground_text(findings)))})
+                if not accept:
+                    emit(q, {"type": "reject", "gate": "critic", "producer": "hld",
+                             "reason": "Critic returned ACCEPT-WITH-FIXES — revising the HLD"})
+                    emit(q, {"type": "log", "stage": "critic", "text": "⛔ gate not clear → routing back to designer-hld"})
+                    time.sleep(0.5)
+                    start("hld")
+                    emit_text_stage(q, by_id["hld"], problem, ctx, live,
+                                    extra="Revise the HLD to clear the Critic findings (state HW dependency; add MTU budget + rollback).")
+                    if not (live and has_key()):
+                        ctx["hld"] += "\n\n**Revision (v2):** convergence claim now states its BFD-in-HW dependency; MTU budget + per-step rollback added."
+                        emit(q, {"type": "output", "stage": "hld", "title": "HLD · designer-hld (revised v2)", "content": ctx["hld"]})
+                    done("hld")
+                    start("critic")
+                    _, ok = critic_eval(q, problem, ctx, live, attempt=2)
+                    emit(q, {"type": "output", "stage": "critic", "title": "Critic gate · critic (re-review)", "content": ok})
+                    emit(q, {"type": "log", "stage": "critic", "text": "✓ gate clear after revision"})
+                done("critic")
+
+            elif sid == "config":
+                start("config")
+                cfg = demo_config(1) if not (live and has_key()) else (gen(stage, problem, ctx, live) or demo_config(1))
+                ctx["__cfg__"] = cfg
+                emit(q, {"type": "output", "stage": "config", "title": "Config · config-engineer",
+                         "content": "Generated device config (IOS-XR), staged lockout-safe. Goes to the Validator next.\n\n```\n" + cfg + "```"})
+                emit(q, {"type": "grounding", **dict(zip(["status", "checks"], grounding.ground_text(cfg))), "stage": "config"})
+                done("config")
+
+            elif sid == "validate":
+                start("validate")
+                verdict, out = validate_cfg(q, ctx.get("__cfg__", ""))
+                if verdict == "FAIL":
+                    emit(q, {"type": "reject", "gate": "validate", "producer": "config",
+                             "reason": "config_lint FAIL — sending back to config-engineer to fix"})
+                    emit(q, {"type": "log", "stage": "validate", "text": "⛔ FAIL → routing back to config-engineer"})
+                    time.sleep(0.5)
+                    start("config")
+                    cfg2 = demo_config(2)
+                    ctx["__cfg__"] = cfg2
+                    emit(q, {"type": "log", "stage": "config", "text": "[config-engineer] applying fix: replace guessable SNMP community"})
+                    emit(q, {"type": "output", "stage": "config", "title": "Config · config-engineer (fixed v2)",
+                             "content": "Validator rejected v1. Fixed the flagged defect.\n\n```\n" + cfg2 + "```"})
+                    emit(q, {"type": "grounding", **dict(zip(["status", "checks"], grounding.ground_text(cfg2))), "stage": "config"})
+                    done("config")
+                    start("validate")
+                    verdict, out = validate_cfg(q, ctx["__cfg__"])
+                done("validate")
+
             elif stage["kind"] == "tool-standards":
+                start("standards")
                 run_standards_stage(q, problem)
+                done("standards")
+
             else:
-                llm_stage(q, stage, problem, ctx, live)
-            emit(q, {"type": "stage", "id": stage["id"], "status": "done"})
-        emit(q, {"type": "log", "stage": "_", "text": "✅ Converged — deliverable stack ready."})
+                start(sid)
+                emit_text_stage(q, stage, problem, ctx, live)
+                done(sid)
+
+        emit(q, {"type": "log", "stage": "_", "text": "✅ Converged — every gate cleared, deliverable stack ready."})
     except Exception as e:
         emit(q, {"type": "log", "stage": "_", "text": f"error: {e}"})
     finally:

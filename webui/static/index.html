@@ -45,7 +45,11 @@
   .edge{fill:none;stroke:var(--edge);stroke-width:2;transition:stroke .3s}
   .edge.live{stroke:var(--accent2);stroke-width:2.6;stroke-dasharray:7 7;animation:march .55s linear infinite;filter:drop-shadow(0 0 4px rgba(54,224,200,.8))}
   .edge.done{stroke:var(--ok)}
+  .edge.reject{stroke:var(--bad);stroke-width:2.6;stroke-dasharray:6 6;animation:marchrev .55s linear infinite;filter:drop-shadow(0 0 4px rgba(255,107,138,.75))}
   @keyframes march{to{stroke-dashoffset:-28}}
+  @keyframes marchrev{to{stroke-dashoffset:28}}
+  .node.reject{animation:rejflash .7s ease 2}
+  @keyframes rejflash{0%,100%{box-shadow:0 8px 30px rgba(0,0,0,.2)}50%{box-shadow:0 0 0 3px rgba(255,107,138,.6),0 0 18px rgba(255,107,138,.5)}}
   .phases{display:flex;gap:54px;width:100%;justify-content:space-between;position:relative;z-index:2;padding:8px 8px}
   .col{flex:1;min-width:120px;display:flex;flex-direction:column;gap:26px}
   .ph{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);text-align:center;opacity:.85;margin-bottom:-12px}
@@ -203,8 +207,11 @@ async function run(){if(running)return;const problem=$("#problem").value.trim();
     else if(m.type==="log")logLine(m.text,m.stage);
     else if(m.type==="output")storeOutput(m);
     else if(m.type==="grounding")showGround(m);
+    else if(m.type==="reject")onReject(m);
     else if(m.type==="done"){es.close();finish();}};
   es.onerror=()=>{es.close();finish();};}
+function onReject(m){const g=$("#n-"+m.gate);if(g){g.classList.add("reject");setTimeout(()=>g.classList.remove("reject"),1500);}
+  const pi=order.indexOf(m.producer);if(pi>=0)setEdge(pi,"reject");logLine("↩ "+m.reason,m.gate);}
 function finish(){running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run FABRIC";}
 let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(drawEdges,120);});
 (async function(){initChips();try{const c=await(await fetch("/api/config")).json();hasKey=c.hasKey;}catch(e){}
