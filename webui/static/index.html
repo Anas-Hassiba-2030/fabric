@@ -52,9 +52,11 @@
   .edge.done{stroke:var(--ok)}
   .edge.reject{stroke:var(--bad);stroke-width:2.6;stroke-dasharray:6 6;animation:marchrev .5s linear infinite;filter:drop-shadow(0 0 5px rgba(255,107,138,.85))}
   @keyframes march{to{stroke-dashoffset:-28}}@keyframes marchrev{to{stroke-dashoffset:28}}
-  .rows{display:flex;flex-direction:column;gap:48px;position:relative;z-index:2;padding:20px 10px}
-  .row{display:flex;gap:62px;justify-content:center}.row.rev{flex-direction:row-reverse}
-  .node{position:relative;width:176px;border:1px solid var(--brd);border-radius:14px;padding:13px 14px 12px;cursor:pointer;
+  .rows{display:flex;gap:34px;justify-content:center;align-items:flex-start;position:relative;z-index:2;padding:16px 10px}
+  .group{display:flex;flex-direction:column;border:1px solid var(--gc,rgba(255,255,255,.12));border-radius:15px;background:var(--gb,rgba(255,255,255,.025));padding:0 12px 14px}
+  .ghead{font-size:12.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;text-align:center;padding:9px 6px;margin:0 -12px 16px;border-radius:14px 14px 0 0;color:#06121f}
+  .gnodes{display:flex;flex-direction:column;gap:22px}
+  .node{position:relative;width:158px;border:1px solid var(--brd);border-radius:14px;padding:12px 13px;cursor:pointer;
     background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));transition:transform .2s,border-color .2s,box-shadow .25s;overflow:hidden}
   .node:hover{transform:translateY(-2px);border-color:var(--accent)}
   .node .tab{position:absolute;top:0;left:0;right:0;height:3px}
@@ -147,20 +149,24 @@ function buildPipeline(stages){
   outputs={};grounds={};selected=null;order=stages.map(s=>s.id);edgeState={};rejectArcs=[];autoFollow=true;
   const flow=$("#flow");flow.innerHTML="";
   const svg=document.createElementNS(SVGNS,"svg");svg.setAttribute("class","edges");svg.id="edges";flow.appendChild(svg);
-  const rows=document.createElement("div");rows.className="rows";rows.id="rows";
-  // legend
+  $("#legend").innerHTML="";  // phases are now self-labeled by each group's header
+  const wrap=document.createElement("div");wrap.className="rows";wrap.id="rows";
   const phases=[...new Set(stages.map(s=>s.phase))];
-  $("#legend").innerHTML=phases.map(p=>`<span><i style="background:var(${PHC[p]})"></i>${p}</span>`).join("");
-  // serpentine rows
-  for(let i=0;i<stages.length;i+=PER_ROW){
-    const chunk=stages.slice(i,i+PER_ROW);const row=document.createElement("div");
-    row.className="row"+(((i/PER_ROW)|0)%2?" rev":"");
-    chunk.forEach(s=>{const n=document.createElement("div");n.className="node idle"+(s.kind==="gate"?" gate":"");n.id="n-"+s.id;
-      n.innerHTML=`<div class="tab" style="background:var(${PHC[s.phase]})"></div><div class="nm">${s.label}</div><div class="ag">${s.agent}</div><div class="b"></div><div class="g" id="g-${s.id}"></div>`;
-      n.onclick=()=>{autoFollow=false;showDetail(s.id);};row.appendChild(n);});
-    rows.appendChild(row);
-  }
-  flow.appendChild(rows);requestAnimationFrame(drawEdges);
+  phases.forEach(ph=>{
+    const c=`var(${PHC[ph]})`;
+    const group=document.createElement("div");group.className="group";
+    group.style.setProperty("--gc",`color-mix(in srgb, ${c} 45%, transparent)`);
+    group.style.setProperty("--gb",`color-mix(in srgb, ${c} 9%, transparent)`);
+    const head=document.createElement("div");head.className="ghead";head.textContent=ph;head.style.background=c;
+    group.appendChild(head);
+    const nodes=document.createElement("div");nodes.className="gnodes";
+    stages.filter(s=>s.phase===ph).forEach(s=>{const n=document.createElement("div");
+      n.className="node idle"+(s.kind==="gate"?" gate":"");n.id="n-"+s.id;
+      n.innerHTML=`<div class="nm">${s.label}</div><div class="ag">${s.agent}</div><div class="b"></div><div class="g" id="g-${s.id}"></div>`;
+      n.onclick=()=>{autoFollow=false;showDetail(s.id);};nodes.appendChild(n);});
+    group.appendChild(nodes);wrap.appendChild(group);
+  });
+  flow.appendChild(wrap);requestAnimationFrame(drawEdges);
 }
 function center(r,fr,sl,st){return {l:r.left-fr.left+sl,t:r.top-fr.top+st,w:r.width,h:r.height};}
 function curve(a,b){
