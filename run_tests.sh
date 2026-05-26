@@ -42,6 +42,9 @@ if "$PY" webui/test_trust.py >/tmp/_trust.out 2>&1; then ok "trust report faithf
 step "Run export proof (no API key)"
 if "$PY" webui/test_export.py >/tmp/_exp.out 2>&1; then ok "run export bundles the stack (order, deliverables, grounding, trust)"; else bad "run export"; cat /tmp/_exp.out; fi
 
+step "What-if compare proof (no API key)"
+if "$PY" webui/test_whatif.py >/tmp/_wif.out 2>&1; then ok "what-if compare diffs runs (changed/same/only, metrics, deltas)"; else bad "what-if compare"; cat /tmp/_wif.out; fi
+
 step "Live-mode wiring proof (mocked Claude, no API key)"
 if "$PY" webui/test_live.py >/tmp/_live.out 2>&1; then ok "live wiring chains, gates bite, hallucination caught"; else bad "live wiring"; cat /tmp/_live.out; fi
 

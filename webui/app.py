@@ -38,6 +38,7 @@ import recall  # noqa: E402
 import tco  # noqa: E402
 import topology  # noqa: E402
 import trust  # noqa: E402
+import whatif  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -578,8 +579,15 @@ class Handler(BaseHTTPRequestHandler):
                 {"status": "ok", "version": VERSION, "active_runs": len(RUNS), "hasKey": has_key(), "auth": bool(TOKEN)}).encode())
         if u.path == "/api/config":
             return self._send(200, "application/json", json.dumps({"hasKey": has_key(), "model": MODEL, "auth": bool(TOKEN)}).encode())
-        if u.path in ("/api/stream", "/api/runs", "/api/run", "/api/export") and not self._authed(u):
+        if u.path in ("/api/stream", "/api/runs", "/api/run", "/api/export", "/api/compare") and not self._authed(u):
             return self._send(401, "application/json", b'{"error":"unauthorized"}')
+        if u.path == "/api/compare":
+            qs = parse_qs(u.query)
+            ra, rb = load_run(qs.get("a", [""])[0]), load_run(qs.get("b", [""])[0])
+            if not ra or not rb:
+                return self._send(404, "application/json", b'{"error":"run not found"}')
+            return self._send(200, "application/json", json.dumps(
+                {"diff": whatif.compare(ra, rb), "a": ra, "b": rb}).encode())
         if u.path == "/api/export":
             rec = load_run(parse_qs(u.query).get("id", [""])[0])
             if not rec:

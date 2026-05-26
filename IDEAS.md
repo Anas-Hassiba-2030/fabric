@@ -34,8 +34,10 @@ Nothing here is built unless it says "DONE".
 ## Smarter orchestration
 - **P1 — Multi-model routing.** Opus 4.7 for heavy reasoning (HLD, Critic, RCA); Sonnet/Haiku for cheap
   stages (formatting, BoM tables) — better cost/speed without losing quality. (Engine default already Opus 4.7.)
-- **P2 — What-if / compare designs.** Re-run with a changed constraint and **diff** the two designs
-  side-by-side (e.g. "SR-MPLS vs SRv6", "2 RRs vs 4").
+- **DONE — What-if / compare designs.** `⤳ What-if` re-runs with one changed constraint and
+  auto-opens a side-by-side **diff** of the two stacks; `⇄ Compare` picks any two saved runs.
+  Per-stage changed/same/only badges + line deltas + trust/grounding metric comparison.
+  `webui/whatif.py` + `/api/compare`, proven by `webui/test_whatif.py`; UI verified via screenshots.
 - **DONE — Memory RAG.** At run start, Discovery recalls the most relevant prior knowledge —
   patterns (semantic), customer files (episodic), and past saved runs — by network-term overlap and
   cites them (curated knowledge ranked first; no false positives). `webui/recall.py`, surfaced atop
