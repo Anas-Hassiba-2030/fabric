@@ -31,6 +31,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import analytics  # noqa: E402
 import blueprints  # noqa: E402
 import clarify  # noqa: E402
 import distill  # noqa: E402
@@ -584,8 +585,20 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, "application/json", json.dumps({"hasKey": has_key(), "model": MODEL, "auth": bool(TOKEN)}).encode())
         if u.path == "/api/blueprints":
             return self._send(200, "application/json", json.dumps(blueprints.all()).encode())
-        if u.path in ("/api/stream", "/api/runs", "/api/run", "/api/export", "/api/compare") and not self._authed(u):
+        if u.path in ("/api/stream", "/api/runs", "/api/run", "/api/export", "/api/compare", "/api/analytics") and not self._authed(u):
             return self._send(401, "application/json", b'{"error":"unauthorized"}')
+        if u.path == "/api/analytics":
+            recs = []
+            for e in list_runs():
+                r = load_run(e.get("id", ""))
+                if r:
+                    recs.append(r)
+            summary = analytics.summarize(recs)
+            try:
+                summary["patterns"] = len([f for f in os.listdir(PATTERNS) if f.endswith(".md")])
+            except Exception:
+                summary["patterns"] = 0
+            return self._send(200, "application/json", json.dumps(summary).encode())
         if u.path == "/api/compare":
             qs = parse_qs(u.query)
             ra, rb = load_run(qs.get("a", [""])[0]), load_run(qs.get("b", [""])[0])

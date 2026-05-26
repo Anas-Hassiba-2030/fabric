@@ -4,6 +4,12 @@ A living catalog of capabilities that make the result better, more trustworthy, 
 Priority: **P0** = do next, **P1** = high value soon, **P2** = later, **★** = signature / astonishing.
 Nothing here is built unless it says "DONE".
 
+## Analytics
+- **DONE (Phase 1) — Cross-run analytics dashboard.** `📊 Analytics` aggregates every saved run: total
+  runs, live/demo split, claims grounded, hallucinations caught, patterns learned, avg stages, trust
+  distribution, the grounding net (grounded/flagged/blocked), config-gate pass/fail, and most-worked
+  technologies. `webui/analytics.py` + `/api/analytics`, proven by `webui/test_analytics.py`.
+
 ## Console / interface
 - **DONE — Console redesign (modern, animated).** The orchestration pipeline is a compact **horizontal
   rail** (Orchestrator on top, phases left→right, icon cards, animated flowing connectors + red
