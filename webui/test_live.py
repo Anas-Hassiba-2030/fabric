@@ -74,7 +74,7 @@ def main():
 
     print("=== LIVE-mode wiring (mocked Claude, no key) ===")
     check("meta emitted (pipeline booted in live)", bool(meta) and meta[0]["mode"] == "live")
-    check("all 12 stages completed", len(set(done)) == 12)
+    check("all 13 stages completed", len(set(done)) == 13)
     check("Critic bounced HLD back then accepted", ("critic", "hld") in rejects and _state["critic"] >= 2)
     check("Validator rejected the bad config", ("validate", "config") in rejects)
     check("Validator verdicts went FAIL -> PASS (real fix loop)", vverdicts[:2] == ["FAIL", "PASS"] or ("FAIL" in vverdicts and vverdicts[-1] == "PASS"))

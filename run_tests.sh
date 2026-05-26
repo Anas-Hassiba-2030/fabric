@@ -30,6 +30,9 @@ if "$PY" webui/test_clarify.py >/tmp/_clar.out 2>&1; then ok "clarify-gate holds
 step "Auto topology diagram proof (no API key)"
 if "$PY" webui/test_topology.py >/tmp/_topo.out 2>&1; then ok "auto topology renders valid Mermaid (core+redundancy, DC vs SP)"; else bad "auto topology"; cat /tmp/_topo.out; fi
 
+step "Cost/TCO + risk register honesty proof (no API key)"
+if "$PY" webui/test_tco.py >/tmp/_tco.out 2>&1; then ok "cost/TCO honest (drivers sourced, no invented currency, risks adapt)"; else bad "cost/TCO"; cat /tmp/_tco.out; fi
+
 step "Trust report fidelity proof (no API key)"
 if "$PY" webui/test_trust.py >/tmp/_trust.out 2>&1; then ok "trust report faithful (grounded/flagged/blocked, ledger, confidence)"; else bad "trust report"; cat /tmp/_trust.out; fi
 

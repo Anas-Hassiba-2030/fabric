@@ -33,6 +33,7 @@ from urllib.parse import urlparse, parse_qs
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import clarify  # noqa: E402
 import grounding  # noqa: E402
+import tco  # noqa: E402
 import topology  # noqa: E402
 import trust  # noqa: E402
 
@@ -97,6 +98,7 @@ STAGES = [
     {"id": "config",    "label": "Config",       "agent": "config-engineer",  "phase": "Implement","kind": "llm"},
     {"id": "validate",  "label": "Validator gate","agent": "validator",       "phase": "Implement","kind": "tool-validate"},
     {"id": "bom",       "label": "BoM",          "agent": "bom-commercials",  "phase": "Sell",     "kind": "llm"},
+    {"id": "cost",      "label": "Cost & Risk",  "agent": "bom-commercials",  "phase": "Sell",     "kind": "tool-cost"},
     {"id": "sow",       "label": "SoW",          "agent": "sow-writer",       "phase": "Sell",     "kind": "llm"},
     {"id": "exec",      "label": "Exec one-pager","agent": "exec-storyteller","phase": "Sell",     "kind": "llm"},
     {"id": "migration", "label": "Migration",    "agent": "migration-planner","phase": "Operate",  "kind": "llm"},
@@ -485,6 +487,17 @@ def run_pipeline(run_id, problem, mode):
                     verdict, out = validate_cfg(q, ctx["__cfg__"])
                     attempt += 1
                 done("validate")
+
+            elif stage["kind"] == "tool-cost":
+                # Design-driven TCO drivers + risk register. No currency is invented (House Rule 4);
+                # grounding still runs so any flagged figure feeds the trust report.
+                start("cost")
+                text = tco.render(problem)
+                ctx["cost"] = text
+                emit(q, {"type": "output", "stage": "cost", "title": "Cost & Risk · bom-commercials", "content": text})
+                status, checks = grounding.ground_text(text)
+                emit(q, {"type": "grounding", "stage": "cost", "status": status, "checks": checks})
+                done("cost")
 
             elif stage["kind"] == "tool-standards":
                 start("standards")

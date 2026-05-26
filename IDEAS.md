@@ -35,7 +35,10 @@ Nothing here is built unless it says "DONE". The interface is tracked separately
   hardened to emit Mermaid-valid subgraph ids), proven by `webui/test_topology.py`. _SVG/PNG export
   still open._
 - **P1 — Export to real formats.** BoM → XLSX, Exec one-pager → PPTX/PDF, SoW → DOCX (today: Markdown, DONE).
-- **P1 — Cost/TCO + risk register** generated from the design (capex/opex/risk-cost, flagged unverified).
+- **DONE (P1) — Cost/TCO + risk register.** A `Cost & Risk` stage generates capex/opex TCO drivers
+  (each naming its figure source: BoM/SoW/quote/customer) and a design-adaptive risk register
+  (likelihood/impact/mitigation/owner) — with **no invented currency** (House Rule 4). `webui/tco.py`,
+  proven by `webui/test_tco.py` (asserts no fabricated `$`).
 - **P2 — Audience reframing.** One toggle to re-voice the exec summary for CFO / CISO / NOC.
 - **P2 — Compliance pack.** NIST/CIS/PCI matrix as a standalone signed report.
 
