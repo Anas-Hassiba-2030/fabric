@@ -273,6 +273,7 @@
       <div class="chips" id="chips" style="flex:1"></div>
       <button class="minibtn" id="blueprintBtn" title="Start from a ready-made engagement blueprint">⊞ Blueprints</button>
       <button class="minibtn" id="whatifBtn" disabled title="Re-run with one changed constraint, then compare">⤳ What-if</button>
+      <button class="minibtn" id="patternBtn" disabled title="Accept this run and distil it into a reusable pattern in memory">★ Save pattern</button>
       <button class="minibtn" id="compareBtn" title="Compare two saved runs side by side">⇄ Compare</button>
       <select id="history" class="hist" title="Reload a saved run"><option value="">↺ Recent runs…</option></select>
     </div>
@@ -468,7 +469,7 @@ async function run(){if(running)return;const problem=$("#problem").value.trim();
   es.onerror=()=>{es.close();finish();};}
 function finish(){running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";
   $("#exportBtn").disabled=!order.some(s=>outputs[s]);$("#orchLive").textContent="idle";
-  $("#whatifBtn").disabled=!lastSavedId;
+  $("#whatifBtn").disabled=!lastSavedId;$("#patternBtn").disabled=!lastSavedId;
   if(pendingFork&&lastSavedId&&lastSavedId!==pendingFork.base){const a=pendingFork.base,b=lastSavedId;pendingFork=null;setTimeout(()=>openCompareUI(a,b),350);}}
 function exportRun(){if(!order.length)return;let md_="# WRATH run\n\n**Problem:** "+($("#problem").value||"")+"\n\n";
   order.forEach(sid=>{const o=outputs[sid];if(!o)return;const g=grounds[sid];md_+="## "+o.title+"\n\n";
@@ -476,7 +477,7 @@ function exportRun(){if(!order.length)return;let md_="# WRATH run\n\n**Problem:*
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([md_],{type:"text/markdown"}));a.download="wrath-run.md";a.click();URL.revokeObjectURL(a.href);}
 async function loadHistory(){try{const runs=await(await fetch(withTok("/api/runs"))).json();const h=$("#history");h.innerHTML='<option value="">↺ Recent runs ('+runs.length+')…</option>'+runs.map(r=>`<option value="${r.id}">${(r.problem||"").slice(0,40)} · ${r.mode}</option>`).join("");}catch(e){}}
 async function openSaved(id){if(!id)return;let rec;try{rec=await(await fetch(withTok("/api/run?id="+id))).json();}catch(e){return;}if(!rec||!rec.stages)return;
-  buildPipeline(rec.stages);autoFollow=false;lastSavedId=id;$("#whatifBtn").disabled=false;
+  buildPipeline(rec.stages);autoFollow=false;lastSavedId=id;$("#whatifBtn").disabled=false;$("#patternBtn").disabled=false;
   setTimeout(()=>{order.forEach((sid,i)=>{const n=$("#n-"+sid);if(n){n.classList.remove("idle","run");n.classList.add("done");const b=n.querySelector(".b");if(b)b.textContent=n.classList.contains("gate")?"⚑":"✓";}if(i>0)setEdge(i-1,"done");});
     Object.entries(rec.deliverables||{}).forEach(([sid,o])=>{outputs[sid]=o;});
     Object.entries(rec.grounding||{}).forEach(([sid,g])=>showGround({stage:sid,status:g.status,checks:g.checks}));
@@ -524,6 +525,11 @@ async function openBlueprints(){let list=[];try{list=await(await fetch("/api/blu
     <div class="pr">${b.problem.replace(/</g,"&lt;")}</div></div>`).join("");
   openModal("⊞ Engagement blueprints",`<p style="color:var(--muted);font-size:12px;margin:0 0 14px">Ready-to-run starters — each is complete enough to clear the clarify-gate and go straight to design. Click one to load and run it.</p><div class="bpgrid">${cards}</div>`);
   document.querySelectorAll(".bpcard").forEach(c=>c.onclick=()=>{const b=list.find(x=>x.id===c.dataset.id);if(!b)return;$("#problem").value=b.problem;closeModal();run();});}
+async function savePattern(){if(!lastSavedId)return;let r;
+  try{r=await(await fetch(withTok("/api/distill?id="+lastSavedId),{method:"POST"})).json();}catch(e){logLine("pattern save failed: "+e,"_");return;}
+  if(!r||!r.ok){logLine("pattern save failed","_");return;}
+  logLine("★ distilled to memory → wrath/memory/patterns/"+r.slug+".md (will be recalled next time)","_");
+  openModal("★ Pattern distilled — saved to memory",`<p style="color:var(--muted);font-size:12px;margin:0 0 12px">Saved to <code>wrath/memory/patterns/${r.slug}.md</code>. WRATH will recall this on the next similar problem (House Rule 8 — compounding memory).</p><div class="md">${md(r.markdown)}</div>`,true);}
 function forkWhatIf(){if(!lastSavedId)return;const tweak=prompt("Re-run with one changed constraint (e.g. 'use SRv6 instead of SR-MPLS', '4 route reflectors', 'add HIPAA'):");
   if(!tweak)return;pendingFork={base:lastSavedId};const cur=$("#problem").value.replace(/\s*—\s*what-if:.*$/,"");$("#problem").value=cur+" — what-if: "+tweak;run();}
 let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(drawEdges,120);});
@@ -533,7 +539,7 @@ let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(draw
   $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;$("#exportBtn").onclick=exportRun;
   $("#history").onchange=e=>openSaved(e.target.value);
   $("#expDetail").onclick=expandDetail;$("#expLog").onclick=expandLog;$("#modalClose").onclick=closeModal;
-  $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;
+  $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;$("#patternBtn").onclick=savePattern;
   $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
   $("#problem").addEventListener("keydown",e=>{if(e.key==="Enter")run();});loadHistory();})();

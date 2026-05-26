@@ -33,6 +33,7 @@ from urllib.parse import urlparse, parse_qs
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import blueprints  # noqa: E402
 import clarify  # noqa: E402
+import distill  # noqa: E402
 import export_run  # noqa: E402
 import grounding  # noqa: E402
 import recall  # noqa: E402
@@ -55,6 +56,7 @@ VERSION = "0.5.0"
 RUNS = {}   # run_id -> Queue
 REC = {}    # id(queue) -> run record being captured (for memory)
 MEM = os.path.join(REPO, "wrath", "memory", "runs")  # saved runs (compounding memory)
+PATTERNS = os.path.join(REPO, "wrath", "memory", "patterns")  # distilled reusable patterns
 
 
 def save_run(rec):
@@ -624,6 +626,23 @@ class Handler(BaseHTTPRequestHandler):
             RUNS[run_id] = queue.Queue()
             threading.Thread(target=run_pipeline, args=(run_id, problem, mode), daemon=True).start()
             return self._send(200, "application/json", json.dumps({"run_id": run_id}).encode())
+        if u.path == "/api/distill":
+            if not self._authed(u):
+                return self._send(401, "application/json", b'{"error":"unauthorized"}')
+            rec = load_run(parse_qs(u.query).get("id", [""])[0])
+            if not rec:
+                return self._send(404, "application/json", b'{"error":"run not found"}')
+            d = distill.distil(rec)
+            saved = False
+            try:
+                os.makedirs(PATTERNS, exist_ok=True)
+                with open(os.path.join(PATTERNS, d["slug"] + ".md"), "w", encoding="utf-8") as fh:
+                    fh.write(d["markdown"])
+                saved = True
+            except Exception as e:
+                sys.stderr.write(f"distill save failed: {e}\n")
+            return self._send(200, "application/json", json.dumps(
+                {"ok": saved, "slug": d["slug"], "title": d["title"], "markdown": d["markdown"]}).encode())
         self._send(404, "text/plain", b"not found")
 
     def _stream(self, run_id):

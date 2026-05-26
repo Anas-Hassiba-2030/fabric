@@ -28,8 +28,11 @@ Nothing here is built unless it says "DONE".
 - **P1 — Provenance everywhere** (DONE for citations): every factual claim links to its source or is
   marked unverified. Extend to SKUs (vendor EoL pages) and CVDs.
 - **P2 — Adjustable red-team intensity.** A "Critic aggressiveness" dial; optional second adversarial pass.
-- **★ Self-improving pattern library.** Every *accepted* design auto-distills a reusable pattern into
-  memory (`wrath/memory/patterns`), so the system compounds and gets better with each engagement.
+- **DONE (★) — Self-improving pattern library.** `★ Save pattern` distils an accepted run into a
+  reusable, customer-agnostic pattern (shape + only-verified references + provenance) written to
+  `wrath/memory/patterns/`, which Memory RAG then recalls on the next similar problem — the system
+  compounds with each engagement. `webui/distill.py` + `POST /api/distill`, proven by
+  `webui/test_distill.py`; loop verified end-to-end (save → recalled next run) via screenshots.
 
 ## Smarter orchestration
 - **P1 — Multi-model routing.** Opus 4.7 for heavy reasoning (HLD, Critic, RCA); Sonnet/Haiku for cheap

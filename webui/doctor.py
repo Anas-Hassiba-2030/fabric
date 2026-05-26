@@ -56,6 +56,7 @@ run("trust report fidelity proof", [sys.executable, "webui/test_trust.py"])
 run("run export proof", [sys.executable, "webui/test_export.py"])
 run("what-if compare proof", [sys.executable, "webui/test_whatif.py"])
 run("engagement blueprints proof", [sys.executable, "webui/test_blueprints.py"])
+run("self-improving pattern distil proof", [sys.executable, "webui/test_distill.py"])
 run("live-mode wiring proof (mocked)", [sys.executable, "webui/test_live.py"])
 run("config_lint self-test", [sys.executable, ".claude/skills/config-audit/scripts/config_lint.py", "--self-test"])
 

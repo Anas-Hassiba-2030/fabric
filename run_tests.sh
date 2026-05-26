@@ -48,6 +48,9 @@ if "$PY" webui/test_whatif.py >/tmp/_wif.out 2>&1; then ok "what-if compare diff
 step "Engagement blueprints proof (no API key)"
 if "$PY" webui/test_blueprints.py >/tmp/_bp.out 2>&1; then ok "blueprints complete + clear the clarify-gate"; else bad "blueprints"; cat /tmp/_bp.out; fi
 
+step "Self-improving pattern distil proof (no API key)"
+if "$PY" webui/test_distill.py >/tmp/_dst.out 2>&1; then ok "accepted runs distil into reusable, RAG-discoverable patterns"; else bad "pattern distil"; cat /tmp/_dst.out; fi
+
 step "Live-mode wiring proof (mocked Claude, no API key)"
 if "$PY" webui/test_live.py >/tmp/_live.out 2>&1; then ok "live wiring chains, gates bite, hallucination caught"; else bad "live wiring"; cat /tmp/_live.out; fi
 
