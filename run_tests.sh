@@ -48,6 +48,9 @@ if "$PY" webui/test_whatif.py >/tmp/_wif.out 2>&1; then ok "what-if compare diff
 step "Engagement blueprints proof (no API key)"
 if "$PY" webui/test_blueprints.py >/tmp/_bp.out 2>&1; then ok "blueprints complete + clear the clarify-gate"; else bad "blueprints"; cat /tmp/_bp.out; fi
 
+step "Inbox (saved results) proof (no API key)"
+if "$PY" webui/test_inbox.py >/tmp/_ib.out 2>&1; then ok "inbox saves/edits/removes/persists"; else bad "inbox"; cat /tmp/_ib.out; fi
+
 step "Cross-run analytics proof (no API key)"
 if "$PY" webui/test_analytics.py >/tmp/_an.out 2>&1; then ok "analytics aggregate faithfully (runs, trust, grounding, tags)"; else bad "analytics"; cat /tmp/_an.out; fi
 

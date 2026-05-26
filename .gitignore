@@ -14,5 +14,6 @@ Thumbs.db
 # Keep deliverables/ tracked. Only ignore scratch.
 deliverables/_scratch/
 
-# WRATH Console: saved runs are runtime/local memory, not source.
+# WRATH Console: saved runs + the inbox workspace are runtime/local memory, not source.
 wrath/memory/runs/
+wrath/memory/inbox.json

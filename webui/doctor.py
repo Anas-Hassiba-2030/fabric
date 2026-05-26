@@ -58,6 +58,7 @@ run("what-if compare proof", [sys.executable, "webui/test_whatif.py"])
 run("engagement blueprints proof", [sys.executable, "webui/test_blueprints.py"])
 run("self-improving pattern distil proof", [sys.executable, "webui/test_distill.py"])
 run("cross-run analytics proof", [sys.executable, "webui/test_analytics.py"])
+run("inbox (saved results) proof", [sys.executable, "webui/test_inbox.py"])
 run("live-mode wiring proof (mocked)", [sys.executable, "webui/test_live.py"])
 run("config_lint self-test", [sys.executable, ".claude/skills/config-audit/scripts/config_lint.py", "--self-test"])
 

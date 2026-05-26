@@ -37,6 +37,7 @@ import clarify  # noqa: E402
 import distill  # noqa: E402
 import export_run  # noqa: E402
 import grounding  # noqa: E402
+import inbox  # noqa: E402
 import recall  # noqa: E402
 import tco  # noqa: E402
 import topology  # noqa: E402
@@ -58,6 +59,7 @@ RUNS = {}   # run_id -> Queue
 REC = {}    # id(queue) -> run record being captured (for memory)
 MEM = os.path.join(REPO, "wrath", "memory", "runs")  # saved runs (compounding memory)
 PATTERNS = os.path.join(REPO, "wrath", "memory", "patterns")  # distilled reusable patterns
+INBOX = os.path.join(REPO, "wrath", "memory", "inbox.json")    # saved-results workspace
 
 
 def save_run(rec):
@@ -585,8 +587,18 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, "application/json", json.dumps({"hasKey": has_key(), "model": MODEL, "auth": bool(TOKEN)}).encode())
         if u.path == "/api/blueprints":
             return self._send(200, "application/json", json.dumps(blueprints.all()).encode())
-        if u.path in ("/api/stream", "/api/runs", "/api/run", "/api/export", "/api/compare", "/api/analytics") and not self._authed(u):
+        if u.path in ("/api/stream", "/api/runs", "/api/run", "/api/export", "/api/compare", "/api/analytics", "/api/inbox") and not self._authed(u):
             return self._send(401, "application/json", b'{"error":"unauthorized"}')
+        if u.path == "/api/inbox":
+            items = []
+            for it in inbox.load(INBOX):
+                rec = load_run(it.get("run_id", ""))
+                if not rec:
+                    continue  # run was purged; skip stale bookmark
+                t = rec.get("trust") or {}
+                items.append({**it, "problem": rec.get("problem", ""), "mode": rec.get("mode", ""),
+                              "confidence": t.get("confidence", ""), "exists": True})
+            return self._send(200, "application/json", json.dumps(items).encode())
         if u.path == "/api/analytics":
             recs = []
             for e in list_runs():
@@ -639,6 +651,21 @@ class Handler(BaseHTTPRequestHandler):
             RUNS[run_id] = queue.Queue()
             threading.Thread(target=run_pipeline, args=(run_id, problem, mode), daemon=True).start()
             return self._send(200, "application/json", json.dumps({"run_id": run_id}).encode())
+        if u.path == "/api/inbox":
+            if not self._authed(u):
+                return self._send(401, "application/json", b'{"error":"unauthorized"}')
+            data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+            action, rid, note = data.get("action", "save"), (data.get("run_id") or ""), data.get("note", "")
+            if not rid:
+                return self._send(400, "application/json", b'{"error":"run_id required"}')
+            if action == "delete":
+                inbox.remove(INBOX, rid)
+            elif action == "note":
+                inbox.set_note(INBOX, rid, note)
+            else:
+                rec = load_run(rid) or {}
+                inbox.add(INBOX, rid, note, {"problem": rec.get("problem", ""), "mode": rec.get("mode", "")})
+            return self._send(200, "application/json", b'{"ok":true}')
         if u.path == "/api/distill":
             if not self._authed(u):
                 return self._send(401, "application/json", b'{"error":"unauthorized"}')

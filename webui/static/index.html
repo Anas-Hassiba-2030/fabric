@@ -258,6 +258,24 @@
   .antags{display:flex;flex-wrap:wrap;gap:8px}
   .antag{font-size:11px;border:1px solid var(--brd);border-radius:999px;padding:4px 11px;color:var(--ink);background:rgba(110,168,255,.07)}
   .antag b{color:var(--accent2);margin-left:5px}
+  .ibtop{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .ibsave{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#06121f;border:0;font-weight:700;
+    padding:8px 15px;border-radius:10px;cursor:pointer;font-size:12px}
+  .ibsave:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.4)}
+  .ibrow{display:flex;align-items:flex-start;gap:12px;border:1px solid var(--brd);border-radius:12px;padding:12px 14px;
+    margin-bottom:10px;background:rgba(255,255,255,.02);transition:.15s}
+  .ibrow:hover{border-color:var(--brd2)}
+  .ibmain{flex:1;min-width:0}
+  .ibq{font-size:13px;font-weight:640;color:var(--ink);cursor:pointer}.ibq:hover{color:var(--accent2)}
+  .ibnote{font-size:12px;color:var(--muted);margin-top:4px;white-space:pre-wrap}
+  .ibmeta{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none;font-size:10px;color:var(--faint);font-family:ui-monospace,monospace}
+  .ibbadge{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:2px 7px;border-radius:6px}
+  .ibbadge.High{background:rgba(61,220,151,.15);color:var(--ok)}.ibbadge.Medium{background:rgba(255,206,107,.16);color:var(--warn)}.ibbadge.Guarded{background:rgba(255,107,138,.16);color:var(--bad)}
+  .ibacts{display:flex;gap:6px;flex:none}
+  .ibacts button{background:rgba(255,255,255,.05);border:1px solid var(--brd);color:var(--muted);border-radius:8px;
+    cursor:pointer;font-size:12px;padding:5px 9px;transition:.15s}
+  .ibacts button:hover{color:var(--accent2);border-color:var(--accent2)}
+  .ibacts button.del:hover{color:var(--bad);border-color:var(--bad)}
   @media(max-width:1100px){.workspace{grid-template-columns:1fr}html,body{overflow:auto}.app{height:auto;min-height:100vh}}
 </style>
 </head>
@@ -281,6 +299,7 @@
     </div>
     <div style="display:flex;gap:9px;align-items:center;margin-top:10px">
       <div class="chips" id="chips" style="flex:1"></div>
+      <button class="minibtn" id="inboxBtn" title="Saved-results inbox — bookmark runs with a note">📥 Inbox</button>
       <button class="minibtn" id="analyticsBtn" title="Cross-run analytics dashboard">📊 Analytics</button>
       <button class="minibtn" id="blueprintBtn" title="Start from a ready-made engagement blueprint">⊞ Blueprints</button>
       <button class="minibtn" id="whatifBtn" disabled title="Re-run with one changed constraint, then compare">⤳ What-if</button>
@@ -529,6 +548,25 @@ function renderCompare(data){const d=data.diff;$("#cmpChg").innerHTML=`<b style=
     h+=ca?`<div class="cmpcell ${cls}"><div class="md">${md(ca.content)}</div></div>`:'<div class="cmpcell empty">not produced</div>';
     h+=cb?`<div class="cmpcell ${cls}"><div class="md">${md(cb.content)}</div></div>`:'<div class="cmpcell empty">not produced</div>';});
   h+="</div>";$("#cmpResult").innerHTML=h;renderMermaid($("#cmpResult"));}
+async function openInbox(){let items=[];try{items=await(await fetch(withTok("/api/inbox"))).json();}catch(e){}
+  const saveBtn=`<button class="ibsave" id="ibSave" ${lastSavedId?"":"disabled"}>＋ Save current run</button>`;
+  const hint=lastSavedId?'<span style="font-size:11px;color:var(--muted)">bookmark the run you just did, with a note</span>'
+    :'<span style="font-size:11px;color:var(--muted)">run WRATH first, then save it here</span>';
+  let rows=items.length?items.map(it=>{const conf=it.confidence||"";
+    return `<div class="ibrow" data-id="${it.run_id}">
+      <div class="ibmain"><div class="ibq" data-open="${it.run_id}">${(it.problem||"(run)").replace(/</g,"&lt;")}</div>
+        <div class="ibnote">${(it.note||"—").replace(/</g,"&lt;")}</div></div>
+      <div class="ibmeta">${conf?`<span class="ibbadge ${conf}">${conf}</span>`:""}<span>${(it.saved_at||"").slice(0,10)}</span><span>${it.mode||""}</span></div>
+      <div class="ibacts"><button data-open="${it.run_id}" title="Open">↗</button><button data-note="${it.run_id}" title="Edit note">✎</button><button class="del" data-del="${it.run_id}" title="Remove">✕</button></div></div>`;}).join("")
+    :'<div class="placeholder">Inbox empty — run something, then ＋ Save current run.</div>';
+  openModal("📥 Saved-results inbox",`<div class="ibtop">${saveBtn}${hint}</div><div id="ibList">${rows}</div>`);
+  const sb=$("#ibSave");if(sb)sb.onclick=async()=>{const note=prompt("Note for this saved run (what were you testing?):")||"";
+    await fetch(withTok("/api/inbox"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"save",run_id:lastSavedId,note})});openInbox();};
+  document.querySelectorAll("[data-open]").forEach(el=>el.onclick=()=>{closeModal();openSaved(el.dataset.open);});
+  document.querySelectorAll("[data-note]").forEach(el=>el.onclick=async()=>{const note=prompt("Edit note:")||"";
+    await fetch(withTok("/api/inbox"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"note",run_id:el.dataset.note,note})});openInbox();});
+  document.querySelectorAll("[data-del]").forEach(el=>el.onclick=async()=>{
+    await fetch(withTok("/api/inbox"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"delete",run_id:el.dataset.del})});openInbox();});}
 function bar(nm,val,max,color){const pct=max>0?Math.round(val/max*100):0;
   return `<div class="anbar"><span class="nm">${nm}</span><span class="tk"><span class="fl" style="width:${pct}%;background:${color}"></span></span><span class="ct">${val}</span></div>`;}
 async function openAnalytics(){let s;try{s=await(await fetch(withTok("/api/analytics"))).json();}catch(e){openModal("📊 Analytics",'<div class="placeholder">analytics unavailable</div>');return;}
@@ -570,7 +608,7 @@ let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(draw
   $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;$("#exportBtn").onclick=exportRun;
   $("#history").onchange=e=>openSaved(e.target.value);
   $("#expDetail").onclick=expandDetail;$("#expLog").onclick=expandLog;$("#modalClose").onclick=closeModal;
-  $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;$("#patternBtn").onclick=savePattern;$("#analyticsBtn").onclick=openAnalytics;
+  $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;$("#patternBtn").onclick=savePattern;$("#analyticsBtn").onclick=openAnalytics;$("#inboxBtn").onclick=openInbox;
   $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
   $("#problem").addEventListener("keydown",e=>{if(e.key==="Enter")run();});loadHistory();})();

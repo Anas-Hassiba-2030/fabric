@@ -4,6 +4,12 @@ A living catalog of capabilities that make the result better, more trustworthy, 
 Priority: **P0** = do next, **P1** = high value soon, **P2** = later, **★** = signature / astonishing.
 Nothing here is built unless it says "DONE".
 
+## Workspace
+- **DONE (Phase: Inbox) — Saved-results inbox.** `📥 Inbox` bookmarks any run with a free-text note so
+  you can test many things and keep the good ones; each item shows problem + note + trust badge +
+  date, with Open / Edit-note / Remove. Persists to `wrath/memory/inbox.json` (local). `webui/inbox.py`
+  + `/api/inbox`, proven by `webui/test_inbox.py`.
+
 ## Analytics
 - **DONE (Phase 1) — Cross-run analytics dashboard.** `📊 Analytics` aggregates every saved run: total
   runs, live/demo split, claims grounded, hallucinations caught, patterns learned, avg stages, trust
