@@ -24,6 +24,9 @@ if "$PY" .claude/skills/config-audit/scripts/config_lint.py --self-test >/tmp/_l
 step "anti-hallucination grounding proof (no API key)"
 if "$PY" webui/test_grounding.py >/tmp/_grnd.out 2>&1; then ok "grounding net holds (fake RFC blocked, bad config failed, numbers flagged)"; else bad "grounding net"; cat /tmp/_grnd.out; fi
 
+step "Live-mode wiring proof (mocked Claude, no API key)"
+if "$PY" webui/test_live.py >/tmp/_live.out 2>&1; then ok "live wiring chains, gates bite, hallucination caught"; else bad "live wiring"; cat /tmp/_live.out; fi
+
 step "MCP servers (stdio JSON-RPC)"
 if bash fabric/mcp/test_servers.sh >/tmp/_mcp.out 2>&1; then ok "fabric-standards + fabric-netstate ($(grep -c PASS /tmp/_mcp.out) checks)"; else bad "mcp servers"; cat /tmp/_mcp.out; fi
 

@@ -19,6 +19,7 @@ Transport: Server-Sent Events stream each stage/log/output to the browser as it 
 import json
 import os
 import queue
+import re
 import subprocess
 import sys
 import tempfile
@@ -101,23 +102,54 @@ def has_key():
     return bool(os.environ.get("ANTHROPIC_API_KEY"))
 
 
-def call_claude(system, prompt, max_tokens=1100):
+class ClaudeError(Exception):
+    pass
+
+
+def call_claude(system, prompt, max_tokens=1100, retries=3):
+    """Call the Anthropic API with retry/backoff. Raises ClaudeError on a hard failure so the caller
+    can surface it honestly (never silently pass an error string off as a deliverable)."""
     key = os.environ.get("ANTHROPIC_API_KEY")
     if not key:
-        return None
-    body = json.dumps({
-        "model": MODEL, "max_tokens": max_tokens, "system": system,
-        "messages": [{"role": "user", "content": prompt}],
-    }).encode()
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages", data=body,
-        headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=180) as r:
-            data = json.load(r)
-        return "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
-    except Exception as e:
-        return f"_(Live call failed: {e}. Falling back.)_"
+        raise ClaudeError("ANTHROPIC_API_KEY not set")
+    body = json.dumps({"model": MODEL, "max_tokens": max_tokens, "system": system,
+                       "messages": [{"role": "user", "content": prompt}]}).encode()
+    last = ""
+    for attempt in range(retries):
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/messages", data=body,
+            headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=180) as r:
+                data = json.load(r)
+            text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
+            if not text.strip():
+                raise ClaudeError("empty response from model")
+            return text
+        except urllib.error.HTTPError as e:
+            detail = ""
+            try:
+                detail = e.read().decode("utf-8", "replace")[:200]
+            except Exception:
+                pass
+            last = f"HTTP {e.code} {detail}"
+            if e.code in (408, 429, 500, 502, 503, 529) and attempt < retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            raise ClaudeError(last)
+        except (urllib.error.URLError, TimeoutError, OSError) as e:
+            last = str(e)
+            if attempt < retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            raise ClaudeError(last)
+    raise ClaudeError(last or "unknown error")
+
+
+def extract_config(text):
+    """Pull a config blob out of an LLM answer (fenced code block if present)."""
+    m = re.search(r"```[a-zA-Z0-9_-]*\n(.*?)```", text or "", re.S)
+    return (m.group(1) if m else (text or "")).strip() + "\n"
 
 
 # --- demo-mode content (representative, tailored to the problem keywords) --------------------
@@ -288,7 +320,11 @@ def gen(stage, problem, ctx, live, extra=""):
         prior = "\n".join(f"- {k}: {v[:240]}" for k, v in ctx.items() if not k.startswith("__"))
         prompt = f"Network problem:\n{problem}\n\nPrior stage outputs:\n{prior}\n{extra}\n\nProduce your stage's deliverable."
         emit(q_global.get(), {"type": "log", "stage": stage["id"], "text": f"calling Claude ({MODEL}) as {stage['agent']}…"})
-        return call_claude(system, prompt) or demo_content(stage["id"], problem, ctx)
+        try:
+            return call_claude(system, prompt)
+        except ClaudeError as e:
+            emit(q_global.get(), {"type": "log", "stage": stage["id"], "text": f"⚠ live call failed ({e}) — showing demo content for this stage"})
+            return demo_content(stage["id"], problem, ctx) + "\n\n_(Live call failed — demo content shown.)_"
     for step in ("loading agent + skill", "reasoning", "drafting deliverable"):
         emit(q_global.get(), {"type": "log", "stage": stage["id"], "text": f"[{stage['agent']}] {step}…"})
         time.sleep(0.4)
@@ -318,8 +354,12 @@ def critic_eval(q, problem, ctx, live, attempt):
     Returns (accept, findings_text)."""
     if live and has_key():
         sys_p = real_system_prompt("critic")
-        verdict = call_claude(sys_p, f"Problem:\n{problem}\n\nHLD to review:\n{ctx.get('hld','')}\n\n"
-                              "Return VERDICT: ACCEPT or ACCEPT-WITH-FIXES, then a short severity-tagged defect list.") or ""
+        try:
+            verdict = call_claude(sys_p, f"Problem:\n{problem}\n\nHLD to review:\n{ctx.get('hld','')}\n\n"
+                                  "Return VERDICT: ACCEPT or ACCEPT-WITH-FIXES, then a short severity-tagged defect list.")
+        except ClaudeError as e:
+            emit(q, {"type": "log", "stage": "critic", "text": f"⚠ live critic failed ({e}) — accepting without gate"})
+            return True, f"_(Critic live call failed: {e}.)_"
         accept = "ACCEPT-WITH-FIXES" not in verdict.upper() and "REJECT" not in verdict.upper()
         return accept, verdict
     if attempt == 1:
@@ -373,7 +413,12 @@ def run_pipeline(run_id, problem, mode):
 
             elif sid == "config":
                 start("config")
-                cfg = demo_config(1) if not (live and has_key()) else (gen(stage, problem, ctx, live) or demo_config(1))
+                if live and has_key():
+                    raw = gen(stage, problem, ctx, live,
+                              extra="Output the device config inside a single fenced ```code block```.")
+                    cfg = extract_config(raw)
+                else:
+                    cfg = demo_config(1)
                 ctx["__cfg__"] = cfg
                 emit(q, {"type": "output", "stage": "config", "title": "Config · config-engineer",
                          "content": "Generated device config (IOS-XR), staged lockout-safe. Goes to the Validator next.\n\n```\n" + cfg + "```"})
@@ -383,21 +428,29 @@ def run_pipeline(run_id, problem, mode):
             elif sid == "validate":
                 start("validate")
                 verdict, out = validate_cfg(q, ctx.get("__cfg__", ""))
-                if verdict == "FAIL":
+                attempt = 1
+                while verdict == "FAIL" and attempt < 3:
                     emit(q, {"type": "reject", "gate": "validate", "producer": "config",
                              "reason": "config_lint FAIL — sending back to config-engineer to fix"})
                     emit(q, {"type": "log", "stage": "validate", "text": "⛔ FAIL → routing back to config-engineer"})
                     time.sleep(0.5)
                     start("config")
-                    cfg2 = demo_config(2)
-                    ctx["__cfg__"] = cfg2
-                    emit(q, {"type": "log", "stage": "config", "text": "[config-engineer] applying fix: replace guessable SNMP community"})
-                    emit(q, {"type": "output", "stage": "config", "title": "Config · config-engineer (fixed v2)",
-                             "content": "Validator rejected v1. Fixed the flagged defect.\n\n```\n" + cfg2 + "```"})
-                    emit(q, {"type": "grounding", **dict(zip(["status", "checks"], grounding.ground_text(cfg2))), "stage": "config"})
+                    if live and has_key():
+                        fixstage = by_id["config"]
+                        raw = gen(fixstage, problem, ctx, live,
+                                  extra=f"The Validator (config_lint) REJECTED your config with:\n{out}\n"
+                                        "Fix every finding and output the corrected FULL config in a single ```code block```.")
+                        ctx["__cfg__"] = extract_config(raw)
+                    else:
+                        ctx["__cfg__"] = demo_config(2)
+                        emit(q, {"type": "log", "stage": "config", "text": "[config-engineer] applying fix: replace guessable SNMP community"})
+                    emit(q, {"type": "output", "stage": "config", "title": f"Config · config-engineer (fixed v{attempt + 1})",
+                             "content": "Validator rejected the previous config. Applied the fix.\n\n```\n" + ctx["__cfg__"] + "```"})
+                    emit(q, {"type": "grounding", **dict(zip(["status", "checks"], grounding.ground_text(ctx["__cfg__"]))), "stage": "config"})
                     done("config")
                     start("validate")
                     verdict, out = validate_cfg(q, ctx["__cfg__"])
+                    attempt += 1
                 done("validate")
 
             elif stage["kind"] == "tool-standards":

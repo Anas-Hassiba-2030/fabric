@@ -31,7 +31,26 @@ Change the port with `FABRIC_UI_PORT=9000 python3 webui/app.py`.
 - `static/index.html` — single-file SPA (no build step): animated stage pipeline grouped by phase, a
   live log, and deliverables rendered from markdown.
 
+## Anti-hallucination + Live mode (hardened)
+Every stage output passes through `grounding.py` before you see it: RFC citations are verified against
+the grounded index (**fabricated ones are blocked**), prices/SKUs/latency claims are **flagged** as
+"needs verification", and configs are run through the real `config_lint`. Gates have teeth — a failing
+config or HLD is **rejected and routed back** to be fixed, then re-checked.
+
+Live mode (`ANTHROPIC_API_KEY`) loads each specialist's **real agent definition + skill** as its prompt,
+chains context forward, retries the API with backoff, and surfaces failures honestly (never passes an
+error off as a deliverable). On a Validator reject it re-prompts Claude with the actual lint findings to
+fix the config.
+
+## Proof tests (no API key, no network — deterministic)
+```
+python webui/test_grounding.py   # fabricated RFC blocked, bad config failed, numbers flagged
+python webui/test_live.py        # live wiring chains, gates bite, live hallucination caught (mocked Claude)
+```
+Both are part of `bash run_tests.sh`.
+
 ## Tested
-Backend + data flow verified end-to-end: page serves, a run streams all 11 stages in order, the
-Validator stage produces real `config_lint` output, and the citation-guard verifies/*blocks* citations.
-Browser visual rendering should be confirmed on first open (it was not visually QA'd in the build env).
+Backend + data flow verified end-to-end: page serves, a run streams all 11 stages in order with
+reject→revise loops, the Validator runs real `config_lint` (FAIL→PASS), the citation-guard
+verifies/*blocks* citations, and both proof tests pass. Browser visual rendering should be confirmed on
+first open (not visually QA'd in the build env).
