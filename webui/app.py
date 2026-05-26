@@ -300,7 +300,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.flush()
                 if item.get("type") == "done":
                     break
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
+            # Browser closed/reloaded the SSE connection (e.g. WinError 10053 on Windows). Harmless.
             pass
         finally:
             RUNS.pop(run_id, None)
@@ -323,9 +324,19 @@ class Handler(BaseHTTPRequestHandler):
         return "text/plain"
 
 
+class Server(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def handle_error(self, request, client_address):
+        et = sys.exc_info()[0]
+        if et and issubclass(et, (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)):
+            return  # browser closed/reloaded a connection — normal, stay quiet
+        super().handle_error(request, client_address)
+
+
 def main():
     os.chdir(REPO)
-    srv = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
+    srv = Server(("0.0.0.0", PORT), Handler)
     mode = "LIVE (Claude API)" if has_key() else "DEMO (set ANTHROPIC_API_KEY for live)"
     print(f"FABRIC Console — {mode}")
     print(f"  open  http://localhost:{PORT}")
