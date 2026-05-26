@@ -33,6 +33,7 @@ from urllib.parse import urlparse, parse_qs
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import clarify  # noqa: E402
 import grounding  # noqa: E402
+import topology  # noqa: E402
 import trust  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -350,6 +351,9 @@ class q_global:
 
 def emit_text_stage(q, stage, problem, ctx, live, extra=""):
     text = gen(stage, problem, ctx, live, extra)
+    if stage["id"] == "hld" and "```mermaid" not in text:
+        text += "\n\n**Reference topology (auto-generated — roles, redundancy, failure domains):**\n" \
+                + topology.mermaid_block(problem)
     ctx[stage["id"]] = text
     emit(q, {"type": "output", "stage": stage["id"], "title": f"{stage['label']} · {stage['agent']}", "content": text})
     status, checks = grounding.ground_text(text)

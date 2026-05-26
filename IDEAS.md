@@ -29,7 +29,11 @@ Nothing here is built unless it says "DONE". The interface is tracked separately
 - **P2 — Memory RAG.** At run start, recall similar past engagements + patterns and cite them.
 
 ## Richer deliverables
-- **P1 — Auto topology diagram.** Render the HLD's reference topology (Mermaid) inline + export as SVG/PNG.
+- **DONE (P1) — Auto topology diagram.** Every HLD now embeds an inferred reference topology
+  (Mermaid, inline): redundant core, leaf-spine for DC problems vs dual-homed PE sites otherwise,
+  failure domains as subgraphs. `webui/topology.py` (reuses the skill's `to_mermaid.py`, which was
+  hardened to emit Mermaid-valid subgraph ids), proven by `webui/test_topology.py`. _SVG/PNG export
+  still open._
 - **P1 — Export to real formats.** BoM → XLSX, Exec one-pager → PPTX/PDF, SoW → DOCX (today: Markdown, DONE).
 - **P1 — Cost/TCO + risk register** generated from the design (capex/opex/risk-cost, flagged unverified).
 - **P2 — Audience reframing.** One toggle to re-voice the exec summary for CFO / CISO / NOC.

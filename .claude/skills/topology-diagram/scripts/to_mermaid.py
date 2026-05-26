@@ -16,6 +16,7 @@ Spec shape:
 Deterministic by design — keep judgment in the agent, mechanics in the script (charter §3 note).
 """
 import json
+import re
 import sys
 
 
@@ -36,7 +37,9 @@ def to_mermaid(spec):
     lines = [f"graph {direction}"]
 
     for group_name, members in groups.items():
-        safe = group_name.replace(" ", "_")
+        # The subgraph id must be a bare token (Mermaid rejects spaces/punctuation); the bracketed
+        # title stays human-readable.
+        safe = re.sub(r"[^0-9A-Za-z_]", "_", group_name)
         lines.append(f"  subgraph {safe} [{group_name}]")
         for node_id in members:
             lines.append(f"    {_label(node_id, labels)}")
