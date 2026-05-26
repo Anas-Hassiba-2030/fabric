@@ -133,7 +133,9 @@ const examples=[
   "2-DC EVPN-VXLAN data-center interconnect, encrypted, sub-second failover, no single point of failure.",
   "Migrate a live OSPF core to IS-IS with zero downtime."];
 function initChips(){const c=$("#chips");examples.forEach(x=>{const e=document.createElement("span");e.className="chip";e.textContent=x.length>50?x.slice(0,48)+"…":x;e.title=x;e.onclick=()=>$("#problem").value=x;c.appendChild(e);});}
-function setMode(l){LIVE=l&&hasKey;$("#modeSwitch").classList.toggle("on",LIVE);$("#modeBadge").innerHTML=LIVE?'Mode: <b>LIVE</b> · Claude API':'Mode: <b>DEMO</b>';}
+let MODELNAME="claude-opus-4-7";
+function prettyModel(m){return /opus/.test(m)?"Claude Opus 4.7":/sonnet/.test(m)?"Claude Sonnet 4.6":/haiku/.test(m)?"Claude Haiku 4.5":m;}
+function setMode(l){LIVE=l&&hasKey;$("#modeSwitch").classList.toggle("on",LIVE);$("#modeBadge").innerHTML=LIVE?('Mode: <b>LIVE</b> · '+prettyModel(MODELNAME)):'Mode: <b>DEMO</b>';}
 
 const md=(function(){function il(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");}
  return function(src){const L=src.split("\n");let o=[],i=0;while(i<L.length){let ln=L[i];
@@ -252,7 +254,7 @@ async function openSaved(id){if(!id)return;let rec;try{rec=await(await fetch(wit
     Object.entries(rec.grounding||{}).forEach(([sid,g])=>showGround({stage:sid,status:g.status,checks:g.checks}));
     const first=order.find(s=>outputs[s]);if(first)showDetail(first);logLine("loaded saved run "+id.slice(0,8),"_");},80);}
 let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(drawEdges,120);});
-(async function(){initChips();try{const c=await(await fetch("/api/config")).json();hasKey=c.hasKey;
+(async function(){initChips();try{const c=await(await fetch("/api/config")).json();hasKey=c.hasKey;MODELNAME=c.model||MODELNAME;
     if(c.auth&&!localStorage.getItem("fabricTok")){const t=prompt("This console requires an access token:");if(t)localStorage.setItem("fabricTok",t);}}catch(e){}
   if(!hasKey)$("#livePill").textContent="set ANTHROPIC_API_KEY";setMode(false);
   $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;$("#exportBtn").onclick=exportRun;

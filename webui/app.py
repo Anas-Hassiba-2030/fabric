@@ -38,7 +38,7 @@ REPO = os.path.dirname(HERE)
 STATIC = os.path.join(HERE, "static")
 LINT = os.path.join(REPO, ".claude", "skills", "config-audit", "scripts", "config_lint.py")
 STANDARDS = os.path.join(REPO, "fabric", "mcp", "data", "standards.json")
-MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-7")  # Claude Opus 4.7 is the default engine
 PORT = int(os.environ.get("FABRIC_UI_PORT", "8765"))
 TOKEN = os.environ.get("FABRIC_UI_TOKEN", "")  # if set, the console + API require this token
 MAX_ACTIVE = int(os.environ.get("FABRIC_UI_MAX_ACTIVE", "8"))
@@ -109,7 +109,7 @@ class ClaudeError(Exception):
     pass
 
 
-def call_claude(system, prompt, max_tokens=1100, retries=3):
+def call_claude(system, prompt, max_tokens=1600, retries=3):
     """Call the Anthropic API with retry/backoff. Raises ClaudeError on a hard failure so the caller
     can surface it honestly (never silently pass an error string off as a deliverable)."""
     key = os.environ.get("ANTHROPIC_API_KEY")

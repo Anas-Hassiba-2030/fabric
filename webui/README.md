@@ -54,12 +54,14 @@ chains context forward, retries the API with backoff, and surfaces failures hone
 error off as a deliverable). On a Validator reject it re-prompts Claude with the actual lint findings to
 fix the config.
 
-## Proof tests (no API key, no network — deterministic)
+## Proof tests + doctor (no API key needed for the proofs)
 ```
+python webui/doctor.py           # full system check; with ANTHROPIC_API_KEY also makes a real Opus 4.7 call
 python webui/test_grounding.py   # fabricated RFC blocked, bad config failed, numbers flagged
 python webui/test_live.py        # live wiring chains, gates bite, live hallucination caught (mocked Claude)
 ```
-Both are part of `bash run_tests.sh`.
+The first two proofs are part of `bash run_tests.sh`. **Engine: Claude Opus 4.7** (`claude-opus-4-7`,
+override with `ANTHROPIC_MODEL`).
 
 ## Tested
 Backend + data flow verified end-to-end: page serves, a run streams all 11 stages in order with
