@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>FABRIC Console</title>
+<style>
+  :root{
+    --bg:#0a0e1a; --bg2:#0e1424; --panel:rgba(255,255,255,.04); --panel-brd:rgba(255,255,255,.09);
+    --ink:#e8edf7; --muted:#8a94ad; --accent:#6ea8ff; --accent2:#36e0c8; --ok:#3ddc97;
+    --warn:#ffce6b; --bad:#ff6b8a; --gate:#c08bff;
+    --shadow:0 10px 40px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;
+    color:var(--ink);
+    background:
+      radial-gradient(900px 500px at 12% -8%, rgba(110,168,255,.18), transparent 60%),
+      radial-gradient(800px 500px at 95% 0%, rgba(54,224,200,.14), transparent 55%),
+      linear-gradient(180deg,var(--bg),var(--bg2));
+    background-attachment:fixed; min-height:100vh;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 22px 80px}
+  header{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+  .logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-weight:800;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#06121f;box-shadow:var(--shadow)}
+  h1{font-size:24px;margin:0;letter-spacing:.3px}
+  .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .badge{margin-left:auto;font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid var(--panel-brd);
+    background:var(--panel);color:var(--muted)}
+  .badge b{color:var(--accent2)}
+  .card{background:var(--panel);border:1px solid var(--panel-brd);border-radius:16px;padding:18px;
+    box-shadow:var(--shadow);backdrop-filter:blur(8px)}
+  .composer{margin:18px 0 22px}
+  textarea{width:100%;min-height:84px;resize:vertical;background:rgba(0,0,0,.25);color:var(--ink);
+    border:1px solid var(--panel-brd);border-radius:12px;padding:13px 14px;font:inherit;outline:none}
+  textarea:focus{border-color:var(--accent)}
+  .row{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .chip{font-size:12px;color:var(--muted);border:1px dashed var(--panel-brd);border-radius:999px;
+    padding:5px 11px;cursor:pointer;transition:.15s}
+  .chip:hover{color:var(--ink);border-color:var(--accent);background:rgba(110,168,255,.08)}
+  .spacer{flex:1}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+  .switch{position:relative;width:42px;height:24px;border-radius:999px;background:rgba(255,255,255,.12);
+    cursor:pointer;transition:.2s;border:1px solid var(--panel-brd)}
+  .switch.on{background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .switch i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+  .switch.on i{left:21px}
+  button.run{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#06121f;border:0;
+    font-weight:700;font-size:14px;padding:11px 22px;border-radius:11px;cursor:pointer;transition:.15s}
+  button.run:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  button.run:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+  @media(max-width:880px){.grid{grid-template-columns:1fr}}
+  .section-t{font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:0 0 12px}
+  .phase{margin-bottom:14px}
+  .phase-h{font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin:0 0 8px;opacity:.8}
+  .stages{display:flex;flex-direction:column;gap:8px}
+  .stage{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:12px;
+    border:1px solid var(--panel-brd);background:rgba(255,255,255,.02);transition:.25s;position:relative;overflow:hidden}
+  .stage.gate{border-style:dashed}
+  .stage .dot{width:11px;height:11px;border-radius:50%;background:var(--muted);flex:none;transition:.25s}
+  .stage.queued{opacity:.55}
+  .stage.running{border-color:var(--accent);background:rgba(110,168,255,.08)}
+  .stage.running .dot{background:var(--accent);box-shadow:0 0 0 0 rgba(110,168,255,.6);animation:pulse 1.2s infinite}
+  .stage.done{border-color:rgba(61,220,151,.4)}
+  .stage.done .dot{background:var(--ok)}
+  .stage.gate.done .dot{background:var(--gate)}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(110,168,255,.55)}70%{box-shadow:0 0 0 9px rgba(110,168,255,0)}100%{box-shadow:0 0 0 0 rgba(110,168,255,0)}}
+  .stage .name{font-weight:600}
+  .stage .agent{color:var(--muted);font-size:12px}
+  .stage .tick{margin-left:auto;font-size:13px;color:var(--ok);opacity:0;transition:.25s}
+  .stage.done .tick{opacity:1}
+  .stage.gate .tick{color:var(--gate)}
+  .stage .spin{margin-left:auto;width:15px;height:15px;border:2px solid rgba(255,255,255,.2);
+    border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;opacity:0}
+  .stage.running .spin{opacity:1}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .log{font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:rgba(0,0,0,.32);
+    border:1px solid var(--panel-brd);border-radius:12px;padding:12px;height:240px;overflow:auto;color:#bfe9d6}
+  .log .l{white-space:pre-wrap;word-break:break-word}
+  .log .l .s{color:var(--accent)}
+  .deliverables{margin-top:20px;display:flex;flex-direction:column;gap:14px}
+  .deliv{animation:rise .35s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .deliv h3{margin:0 0 8px;font-size:15px}
+  .deliv .md{font-size:13.5px;color:#d6deeb}
+  .md h2,.md h3{color:var(--ink);margin:.6em 0 .3em}
+  .md table{border-collapse:collapse;width:100%;margin:.5em 0;font-size:12.5px}
+  .md th,.md td{border:1px solid var(--panel-brd);padding:6px 9px;text-align:left}
+  .md th{background:rgba(255,255,255,.05)}
+  .md code{background:rgba(0,0,0,.35);padding:1px 5px;border-radius:5px;font-family:ui-monospace,monospace;font-size:12px}
+  .md pre{background:rgba(0,0,0,.4);padding:11px;border-radius:10px;overflow:auto;border:1px solid var(--panel-brd)}
+  .md pre code{background:none;padding:0}
+  .empty{color:var(--muted);text-align:center;padding:40px 0;font-size:13px}
+  .ftr{color:var(--muted);font-size:12px;text-align:center;margin-top:34px}
+  .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--panel-brd);color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">F</div>
+    <div>
+      <h1>FABRIC Console</h1>
+      <div class="sub">Federated Architecture Brain — state a network problem, watch the fabric solve it.</div>
+    </div>
+    <div class="badge" id="modeBadge">…</div>
+  </header>
+
+  <div class="card composer">
+    <textarea id="problem" placeholder="e.g. Design an SR-MPLS core for a 3-DC service provider, multi-vendor; give me the HLD, a BoM, and a CTO one-pager."></textarea>
+    <div class="chips" id="chips"></div>
+    <div class="row">
+      <button class="run" id="runBtn">▶ Run FABRIC</button>
+      <span class="spacer"></span>
+      <div class="toggle">
+        <span>Demo</span>
+        <div class="switch" id="modeSwitch"><i></i></div>
+        <span>Live <span class="pill" id="livePill">Claude API</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <p class="section-t">Orchestration pipeline</p>
+      <div id="pipeline"></div>
+    </div>
+    <div class="card">
+      <p class="section-t">Live log</p>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="deliverables" id="deliverables">
+    <div class="empty">Deliverables will appear here as each stage completes.</div>
+  </div>
+
+  <div class="ftr">FABRIC runs inside Claude Code. Gates are real: the Validator stage runs <code>config_lint.py</code>; Standards runs the citation-guard against the grounded index.</div>
+</div>
+
+<script>
+let LIVE = false, hasKey = false, running = false;
+const $ = s => document.querySelector(s);
+const examples = [
+  "Design an SR-MPLS core for a 3-DC service provider, multi-vendor; HLD + BoM + CTO one-pager.",
+  "Secure internet edge for a hospital: dual ISP, DDoS, segmented for medical devices (PCI/HIPAA).",
+  "2-DC EVPN-VXLAN data-center interconnect, encrypted, sub-second failover, no single point of failure.",
+  "Migrate a live OSPF core to IS-IS with zero downtime."
+];
+
+function initChips(){
+  const c = $("#chips");
+  examples.forEach(x=>{
+    const el=document.createElement("span"); el.className="chip"; el.textContent=x.length>58?x.slice(0,56)+"…":x;
+    el.title=x; el.onclick=()=>{ $("#problem").value=x; };
+    c.appendChild(el);
+  });
+}
+function setMode(live){
+  LIVE = live && hasKey;
+  $("#modeSwitch").classList.toggle("on", LIVE);
+  $("#modeBadge").innerHTML = LIVE ? 'Mode: <b>LIVE</b> · Claude API' : 'Mode: <b>DEMO</b>';
+}
+
+const md = (function(){
+  function inline(s){
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/`([^`]+)`/g,"<code>$1</code>")
+      .replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
+  }
+  return function(src){
+    const lines=src.split("\n"); let out=[], i=0;
+    while(i<lines.length){
+      let ln=lines[i];
+      if(ln.startsWith("```")){ let code=[]; i++; while(i<lines.length&&!lines[i].startsWith("```")){code.push(lines[i]);i++;} i++;
+        out.push("<pre><code>"+code.join("\n").replace(/&/g,"&amp;").replace(/</g,"&lt;")+"</code></pre>"); continue; }
+      if(/^#{2,3}\s/.test(ln)){ const lvl=ln.startsWith("###")?3:2; out.push(`<h${lvl}>`+inline(ln.replace(/^#+\s/,""))+`</h${lvl}>`); i++; continue; }
+      if(ln.trim().startsWith("|")&&i+1<lines.length&&/^\s*\|?[\s:|-]+\|?\s*$/.test(lines[i+1])){
+        const rows=[]; while(i<lines.length&&lines[i].trim().startsWith("|")){rows.push(lines[i]);i++;}
+        const cells=r=>r.trim().replace(/^\||\|$/g,"").split("|").map(c=>c.trim());
+        let t="<table><thead><tr>"+cells(rows[0]).map(c=>"<th>"+inline(c)+"</th>").join("")+"</tr></thead><tbody>";
+        for(let r=2;r<rows.length;r++){t+="<tr>"+cells(rows[r]).map(c=>"<td>"+inline(c)+"</td>").join("")+"</tr>";}
+        out.push(t+"</tbody></table>"); continue;
+      }
+      if(/^\s*[-*]\s/.test(ln)){ let items=[]; while(i<lines.length&&/^\s*[-*]\s/.test(lines[i])){items.push("<li>"+inline(lines[i].replace(/^\s*[-*]\s/,""))+"</li>");i++;}
+        out.push("<ul>"+items.join("")+"</ul>"); continue; }
+      if(ln.trim()===""){i++;continue;}
+      out.push("<p>"+inline(ln)+"</p>"); i++;
+    }
+    return out.join("");
+  };
+})();
+
+function buildPipeline(stages){
+  const p=$("#pipeline"); p.innerHTML="";
+  const phases=[...new Set(stages.map(s=>s.phase))];
+  phases.forEach(ph=>{
+    const box=document.createElement("div"); box.className="phase";
+    box.innerHTML=`<div class="phase-h">${ph}</div>`;
+    const list=document.createElement("div"); list.className="stages";
+    stages.filter(s=>s.phase===ph).forEach(s=>{
+      const el=document.createElement("div"); el.className="stage queued"+(s.kind==="gate"?" gate":"");
+      el.id="st-"+s.id;
+      el.innerHTML=`<span class="dot"></span><span><span class="name">${s.label}</span> &nbsp;<span class="agent">${s.agent}</span></span><span class="spin"></span><span class="tick">✓</span>`;
+      list.appendChild(el);
+    });
+    box.appendChild(list); p.appendChild(box);
+  });
+}
+function setStage(id,status){ const el=$("#st-"+id); if(!el)return; el.classList.remove("queued","running","done"); el.classList.add(status); if(status==="running")el.scrollIntoView({block:"nearest",behavior:"smooth"}); }
+function logLine(text,stage){ const l=$("#log"); const d=document.createElement("div"); d.className="l";
+  d.innerHTML=(stage&&stage!=="_"?`<span class="s">[${stage}]</span> `:"")+text.replace(/&/g,"&amp;").replace(/</g,"&lt;"); l.appendChild(d); l.scrollTop=l.scrollHeight; }
+function addDeliverable(o){ const d=$("#deliverables"); if(d.querySelector(".empty"))d.innerHTML="";
+  const card=document.createElement("div"); card.className="card deliv";
+  card.innerHTML=`<h3>${o.title}</h3><div class="md">${md(o.content)}</div>`; d.appendChild(card); }
+
+async function run(){
+  if(running)return; const problem=$("#problem").value.trim(); if(!problem){$("#problem").focus();return;}
+  running=true; $("#runBtn").disabled=true; $("#runBtn").textContent="● Running…";
+  $("#log").innerHTML=""; $("#deliverables").innerHTML='<div class="empty">Processing…</div>';
+  let res;
+  try{ res=await fetch("/api/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({problem,mode:LIVE?"live":"demo"})}); }
+  catch(e){ logLine("connection failed: "+e); finish(); return; }
+  const {run_id}=await res.json();
+  const es=new EventSource("/api/stream?run_id="+run_id);
+  es.onmessage=(ev)=>{
+    const m=JSON.parse(ev.data);
+    if(m.type==="meta"){ buildPipeline(m.stages); $("#deliverables").innerHTML=""; logLine("orchestrator booted — mode: "+m.mode,"_"); }
+    else if(m.type==="stage"){ setStage(m.id,m.status); }
+    else if(m.type==="log"){ logLine(m.text,m.stage); }
+    else if(m.type==="output"){ addDeliverable(m); }
+    else if(m.type==="done"){ es.close(); finish(); }
+  };
+  es.onerror=()=>{ es.close(); finish(); };
+}
+function finish(){ running=false; $("#runBtn").disabled=false; $("#runBtn").textContent="▶ Run FABRIC"; }
+
+(async function init(){
+  initChips();
+  try{ const c=await (await fetch("/api/config")).json(); hasKey=c.hasKey; }catch(e){}
+  if(!hasKey){ $("#livePill").textContent="set ANTHROPIC_API_KEY"; }
+  setMode(false);
+  $("#modeSwitch").onclick=()=>{ if(!hasKey){return;} setMode(!LIVE); };
+  $("#runBtn").onclick=run;
+  $("#problem").addEventListener("keydown",e=>{ if((e.metaKey||e.ctrlKey)&&e.key==="Enter")run(); });
+})();
+</script>
+</body>
+</html>

@@ -23,6 +23,14 @@ The Orchestrator restates the goal, plans the graph, routes to specialists (via 
 runs the gate rules (Critic on every design, Validator on every config), and returns a stack of
 deliverables with every open question flagged for you.
 
+### …or use the visual console
+Prefer a UI? There's a local web console that shows the pipeline running stage-by-stage:
+```bash
+python3 webui/app.py      # open http://localhost:8765
+```
+Demo mode needs zero config (and the Validator + Standards gates still run for real); set
+`ANTHROPIC_API_KEY` for Live mode. See `webui/README.md`.
+
 ---
 
 ## What's here
