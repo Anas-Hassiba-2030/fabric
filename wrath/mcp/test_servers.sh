@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Functional test for the FABRIC MCP servers — drives each over stdio with JSON-RPC and checks the
-# responses. No MCP client/SDK required. Run: bash fabric/mcp/test_servers.sh
+# Functional test for the WRATH MCP servers — drives each over stdio with JSON-RPC and checks the
+# responses. No MCP client/SDK required. Run: bash wrath/mcp/test_servers.sh
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PY="$(command -v python || command -v python3)"
@@ -16,7 +16,7 @@ check() { # desc, haystack, needle
 INIT='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}'
 LIST='{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
 
-echo "=== fabric-standards ==="
+echo "=== wrath-standards ==="
 S="$HERE/standards_server.py"
 out=$(printf '%s\n%s\n%s\n%s\n%s\n' \
   "$INIT" "$LIST" \
@@ -30,14 +30,14 @@ check "RFC 5082 grounded (GTSM)" "$out" 'Generalized TTL Security'
 check "unknown RFC -> UNVERIFIED" "$out" 'UNVERIFIED'
 check "search finds EVPN RFC"    "$out" '7432'
 
-echo "=== fabric-netstate (read-only) ==="
+echo "=== wrath-netstate (read-only) ==="
 N="$HERE/network_state_server.py"
-out=$(FABRIC_NETSTATE_DIR="$HERE/state" printf '%s\n%s\n%s\n%s\n%s\n' \
+out=$(WRATH_NETSTATE_DIR="$HERE/state" printf '%s\n%s\n%s\n%s\n%s\n' \
   "$INIT" "$LIST" \
   '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list_devices","arguments":{}}}' \
   '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"get_bgp_neighbors","arguments":{"device":"PE1"}}}' \
   '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"get_route","arguments":{"device":"PE1","prefix":"0.0.0.0/0"}}}' \
-  | FABRIC_NETSTATE_DIR="$HERE/state" "$PY" "$N" 2>/dev/null)
+  | WRATH_NETSTATE_DIR="$HERE/state" "$PY" "$N" 2>/dev/null)
 check "initialize ok"          "$out" '"serverInfo"'
 check "lists PE1"              "$out" 'PE1'
 check "BGP Idle neighbor seen" "$out" 'Idle'

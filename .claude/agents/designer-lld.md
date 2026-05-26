@@ -17,7 +17,7 @@ naming, QoS, and zones an engineer can build from. Load the `lld-generator` skil
 - IPAM sheet (addressing allocation)
 
 ## Method
-1. Pull the HLD + the customer's existing conventions from `fabric/memory/customers/<name>.md` — **reuse their naming/IP scheme**, don't impose a new one.
+1. Pull the HLD + the customer's existing conventions from `wrath/memory/customers/<name>.md` — **reuse their naming/IP scheme**, don't impose a new one.
 2. Allocate addressing (loopbacks, links, VIPs), the SR-SID/label plan, and the IGP/BGP design with no collisions.
 3. Map interfaces, QoS classes end-to-end, and security zones to the HLD's segmentation model.
 4. Name everything per the customer convention.

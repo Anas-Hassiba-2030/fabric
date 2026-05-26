@@ -1,5 +1,5 @@
 {
-  "_note": "Sample read-only network-state snapshot (NetBox/pyATS-style) so the Network-state MCP works offline and is testable. Replace FABRIC_NETSTATE_DIR with a directory of real read-only snapshots, or wire the server to a live read-only source (pyATS learn / gNMI subscribe / NetBox API). The MCP NEVER writes to this or to any device.",
+  "_note": "Sample read-only network-state snapshot (NetBox/pyATS-style) so the Network-state MCP works offline and is testable. Replace WRATH_NETSTATE_DIR with a directory of real read-only snapshots, or wire the server to a live read-only source (pyATS learn / gNMI subscribe / NetBox API). The MCP NEVER writes to this or to any device.",
   "devices": {
     "PE1": {
       "role": "provider-edge", "platform": "ios-xr", "version": "7.9.2", "site": "DC1",

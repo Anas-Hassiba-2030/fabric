@@ -1,4 +1,4 @@
-# FABRIC Memory
+# WRATH Memory
 
 Three layers — do not conflate them (a classic agent mistake):
 

@@ -1,12 +1,12 @@
 {
   "mcpServers": {
-    "fabric-standards": {
+    "wrath-standards": {
       "command": "python",
-      "args": ["fabric/mcp/standards_server.py"]
+      "args": ["wrath/mcp/standards_server.py"]
     },
-    "fabric-netstate": {
+    "wrath-netstate": {
       "command": "python",
-      "args": ["fabric/mcp/network_state_server.py"]
+      "args": ["wrath/mcp/network_state_server.py"]
     }
   }
 }

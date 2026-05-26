@@ -13,7 +13,7 @@ Nothing here is built unless it says "DONE". The interface is tracked separately
   marked unverified. Extend to SKUs (vendor EoL pages) and CVDs.
 - **P2 — Adjustable red-team intensity.** A "Critic aggressiveness" dial; optional second adversarial pass.
 - **★ Self-improving pattern library.** Every *accepted* design auto-distills a reusable pattern into
-  memory (`fabric/memory/patterns`), so the system compounds and gets better with each engagement.
+  memory (`wrath/memory/patterns`), so the system compounds and gets better with each engagement.
 
 ## Smarter orchestration
 - **P1 — Multi-model routing.** Opus 4.7 for heavy reasoning (HLD, Critic, RCA); Sonnet/Haiku for cheap
@@ -39,7 +39,7 @@ Nothing here is built unless it says "DONE". The interface is tracked separately
 
 ## Workflow & reach
 - **P1 — Shareable read-only run links** + one-click PDF of the whole stack.
-- **P2 — CLI / API mode** so runs can be triggered from CI or scripts (headless FABRIC).
+- **P2 — CLI / API mode** so runs can be triggered from CI or scripts (headless WRATH).
 - **P2 — Engagement blueprints.** Starter packs (SP core, DC fabric, campus, SD-WAN, secure edge) to seed a run.
 - **DONE — Run history / compounding memory**, **token auth + health for productionizing**, **doctor** (system self-check).
 

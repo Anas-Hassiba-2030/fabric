@@ -1,7 +1,7 @@
-# FABRIC — Roadmap to a real, zero-hallucination system
+# WRATH — Roadmap to a real, zero-hallucination system
 
 ## Honest status (read first)
-FABRIC exists in three forms, not equally "real":
+WRATH exists in three forms, not equally "real":
 - **Demo mode** (default web UI): pipeline animation + **2 real gates** (`config_lint` validator, citation-guard).
   The design prose is **canned placeholder** — it is *not* real engineering, it's a faithful mockup of the flow.
 - **Live mode** (needs `ANTHROPIC_API_KEY`): real Claude designs each stage = real building, but **not yet fully
@@ -15,7 +15,7 @@ RFCs, SKUs, or numbers.
 ---
 
 ## Phase 1 — Make Live mode real + grounded  ✅ DONE
-**Goal:** in Live mode FABRIC genuinely designs, and nothing ships unverified.
+**Goal:** in Live mode WRATH genuinely designs, and nothing ships unverified.
 **Build:**
 - Each stage uses its **real agent definition + skill** (loaded from the repo) as the system prompt — the
   actual specialist, not a stub.
@@ -34,7 +34,7 @@ stage re-runs on screen (the design→critique→revise loop, live).
 ## Phase 3 — Provenance + compounding memory  ✅ DONE
 **Goal:** every claim traceable; the system learns.
 **Build:** deliverables cite sources (RFC links, customer conventions); each finished run is saved to memory
-(`fabric/memory/customers` + `patterns`) and reused next time.
+(`wrath/memory/customers` + `patterns`) and reused next time.
 **Done when:** a claim links to its source; a second run reuses the first's conventions.
 
 ## Phase 4 — Agile, smooth, modern UX  🟡 IN PROGRESS
@@ -46,8 +46,8 @@ run, loading + error states, keyboard nav.
 **Done when:** it feels like a premium product on any screen size.
 
 ## Phase 5 — Productionize  ✅ DONE
-Save/load runs (memory), optional token auth (`FABRIC_UI_TOKEN`) gating the console + API,
-`/api/health` endpoint, concurrent-run cap (`FABRIC_UI_MAX_ACTIVE`), binds `0.0.0.0` for LAN, and
+Save/load runs (memory), optional token auth (`WRATH_UI_TOKEN`) gating the console + API,
+`/api/health` endpoint, concurrent-run cap (`WRATH_UI_MAX_ACTIVE`), binds `0.0.0.0` for LAN, and
 deploy/expose docs (tunnel + TLS + token). Multi-user beyond a shared token is a future build.
 
 ---

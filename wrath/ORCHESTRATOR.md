@@ -4,7 +4,7 @@ The Orchestrator is **not** a subagent you invoke. In Claude Code there is no wa
 thread" — and subagents cannot spawn subagents. So the conductor must live at the top level.
 
 **The operative Orchestrator is [`../CLAUDE.md`](../CLAUDE.md).** It is auto-loaded into every session,
-which makes the main Claude thread *be* the FABRIC Orchestrator: it decomposes the problem, builds the
+which makes the main Claude thread *be* the WRATH Orchestrator: it decomposes the problem, builds the
 graph, routes to the specialist subagents in `.claude/agents/`, applies the gate rules, and converges.
 
 - **Operative routing + house rules + gate rules + failure-mode defenses:** `../CLAUDE.md`

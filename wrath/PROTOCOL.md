@@ -1,26 +1,26 @@
 ---
-name: fabric
-title: "FABRIC — The Network Solution Architect's Operating Brain"
-subtitle: "Federated Architecture Brain for Reasoning, Integration & Connectivity"
+name: wrath
+title: "WRATH — The Network Solution Architect's Operating Brain"
+subtitle: "Workbench for Reasoned Architecture, Testing & Handover"
 owner: "Kamal Hassiba — Network / Solution Architect (CCIE #17453, SP & R&S)"
 version: "1.0 — Charter"
 description: >
   A Claude-native agent system that turns Claude Code / Claude Desktop into a
   full solution-architecture engine for a senior network architect. It is built
   on real Anthropic primitives — subagents, hooks, MCP servers, and skills — and
-  organized around the Solution Fabric: a reasoning GRAPH (not a linear workflow)
+  organized around the Solution Mesh: a reasoning GRAPH (not a linear workflow)
   that decomposes a network problem, routes it across specialist subagents, and
   converges on a validated, customer-ready solution. Use this protocol whenever
   you need to design, validate, automate, migrate, troubleshoot, scope, price, or
   present a network solution.
 ---
 
-# FABRIC
+# WRATH
 
-### Federated Architecture Brain for Reasoning, Integration & Connectivity
+### Workbench for Reasoned Architecture, Testing & Handover
 
 > H-Nerve gave Hourani Group a *workflow studio* — linear chains: trigger → condition → action.
-> FABRIC gives a Solution Architect something a level above that: a **Solution Fabric** — a
+> WRATH gives a Solution Architect something a level above that: a **Solution Mesh** — a
 > living reasoning graph where the path to the answer is *discovered*, not pre-wired. The
 > nodes are specialist agents. The links are formed at runtime, per problem. That is the
 > difference between *automating a known process* and *solving an unknown one* — and solution
@@ -32,10 +32,10 @@ description: >
 
 A **workflow** is a railway: the track is laid in advance, the train only goes where the rails go. Perfect for "every config gets linted," "every Friday email the report." Repetitive, deterministic, known.
 
-A **Solution Fabric** is a road network with a driver. A problem enters. An **Orchestrator** reads it, decides which specialists to wake, lets them call each other, sends scouts back when evidence is thin, branches when there are two viable designs, and converges only when a validated answer exists. The route is *computed live* and is different for every problem.
+A **Solution Mesh** is a road network with a driver. A problem enters. An **Orchestrator** reads it, decides which specialists to wake, lets them call each other, sends scouts back when evidence is thin, branches when there are two viable designs, and converges only when a validated answer exists. The route is *computed live* and is different for every problem.
 
 ```
-            ┌─────────────────────────── THE SOLUTION FABRIC ───────────────────────────┐
+            ┌─────────────────────────── THE SOLUTION WRATH ───────────────────────────┐
             │                                                                            │
  problem ──▶ │   ORCHESTRATOR  ──decompose──▶  builds a graph of the right specialists   │
             │        │                                                                   │
@@ -52,12 +52,12 @@ A **Solution Fabric** is a road network with a driver. A problem enters. An **Or
             └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-FABRIC contains **both** layers and they interlock:
+WRATH contains **both** layers and they interlock:
 
-| Layer | What it is | Use it for | In FABRIC |
+| Layer | What it is | Use it for | In WRATH |
 |---|---|---|---|
 | **Workflow rail** | Deterministic, pre-wired steps (the H-Nerve idea) | Repetitive guardrails: lint every config, review every design, archive every project | Implemented as **Hooks** (§4) |
-| **Solution Fabric** | Dynamic reasoning graph of subagents | Novel problems: design this network, migrate that core, find this fault | Implemented as **Subagents + Orchestrator** (§2–3) |
+| **Solution Mesh** | Dynamic reasoning graph of subagents | Novel problems: design this network, migrate that core, find this fault | Implemented as **Subagents + Orchestrator** (§2–3) |
 
 The rule that decides which to use (straight from agent design): *use a workflow when the steps are known in advance; use the Fabric when the path depends on what you discover along the way.*
 
@@ -66,7 +66,7 @@ The rule that decides which to use (straight from agent design): *use a workflow
 ## 1. Architecture at a glance
 
 ```
-fabric/
+wrath/
 ├── ORCHESTRATOR.md          ← the conductor (system prompt + routing logic)
 ├── agents/                  ← the specialist subagents (§2)
 │   ├── discovery.md
@@ -115,7 +115,7 @@ fabric/
 
 ### 1.1 House rules — the principles every agent obeys
 
-These are the system-wide behavioral rules, baked into the Orchestrator and inherited by every subagent. They are what make FABRIC trustworthy enough to put in front of a customer:
+These are the system-wide behavioral rules, baked into the Orchestrator and inherited by every subagent. They are what make WRATH trustworthy enough to put in front of a customer:
 
 1. **Trade-offs, never a single answer.** Any design names the options and says why this one — an architect's value is the *reasoning*, not the verdict.
 2. **No config ships unvalidated.** Every config/script passes the Validator before it is presented, no exceptions (enforced by hook).
@@ -123,7 +123,7 @@ These are the system-wide behavioral rules, baked into the Orchestrator and inhe
 4. **Claims are grounded.** RFC/CVD/standard references are verified, never invented (enforced by hook).
 5. **Security is designed in, not bolted on.** Every design carries a security posture from the HLD stage.
 6. **The irreversible needs a human.** Pushing to a device, sending to a customer, submitting a change — Kamal confirms, the agent never acts alone.
-7. **Honest about confidence.** Where data is thin, FABRIC says so and asks, rather than fabricating certainty.
+7. **Honest about confidence.** Where data is thin, WRATH says so and asks, rather than fabricating certainty.
 8. **Compounding memory.** Every closed engagement teaches the system; nothing is solved twice from scratch.
 
 ### 1.2 How Kamal actually talks to it
@@ -132,7 +132,7 @@ No menus, no node-dragging. He states the problem in plain language and the Orch
 
 > *"Design an SR-MPLS core for a 3-DC service provider, multi-vendor, give me the HLD, a BoM, and a one-pager for the CTO."*
 
-FABRIC routes Discovery → HLD → Critic → BoM → Exec Storyteller, and returns the package. He reviews, says "tighten the failover story and re-cost with redundant route reflectors," and the relevant nodes re-fire. It is a conversation with a senior team, not a form.
+WRATH routes Discovery → HLD → Critic → BoM → Exec Storyteller, and returns the package. He reviews, says "tighten the failover story and re-cost with redundant route reflectors," and the relevant nodes re-fire. It is a conversation with a senior team, not a form.
 
 ---
 
@@ -141,7 +141,7 @@ FABRIC routes Discovery → HLD → Critic → BoM → Exec Storyteller, and ret
 Each subagent is an **isolated context window** with one mission. Critical rule from agent design: **subagents return summaries, not raw dumps** — the Orchestrator's window is precious. Each spec below gives: *Mission · Inputs · Outputs · Tools · When the Orchestrator routes here · Tier.*
 
 ### 2.0 ORCHESTRATOR — the conductor *(not a specialist; the brain)*
-- **Mission:** Read the incoming problem, decompose it into subgoals, build the Solution Fabric (which agents, in what order, with what dependencies), route work, detect loops and premature stops, and synthesize the final deliverable.
+- **Mission:** Read the incoming problem, decompose it into subgoals, build the Solution Mesh (which agents, in what order, with what dependencies), route work, detect loops and premature stops, and synthesize the final deliverable.
 - **Inputs:** Raw problem (RFP, email thread, "design me X", a fault report, a pricing ask).
 - **Outputs:** A live plan/graph + the final assembled solution package.
 - **Defends against the five failure modes:** hard step cap; repeated-call detection; "are we actually done?" completion check; goal restated every N steps; truncates oversized agent returns.
@@ -249,7 +249,7 @@ Each subagent is an **isolated context window** with one mission. Critical rule 
 - **Tier:** Sonnet.
 
 ### 2.15 Librarian — memory keeper
-- **Mission:** Maintain FABRIC's memory: customer profiles, past designs, reusable patterns, lessons learned, "what we tried that failed." Retrieves the right past context at the start of every engagement and writes the new project back at the end.
+- **Mission:** Maintain WRATH's memory: customer profiles, past designs, reusable patterns, lessons learned, "what we tried that failed." Retrieves the right past context at the start of every engagement and writes the new project back at the end.
 - **Outputs:** Retrieved context packets (on demand) + archived project records (on close).
 - **Tools:** memory store (§6), filesystem, Git.
 - **Routed when:** Session start (retrieve) and project close (archive) — also fired by hooks.
@@ -307,7 +307,7 @@ Failure-mode defenses (loop caps, repeated-call detection, completion checks, go
 
 ## 5. MCP & infrastructure — the connections
 
-What FABRIC plugs into. Honest status so nothing oversells:
+What WRATH plugs into. Honest status so nothing oversells:
 
 | Connection | Purpose | Status |
 |---|---|---|
@@ -334,7 +334,7 @@ Don't conflate them (a classic agent mistake):
 | **Episodic** | Across sessions, per customer | This customer's estate, conventions, history, past decisions, lessons | Vector store / per-customer files, retrieved by the Librarian |
 | **Semantic** | Across all work | Reusable patterns, design templates, vendor knowledge, Kamal's own playbook | Knowledge base / the `skills` references |
 
-The Librarian owns episodic + semantic; the Orchestrator owns working memory. Episodic is what makes FABRIC feel like *Kamal's* brain and not a generic assistant — by the tenth engagement it knows how he designs.
+The Librarian owns episodic + semantic; the Orchestrator owns working memory. Episodic is what makes WRATH feel like *Kamal's* brain and not a generic assistant — by the tenth engagement it knows how he designs.
 
 ---
 
@@ -389,10 +389,10 @@ Each phase is shippable on its own. Phase 1 is a weekend.
 
 - **Real Anthropic primitives, available now:** subagents, hooks, MCP, skills, the model tiers. The orchestration patterns here are standard and supported.
 - **Available connectors:** filesystem, Git, web search, document generation, and (with his org's credentials) ticketing.
-- **Custom builds required:** the Docs/Standards MCP and especially the read-only Network-state MCP. These are the two pieces that turn FABRIC from "very good reasoning assistant" into "plugged into the live estate." Worth doing — but be honest in any pitch that they're the build, not the given.
+- **Custom builds required:** the Docs/Standards MCP and especially the read-only Network-state MCP. These are the two pieces that turn WRATH from "very good reasoning assistant" into "plugged into the live estate." Worth doing — but be honest in any pitch that they're the build, not the given.
 
 That honesty is the same discipline that makes the H-Nerve story credible: name exactly which layer each capability lives in.
 
 ---
 
-*FABRIC v1.0 — Charter. Alternate names if you want options: MERIDIAN, KEYSTONE, NORTHSTAR. Lead with FABRIC — it is the only one that means both "network fabric" and "the fabric of reasoning," which is the whole idea.*
+*WRATH v1.0 — Charter. **W**orkbench for **R**easoned **A**rchitecture, **T**esting & **H**andover — the network solution architect's operating brain.*

@@ -12,7 +12,7 @@ anything you don't know is flagged, not invented (House Rule 7).**
 ## Inputs
 The approved LLD/HLD + IPAM from `deliverables/` (device count, port/throughput needs, redundancy,
 service scale), and the customer's growth/refresh assumptions from Discovery. Pull past deal structures
-from `fabric/memory/customers/<name>.md` if present.
+from `wrath/memory/customers/<name>.md` if present.
 
 ## Procedure
 1. **Derive quantities from the design.** Per device: chassis/model, line cards, port counts → optics

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Proof that FABRIC's anti-hallucination net works — WITHOUT an API key.
+"""Proof that WRATH's anti-hallucination net works — WITHOUT an API key.
 
 We feed deliberately HALLUCINATED content (a fabricated RFC, a broken config, invented price/SKU/latency)
 through the grounding engine and assert every one is caught: fabricated citation BLOCKED, bad config

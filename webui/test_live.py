@@ -29,7 +29,7 @@ _state = {"critic": 0}
 
 
 def fake_call(system, prompt, **kw):
-    m = re.search(r"FABRIC's '([\w-]+)' specialist", system or "")
+    m = re.search(r"WRATH's '([\w-]+)' specialist", system or "")
     agent = m.group(1) if m else ""
     p = (prompt or "")
     if agent == "config-engineer":

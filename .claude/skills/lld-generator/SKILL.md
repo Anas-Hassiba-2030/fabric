@@ -12,7 +12,7 @@ in the customer's existing conventions** — reuse their scheme, don't impose a 
 
 ## Inputs (read first)
 1. The approved HLD in `deliverables/` (architecture, security posture, topology, decision log).
-2. The customer's conventions from `fabric/memory/customers/<name>.md` — naming, IP scheme, ASN, QoS model. **Reuse them.** If none exist, propose a scheme and flag it as a new convention to record.
+2. The customer's conventions from `wrath/memory/customers/<name>.md` — naming, IP scheme, ASN, QoS model. **Reuse them.** If none exist, propose a scheme and flag it as a new convention to record.
 
 ## Procedure
 1. **Addressing / IPAM** — allocate loopbacks, point-to-point links (/31 or /127), VIPs/anycast, management. One authoritative allocation table; no overlaps. See `references/lld-patterns.md`.

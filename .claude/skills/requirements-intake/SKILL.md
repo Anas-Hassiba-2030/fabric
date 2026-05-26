@@ -10,7 +10,7 @@ the design. The discipline: **never invent a value for an architecture-critical 
 
 ## Procedure
 
-1. **Read everything provided** + prior memory for this customer (`fabric/memory/customers/<name>.md`).
+1. **Read everything provided** + prior memory for this customer (`wrath/memory/customers/<name>.md`).
 2. **Populate the brief** (`assets/brief-template.md`). Fill only what's stated.
 3. **Score each empty field**: does it change the *architecture* (scale, SLA, security baseline, vendor constraint, brownfield/greenfield) or just a detail? Tag accordingly.
 4. **Write clarifying questions** for the architecture-critical gaps — specific and answerable, not "what do you need?" Example: *"Is the 50ms convergence target end-to-end service restoration or IGP-only, and is it contractual?"*

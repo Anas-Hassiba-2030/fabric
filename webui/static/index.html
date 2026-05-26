@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>FABRIC Console</title>
+<title>WRATH Console</title>
 <style>
   :root{
     --bg:#060a14; --bg2:#0a1120; --panel:rgba(255,255,255,.045); --brd:rgba(255,255,255,.10);
@@ -94,15 +94,15 @@
 <body>
 <div class="app">
   <header>
-    <div class="logo">F</div>
-    <div><h1>FABRIC Console</h1><div class="sub">Federated Architecture Brain — state a network problem, watch the fabric solve it.</div></div>
+    <div class="logo">W</div>
+    <div><h1>WRATH Console</h1><div class="sub">Workbench for Reasoned Architecture, Testing & Handover — state a network problem, watch WRATH solve it.</div></div>
     <div class="badge" id="modeBadge">…</div>
   </header>
   <div>
     <div class="composer">
       <input id="problem" placeholder="Design an SR-MPLS core for a 3-DC service provider, multi-vendor; HLD + BoM + CTO one-pager."/>
       <div class="toggle"><span>Demo</span><div class="switch" id="modeSwitch"><i></i></div><span>Live <span class="pill" id="livePill">Claude API</span></span></div>
-      <button class="run" id="runBtn">▶ Run FABRIC</button>
+      <button class="run" id="runBtn">▶ Run WRATH</button>
       <button class="run2" id="exportBtn" disabled title="Download the deliverable stack as Markdown">⬇ Export</button>
     </div>
     <div style="display:flex;gap:9px;align-items:center;margin-top:9px">
@@ -114,7 +114,7 @@
     <div class="card">
       <p class="ct">Orchestration pipeline
         <span class="legend" id="legend"></span></p>
-      <div class="flow" id="flow"><div class="placeholder">Type a problem and hit <b>&nbsp;Run FABRIC&nbsp;</b> — watch the task flow box → box.</div></div>
+      <div class="flow" id="flow"><div class="placeholder">Type a problem and hit <b>&nbsp;Run WRATH&nbsp;</b> — watch the task flow box → box.</div></div>
     </div>
     <div class="right">
       <div class="card" style="min-height:0"><p class="ct">Live log</p><div class="log" id="log"></div></div>
@@ -229,7 +229,7 @@ function onReject(m){const g=$("#n-"+m.gate);if(g){g.classList.add("reject");set
 async function run(){if(running)return;const problem=$("#problem").value.trim();if(!problem){$("#problem").focus();return;}
   running=true;$("#runBtn").disabled=true;$("#runBtn").textContent="● Running…";$("#log").innerHTML="";$("#detail").innerHTML='<div class="placeholder">Booting orchestrator…</div>';
   let res;try{res=await fetch(withTok("/api/run"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({problem,mode:LIVE?"live":"demo"})});}catch(e){logLine("connection failed: "+e);return finish();}
-  if(res.status===401){const t=prompt("This console requires an access token:");if(t){localStorage.setItem("fabricTok",t);}running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run FABRIC";return run();}
+  if(res.status===401){const t=prompt("This console requires an access token:");if(t){localStorage.setItem("fabricTok",t);}running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";return run();}
   const {run_id}=await res.json();const es=new EventSource(withTok("/api/stream?run_id="+run_id));
   es.onmessage=ev=>{const m=JSON.parse(ev.data);
     if(m.type==="meta"){buildPipeline(m.stages);logLine("orchestrator booted — mode: "+m.mode,"_");}
@@ -241,11 +241,11 @@ async function run(){if(running)return;const problem=$("#problem").value.trim();
     else if(m.type==="saved")loadHistory();
     else if(m.type==="done"){es.close();finish();}};
   es.onerror=()=>{es.close();finish();};}
-function finish(){running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run FABRIC";$("#exportBtn").disabled=!order.some(s=>outputs[s]);}
-function exportRun(){if(!order.length)return;let md_="# FABRIC run\n\n**Problem:** "+($("#problem").value||"")+"\n\n";
+function finish(){running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";$("#exportBtn").disabled=!order.some(s=>outputs[s]);}
+function exportRun(){if(!order.length)return;let md_="# WRATH run\n\n**Problem:** "+($("#problem").value||"")+"\n\n";
   order.forEach(sid=>{const o=outputs[sid];if(!o)return;const g=grounds[sid];md_+="## "+o.title+"\n\n";
     if(g){md_+="> Grounding: "+g.status+"\n";(g.checks||[]).forEach(c=>{md_+=">  - "+c.item+" — "+c.note+(c.url?" ("+c.url+")":"")+"\n";});md_+="\n";}md_+=o.content+"\n\n---\n\n";});
-  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([md_],{type:"text/markdown"}));a.download="fabric-run.md";a.click();URL.revokeObjectURL(a.href);}
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([md_],{type:"text/markdown"}));a.download="wrath-run.md";a.click();URL.revokeObjectURL(a.href);}
 async function loadHistory(){try{const runs=await(await fetch(withTok("/api/runs"))).json();const h=$("#history");h.innerHTML='<option value="">↺ Recent runs ('+runs.length+')…</option>'+runs.map(r=>`<option value="${r.id}">${(r.problem||"").slice(0,40)} · ${r.mode}</option>`).join("");}catch(e){}}
 async function openSaved(id){if(!id)return;let rec;try{rec=await(await fetch(withTok("/api/run?id="+id))).json();}catch(e){return;}if(!rec||!rec.stages)return;
   buildPipeline(rec.stages);autoFollow=false;

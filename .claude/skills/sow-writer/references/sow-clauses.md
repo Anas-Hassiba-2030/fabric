@@ -27,7 +27,7 @@ Proven clause patterns to adapt (not paste blindly). Tune to the engagement and 
 ## RACI shape
 | Deliverable | Responsible | Accountable | Consulted | Informed |
 |---|---|---|---|---|
-| LLD sign-off | FABRIC team | **Customer net lead** | Security | PMO |
+| LLD sign-off | WRATH team | **Customer net lead** | Security | PMO |
 | Cutover execution | Joint | **Customer change mgr** | NOC | Exec sponsor |
 Exactly one **Accountable** per row.
 

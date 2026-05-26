@@ -1,9 +1,9 @@
 ---
-name: fabric
-description: Entry point for the FABRIC Solution Fabric. Use when Kamal states a network solution problem — design, validate, automate, migrate, troubleshoot, scope, price, or present a network solution — or types "/fabric <problem>". Boots the Orchestrator loop: decompose the problem, build the graph of specialist subagents, route work, run the gate rules, and converge on a validated, customer-ready deliverable stack.
+name: wrath
+description: Entry point for the WRATH Solution Mesh. Use when Kamal states a network solution problem — design, validate, automate, migrate, troubleshoot, scope, price, or present a network solution — or types "/wrath <problem>". Boots the Orchestrator loop: decompose the problem, build the graph of specialist subagents, route work, run the gate rules, and converge on a validated, customer-ready deliverable stack.
 ---
 
-# FABRIC — run the Solution Fabric
+# WRATH — run the Solution Mesh
 
 This boots you (the Orchestrator) on a problem. The operative routing logic, house rules, gate rules,
 and failure-mode defenses are in `CLAUDE.md` (already in your context) — this skill is the explicit
@@ -27,4 +27,4 @@ Discovery · Designer-HLD · Critic · Designer-LLD · Config-Engineer · Valida
 Troubleshooter · Standards-Officer · BoM-Commercials · SoW-Writer · Exec-Storyteller ·
 Adoption-Success · Assurance-Architect · Multi-Vendor-Translator · Librarian.
 
-Remember House Rule 6: **FABRIC drafts; the CCIE owns the final call.**
+Remember House Rule 6: **WRATH drafts; the CCIE owns the final call.**

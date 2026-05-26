@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# FABRIC consolidated test runner — runs every deterministic check in the repo with one command.
+# WRATH consolidated test runner — runs every deterministic check in the repo with one command.
 # Usage: bash run_tests.sh   (exit 0 = all green). Safe to wire into a SessionStart hook or CI.
 set -u
 cd "$(dirname "$0")"
@@ -11,7 +11,7 @@ bad()  { echo "    FAIL — $1"; fail=1; }
 
 step "JSON config validity"
 for f in .claude/settings.json .mcp.json \
-         fabric/mcp/data/standards.json fabric/mcp/state/sample-testbed.json; do
+         wrath/mcp/data/standards.json wrath/mcp/state/sample-testbed.json; do
   if "$PY" -c "import json,sys; json.load(open('$f'))" 2>/dev/null; then ok "$f"; else bad "$f"; fi
 done
 
@@ -28,7 +28,7 @@ step "Live-mode wiring proof (mocked Claude, no API key)"
 if "$PY" webui/test_live.py >/tmp/_live.out 2>&1; then ok "live wiring chains, gates bite, hallucination caught"; else bad "live wiring"; cat /tmp/_live.out; fi
 
 step "MCP servers (stdio JSON-RPC)"
-if bash fabric/mcp/test_servers.sh >/tmp/_mcp.out 2>&1; then ok "fabric-standards + fabric-netstate ($(grep -c PASS /tmp/_mcp.out) checks)"; else bad "mcp servers"; cat /tmp/_mcp.out; fi
+if bash wrath/mcp/test_servers.sh >/tmp/_mcp.out 2>&1; then ok "wrath-standards + wrath-netstate ($(grep -c PASS /tmp/_mcp.out) checks)"; else bad "mcp servers"; cat /tmp/_mcp.out; fi
 
 step "Worked-example configs pass the audit gate"
 for cfg in deliverables/example-acme-sp/03-config-pe1.cfg deliverables/example-acme-sp/03b-config-pe3.cfg; do
@@ -36,7 +36,7 @@ for cfg in deliverables/example-acme-sp/03-config-pe1.cfg deliverables/example-a
 done
 
 step "Skills + MCP servers present"
-sk=$(find .claude/skills -name SKILL.md | wc -l); mc=$(ls fabric/mcp/*_server.py 2>/dev/null | wc -l)
+sk=$(find .claude/skills -name SKILL.md | wc -l); mc=$(ls wrath/mcp/*_server.py 2>/dev/null | wc -l)
 [ "$sk" -ge 15 ] && ok "$sk skills" || bad "only $sk skills"
 [ "$mc" -eq 2 ]  && ok "$mc MCP servers" || bad "expected 2 MCP servers, found $mc"
 

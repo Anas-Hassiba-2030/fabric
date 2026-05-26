@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""FABRIC grounding engine — the anti-hallucination gate for the Console (Phase 1).
+"""WRATH grounding engine — the anti-hallucination gate for the Console (Phase 1).
 
 Every stage output passes through here before it reaches the user. A claim is allowed only if it is
 (a) grounded in a real source, (b) passes a deterministic gate, or (c) explicitly flagged
@@ -18,7 +18,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-STANDARDS = os.path.join(REPO, "fabric", "mcp", "data", "standards.json")
+STANDARDS = os.path.join(REPO, "wrath", "mcp", "data", "standards.json")
 LINT = os.path.join(REPO, ".claude", "skills", "config-audit", "scripts", "config_lint.py")
 
 _RFC_RE = re.compile(r"\bRFC[\s-]?(\d{3,5})\b", re.I)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""FABRIC Network-state MCP (READ-ONLY) — live show/telemetry/inventory, never write.
+"""WRATH Network-state MCP (READ-ONLY) — live show/telemetry/inventory, never write.
 
 Backs the Troubleshooter and any agent that needs current network state (charter §5: "Network-state
 MCP (read-only) ... do read-only first, never write"). Safety posture is structural: this server
@@ -7,9 +7,9 @@ exposes ONLY read tools. There is no write/config/apply tool anywhere in it, so 
 device even if asked. Any change to the network stays with the Config Engineer + destructive-action-
 guard + Kamal (House Rules 2/6).
 
-Data source: JSON snapshots in $FABRIC_NETSTATE_DIR (default: ./state). Each *.json holds a
+Data source: JSON snapshots in $WRATH_NETSTATE_DIR (default: ./state). Each *.json holds a
 {"devices": {...}} map shaped like state/sample-testbed.json. This makes the MCP functional and
-testable offline; to go live, point FABRIC_NETSTATE_DIR at snapshots produced by pyATS `learn`,
+testable offline; to go live, point WRATH_NETSTATE_DIR at snapshots produced by pyATS `learn`,
 gNMI subscriptions, or a NetBox/CMDB export — the tool surface stays identical and read-only.
 
 Tools:
@@ -27,7 +27,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _mcpserver import MCPServer, log  # noqa: E402
 
-STATE_DIR = os.environ.get("FABRIC_NETSTATE_DIR") or os.path.join(
+STATE_DIR = os.environ.get("WRATH_NETSTATE_DIR") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "state")
 
 
@@ -47,11 +47,11 @@ def _device(name):
     devs = _load_state()
     d = devs.get(name)
     if not d:
-        raise ValueError(f"device '{name}' not found. Known: {', '.join(sorted(devs)) or '(none — check FABRIC_NETSTATE_DIR)'}")
+        raise ValueError(f"device '{name}' not found. Known: {', '.join(sorted(devs)) or '(none — check WRATH_NETSTATE_DIR)'}")
     return d
 
 
-server = MCPServer("fabric-netstate", "0.1.0")
+server = MCPServer("wrath-netstate", "0.1.0")
 
 
 @server.tool(
@@ -62,7 +62,7 @@ server = MCPServer("fabric-netstate", "0.1.0")
 def list_devices(_args):
     devs = _load_state()
     if not devs:
-        return f"no devices in snapshot dir {STATE_DIR} — set FABRIC_NETSTATE_DIR to a snapshot directory"
+        return f"no devices in snapshot dir {STATE_DIR} — set WRATH_NETSTATE_DIR to a snapshot directory"
     return "\n".join(
         f"{n} — {d.get('role','?')} / {d.get('platform','?')} {d.get('version','')} @ {d.get('site','?')}"
         for n, d in sorted(devs.items()))
@@ -123,5 +123,5 @@ def get_inventory(args):
 
 
 if __name__ == "__main__":
-    log(f"fabric-netstate MCP (READ-ONLY) starting; snapshot dir = {STATE_DIR}")
+    log(f"wrath-netstate MCP (READ-ONLY) starting; snapshot dir = {STATE_DIR}")
     server.run()

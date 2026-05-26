@@ -1,6 +1,6 @@
 # Worked example — Acme SP core modernization
 
-A single engagement threaded through **every FABRIC phase**, with **connected** artifacts: values flow
+A single engagement threaded through **every WRATH phase**, with **connected** artifacts: values flow
 forward and each gate acts on the previous output. This is the proof the phases work together, and a
 reference for the shape of each deliverable.
 

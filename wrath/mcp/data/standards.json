@@ -1,5 +1,5 @@
 {
-  "_note": "Curated, hand-verified index of commonly cited standards for the FABRIC Standards/Docs MCP. Titles transcribed from the public record. The MCP treats this as ground truth for offline grounding; agents must still confirm currency (obsoletes/updates) before a customer deliverable (House Rule 4). To extend: add an entry with a real, verified reference only.",
+  "_note": "Curated, hand-verified index of commonly cited standards for the WRATH Standards/Docs MCP. Titles transcribed from the public record. The MCP treats this as ground truth for offline grounding; agents must still confirm currency (obsoletes/updates) before a customer deliverable (House Rule 4). To extend: add an entry with a real, verified reference only.",
   "rfc": {
     "4271": {"title": "A Border Gateway Protocol 4 (BGP-4)", "topic": "BGP base", "url": "https://www.rfc-editor.org/rfc/rfc4271"},
     "4760": {"title": "Multiprotocol Extensions for BGP-4", "topic": "MP-BGP address families", "url": "https://www.rfc-editor.org/rfc/rfc4760"},

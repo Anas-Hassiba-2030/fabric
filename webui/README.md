@@ -1,6 +1,6 @@
-# FABRIC Console — local web UI
+# WRATH Console — local web UI
 
-A modern, dependency-free front-end for FABRIC. Type a network problem and watch the orchestration
+A modern, dependency-free front-end for WRATH. Type a network problem and watch the orchestration
 pipeline run stage-by-stage (Discovery → HLD → **Critic gate** → LLD → Config → **Validator gate** →
 BoM → SoW → Exec → Migration → Standards), then read the deliverables.
 
@@ -9,14 +9,14 @@ BoM → SoW → Exec → Migration → Standards), then read the deliverables.
 python3 webui/app.py
 # then open http://localhost:8765
 ```
-Change the port with `FABRIC_UI_PORT=9000 python3 webui/app.py`.
+Change the port with `WRATH_UI_PORT=9000 python3 webui/app.py`.
 
 ## Two modes
 - **Demo** (default, zero config) — the pipeline runs with representative, problem-tailored content.
   **The gates are real:** the Validator stage actually runs `config_lint.py`, and the Standards stage
   runs the real citation-guard against the grounded standards index (it verifies real RFCs and
   **blocks a fabricated one** — House Rule 4).
-- **Live** — set your key and FABRIC's reasoning stages call the Claude API:
+- **Live** — set your key and WRATH's reasoning stages call the Claude API:
   ```bash
   export ANTHROPIC_API_KEY=sk-ant-...
   export ANTHROPIC_MODEL=claude-sonnet-4-6   # optional; opus/haiku also fine
@@ -34,14 +34,14 @@ Change the port with `FABRIC_UI_PORT=9000 python3 webui/app.py`.
 ## Run it beyond localhost (Phase 5 — productionize)
 The server already binds `0.0.0.0`, so it's reachable on your LAN at `http://<your-ip>:8765`. Knobs:
 ```bash
-FABRIC_UI_PORT=9000          # change the port
-FABRIC_UI_TOKEN=some-secret  # require a token: the console + API are gated (open if unset)
-FABRIC_UI_MAX_ACTIVE=8       # cap concurrent runs
+WRATH_UI_PORT=9000          # change the port
+WRATH_UI_TOKEN=some-secret  # require a token: the console + API are gated (open if unset)
+WRATH_UI_MAX_ACTIVE=8       # cap concurrent runs
 ```
 With a token set, the page prompts for it once (stored in the browser) and every API call must carry it.
 - **Health check:** `GET /api/health` → `{status, version, active_runs, hasKey, auth}` (for uptime monitors).
 - **Expose to the internet:** put it behind a tunnel (e.g. `cloudflared`/`ngrok`) or a reverse proxy with
-  TLS — and **always set `FABRIC_UI_TOKEN`** if you do.
+  TLS — and **always set `WRATH_UI_TOKEN`** if you do.
 
 ## Anti-hallucination + Live mode (hardened)
 Every stage output passes through `grounding.py` before you see it: RFC citations are verified against

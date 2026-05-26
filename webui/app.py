@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""FABRIC Console — a local web UI for the FABRIC Solution Fabric.
+"""WRATH Console — a local web UI for the WRATH Solution Mesh.
 
 Type a network problem; watch the orchestration pipeline run stage-by-stage (Discovery -> HLD ->
 Critic gate -> LLD -> Config -> Validator gate -> BoM -> SoW -> Exec -> Migration -> Standards) and
@@ -12,7 +12,7 @@ Two modes:
                       are real: the Validator stage runs config_lint.py, the Standards stage runs the
                       real citation check against the grounded standards index.
   * Live            — if ANTHROPIC_API_KEY is set, the content-generating stages call the Claude API
-                      so it is genuinely FABRIC reasoning. Set ANTHROPIC_MODEL to override the model.
+                      so it is genuinely WRATH reasoning. Set ANTHROPIC_MODEL to override the model.
 
 Transport: Server-Sent Events stream each stage/log/output to the browser as it happens.
 """
@@ -37,16 +37,16 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 STATIC = os.path.join(HERE, "static")
 LINT = os.path.join(REPO, ".claude", "skills", "config-audit", "scripts", "config_lint.py")
-STANDARDS = os.path.join(REPO, "fabric", "mcp", "data", "standards.json")
+STANDARDS = os.path.join(REPO, "wrath", "mcp", "data", "standards.json")
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-7")  # Claude Opus 4.7 is the default engine
-PORT = int(os.environ.get("FABRIC_UI_PORT", "8765"))
-TOKEN = os.environ.get("FABRIC_UI_TOKEN", "")  # if set, the console + API require this token
-MAX_ACTIVE = int(os.environ.get("FABRIC_UI_MAX_ACTIVE", "8"))
+PORT = int(os.environ.get("WRATH_UI_PORT", "8765"))
+TOKEN = os.environ.get("WRATH_UI_TOKEN", "")  # if set, the console + API require this token
+MAX_ACTIVE = int(os.environ.get("WRATH_UI_MAX_ACTIVE", "8"))
 VERSION = "0.5.0"
 
 RUNS = {}   # run_id -> Queue
 REC = {}    # id(queue) -> run record being captured (for memory)
-MEM = os.path.join(REPO, "fabric", "memory", "runs")  # saved runs (compounding memory)
+MEM = os.path.join(REPO, "wrath", "memory", "runs")  # saved runs (compounding memory)
 
 
 def save_run(rec):
@@ -85,7 +85,7 @@ def load_run(rid):
     except Exception:
         return None
 
-# --- the FABRIC pipeline definition (maps to phases/agents) ---------------------------------
+# --- the WRATH pipeline definition (maps to phases/agents) ---------------------------------
 STAGES = [
     {"id": "discovery", "label": "Discovery",    "agent": "discovery",        "phase": "Design",   "kind": "llm"},
     {"id": "hld",       "label": "HLD",          "agent": "designer-hld",     "phase": "Design",   "kind": "llm"},
@@ -305,12 +305,12 @@ def _read(path, limit=2200):
 
 
 def real_system_prompt(agent):
-    """Build the Live-mode system prompt from the actual agent definition + its skill (real FABRIC)."""
+    """Build the Live-mode system prompt from the actual agent definition + its skill (real WRATH)."""
     agent_md = _read(os.path.join(REPO, ".claude", "agents", f"{agent}.md"))
     skill = SKILL_FOR.get(agent)
     skill_md = _read(os.path.join(REPO, ".claude", "skills", skill, "SKILL.md")) if skill else ""
     house = _read(os.path.join(REPO, "CLAUDE.md"), 1400)
-    return (f"You are running as FABRIC's '{agent}' specialist. Follow your agent definition and skill "
+    return (f"You are running as WRATH's '{agent}' specialist. Follow your agent definition and skill "
             f"exactly, honor the House Rules, ground every claim, never invent an RFC/SKU/number "
             f"(flag it instead). Be concise (markdown, <220 words).\n\n"
             f"=== AGENT ===\n{agent_md}\n\n=== SKILL ===\n{skill_md}\n\n=== HOUSE RULES (excerpt) ===\n{house}")
@@ -491,7 +491,7 @@ class Handler(BaseHTTPRequestHandler):
     def _authed(self, u):
         if not TOKEN:
             return True
-        tok = parse_qs(u.query).get("token", [""])[0] or self.headers.get("X-FABRIC-Token", "")
+        tok = parse_qs(u.query).get("token", [""])[0] or self.headers.get("X-WRATH-Token", "")
         return tok == TOKEN
 
     def do_GET(self):
@@ -589,7 +589,7 @@ def main():
     os.chdir(REPO)
     srv = Server(("0.0.0.0", PORT), Handler)
     mode = "LIVE (Claude API)" if has_key() else "DEMO (set ANTHROPIC_API_KEY for live)"
-    print(f"FABRIC Console — {mode}")
+    print(f"WRATH Console — {mode}")
     print(f"  open  http://localhost:{PORT}")
     try:
         srv.serve_forever()

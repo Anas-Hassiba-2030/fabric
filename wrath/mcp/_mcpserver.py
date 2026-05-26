@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Minimal, dependency-free MCP stdio server framework for FABRIC.
+"""Minimal, dependency-free MCP stdio server framework for WRATH.
 
 Implements just enough of the Model Context Protocol stdio transport to expose read-only tools to
-Claude Code without pulling in the `mcp` SDK (keeps the FABRIC tree runnable with stock python3, the
+Claude Code without pulling in the `mcp` SDK (keeps the WRATH tree runnable with stock python3, the
 same posture as the hooks). Transport: newline-delimited JSON-RPC 2.0 on stdin/stdout. All logging
 goes to stderr — stdout carries protocol messages only.
 

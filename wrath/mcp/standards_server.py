@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""FABRIC Docs/Standards MCP (read-only) — grounded RFC / IEEE / framework lookup.
+"""WRATH Docs/Standards MCP (read-only) — grounded RFC / IEEE / framework lookup.
 
 Backs the Standards & Compliance Officer (charter §5: "Docs / Standards MCP — wrap a docs index").
 Serves a curated, hand-verified index (data/standards.json) so citations are grounded even when egress
@@ -55,7 +55,7 @@ def _try_live_rfc(rfc_num):
     """Best-effort live confirmation; returns a short note or None. Never blocks/raises."""
     url = f"https://www.rfc-editor.org/rfc/rfc{rfc_num}.txt"
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "FABRIC-standards-mcp"})
+        req = urllib.request.Request(url, headers={"User-Agent": "WRATH-standards-mcp"})
         with urllib.request.urlopen(req, timeout=8) as resp:
             head = resp.read(400).decode("utf-8", "replace")
         return f"live rfc-editor reachable (HTTP {resp.status}); first bytes confirm document exists"
@@ -63,7 +63,7 @@ def _try_live_rfc(rfc_num):
         return f"live fetch unavailable ({type(e).__name__}) — using curated index"
 
 
-server = MCPServer("fabric-standards", "0.1.0")
+server = MCPServer("wrath-standards", "0.1.0")
 
 
 @server.tool(
@@ -131,5 +131,5 @@ def verify_citation(args):
 
 
 if __name__ == "__main__":
-    log("fabric-standards MCP (read-only) starting")
+    log("wrath-standards MCP (read-only) starting")
     server.run()

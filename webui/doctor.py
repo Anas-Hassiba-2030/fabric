@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""FABRIC doctor — one command to confirm everything is working.
+"""WRATH doctor — one command to confirm everything is working.
 
 Checks the environment, the deterministic safety nets, and — if ANTHROPIC_API_KEY is set — makes ONE
 real call to Claude Opus 4.7 to prove the live engine actually works and answers.
@@ -39,12 +39,12 @@ def run(desc, argv):
         return False
 
 
-print("FABRIC doctor")
+print("WRATH doctor")
 print("=== environment ===")
 line(sys.version_info >= (3, 8), f"python {sys.version.split()[0]}")
 line(app.MODEL == "claude-opus-4-7", f"default engine = {app.MODEL}")
 line(os.path.isfile(os.path.join(REPO, ".claude/skills/config-audit/scripts/config_lint.py")), "config_lint present")
-line(os.path.isfile(os.path.join(REPO, "fabric/mcp/data/standards.json")), "grounded standards index present")
+line(os.path.isfile(os.path.join(REPO, "wrath/mcp/data/standards.json")), "grounded standards index present")
 
 print("=== safety nets (deterministic, no key) ===")
 run("anti-hallucination grounding proof", [sys.executable, "webui/test_grounding.py"])
@@ -59,7 +59,7 @@ if not key:
 else:
     try:
         body = json.dumps({"model": "claude-opus-4-7", "max_tokens": 64,
-                           "messages": [{"role": "user", "content": "Reply with exactly: FABRIC-OK"}]}).encode()
+                           "messages": [{"role": "user", "content": "Reply with exactly: WRATH-OK"}]}).encode()
         req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=body,
                                      headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"})
         with urllib.request.urlopen(req, timeout=60) as r:
@@ -67,7 +67,7 @@ else:
         model_used = data.get("model", "")
         text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
         line("opus-4-7" in model_used or "opus" in model_used, f"real API call returned model: {model_used}")
-        line("FABRIC-OK" in text, f"Opus 4.7 answered: {text.strip()[:40]!r}")
+        line("WRATH-OK" in text, f"Opus 4.7 answered: {text.strip()[:40]!r}")
     except Exception as e:
         line(False, f"real Opus call failed: {e}")
 

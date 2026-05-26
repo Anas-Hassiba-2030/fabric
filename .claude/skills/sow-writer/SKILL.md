@@ -10,7 +10,7 @@ in what it excludes as much as what it includes** — the gaps are where scope c
 
 ## Inputs
 The solution package (HLD/LLD/BoM/migration plan) and the success criteria from the Discovery brief.
-Reuse proven clauses from `references/sow-clauses.md` and from `fabric/memory/` — don't redraft
+Reuse proven clauses from `references/sow-clauses.md` and from `wrath/memory/` — don't redraft
 boilerplate.
 
 ## SoW sections (the contract)

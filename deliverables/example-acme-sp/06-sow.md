@@ -31,7 +31,7 @@ multi-vendor (IOS-XR DC1/DC2, Junos DC3), per the approved HLD/LLD, with zero cu
 ## RACI (extract)
 | Deliverable | Responsible | Accountable | Consulted | Informed |
 |---|---|---|---|---|
-| LLD sign-off | FABRIC team | **Acme network lead** | Acme security | Acme PMO |
+| LLD sign-off | WRATH team | **Acme network lead** | Acme security | Acme PMO |
 | Per-site cutover | Joint | **Acme change manager** | Acme NOC | Exec sponsor |
 
 ## Acceptance criteria (objective, tied to Discovery success criteria)

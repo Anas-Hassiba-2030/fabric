@@ -13,7 +13,7 @@ here poisons every downstream agent.
 
 ## Method
 
-1. **Ingest everything given** — RFP/RFI, call notes, email chains, existing topology/`show` dumps, prior memory for this customer (`fabric/memory/customers/<name>.md` if it exists). Load the `requirements-intake` skill for the capture structure.
+1. **Ingest everything given** — RFP/RFI, call notes, email chains, existing topology/`show` dumps, prior memory for this customer (`wrath/memory/customers/<name>.md` if it exists). Load the `requirements-intake` skill for the capture structure.
 2. **Extract into the brief structure** (below). Fill what's stated; never invent what isn't.
 3. **Find the gaps.** For every missing item that materially changes the design, write a specific, answerable clarifying question. Prioritize the ones that would change the *architecture* (scale, SLA, security baseline, vendor constraints, brownfield vs greenfield) over cosmetic ones.
 4. **State assumptions explicitly** where you must proceed without an answer — flagged, not buried.
