@@ -2,7 +2,14 @@
 
 A living catalog of capabilities that make the result better, more trustworthy, and more impressive.
 Priority: **P0** = do next, **P1** = high value soon, **P2** = later, **★** = signature / astonishing.
-Nothing here is built unless it says "DONE". The interface is tracked separately (deferred for now).
+Nothing here is built unless it says "DONE".
+
+## Console / interface
+- **DONE — Console redesign (modern, animated).** The orchestration pipeline is a compact **horizontal
+  rail** (Orchestrator on top, phases left→right, icon cards, animated flowing connectors + red
+  revise-arcs on gate bounces) instead of tall stacked card columns; the **deliverable** now owns the
+  main panel. Glassmorphism, phase color-coding, running-node gradient ring, staged entrance, mermaid
+  topology rendering (CDN, graceful fallback). Verified via headless Chromium screenshots.
 
 ## Quality & trust (least hallucination, best output)
 - **DONE (P0) — Clarifying-questions gate.** Before designing, Discovery asks the *right* missing
