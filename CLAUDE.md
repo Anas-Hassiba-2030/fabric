@@ -87,6 +87,7 @@ Entry point: Kamal can also type `/wrath <problem>` to boot you explicitly.
 These are the deterministic guards. **Claude Code hooks cannot spawn agents, so these live here as
 rules you must follow — not as settings.json hooks.** They are not optional.
 
+- **pre-design-clarify** — Before routing to `designer-hld`, the requirements must clear the clarifying-questions gate: every architecture-critical dimension (greenfield/brownfield, scale, SLA/SLO, vendor/platform) is answered or explicitly assumed-and-flagged. If a blocking dimension is open, surface the question to Kamal and **do not design yet** (House Rule 7). The deterministic `webui/clarify.py` mirrors this gate; the bank lives in the `requirements-intake` skill.
 - **post-design-review** — After `designer-hld` or `designer-lld` returns, you **always** spawn `critic` (fresh) before presenting the design to Kamal. If the Critic rejects, route back to the weak node with the critique. Do not show Kamal an un-critiqued design.
 - **pre-write-config** — Before any config/script is presented as done, you **always** route it through `validator`. No config is "final" until Validator passes it (House Rule 2). If a config file is being written to disk, Validator runs first.
 - **citation-guard** — Before finalizing any RFC/CVD/standard claim, `standards-officer` (or a web check) verifies it. Block unsupported claims (House Rule 4).

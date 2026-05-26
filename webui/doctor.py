@@ -48,6 +48,7 @@ line(os.path.isfile(os.path.join(REPO, "wrath/mcp/data/standards.json")), "groun
 
 print("=== safety nets (deterministic, no key) ===")
 run("anti-hallucination grounding proof", [sys.executable, "webui/test_grounding.py"])
+run("clarifying-questions gate proof", [sys.executable, "webui/test_clarify.py"])
 run("live-mode wiring proof (mocked)", [sys.executable, "webui/test_live.py"])
 run("config_lint self-test", [sys.executable, ".claude/skills/config-audit/scripts/config_lint.py", "--self-test"])
 

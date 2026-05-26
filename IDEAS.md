@@ -5,8 +5,11 @@ Priority: **P0** = do next, **P1** = high value soon, **P2** = later, **★** = 
 Nothing here is built unless it says "DONE". The interface is tracked separately (deferred for now).
 
 ## Quality & trust (least hallucination, best output)
-- **P0 — Clarifying-questions gate.** Before designing, Discovery asks the *right* missing questions
-  (scale, SLA, brownfield/greenfield, platform/version) instead of assuming. Biggest single quality lever.
+- **DONE (P0) — Clarifying-questions gate.** Before designing, Discovery asks the *right* missing
+  questions (scale, SLA, brownfield/greenfield, platform/version) instead of assuming. Deterministic
+  gate `webui/clarify.py` (mirrored in the `requirements-intake` skill bank), enforced as the
+  `pre-design-clarify` orchestration rule, surfaced in the Discovery stage, proven by
+  `webui/test_clarify.py`. Biggest single quality lever.
 - **P1 — Assumptions ledger + confidence score** per deliverable: every assumption listed, each claim
   tagged High/Med/Low confidence; the run ends with a "trust report" (grounded / flagged / blocked counts).
 - **P1 — Provenance everywhere** (DONE for citations): every factual claim links to its source or is

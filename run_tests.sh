@@ -24,6 +24,9 @@ if "$PY" .claude/skills/config-audit/scripts/config_lint.py --self-test >/tmp/_l
 step "anti-hallucination grounding proof (no API key)"
 if "$PY" webui/test_grounding.py >/tmp/_grnd.out 2>&1; then ok "grounding net holds (fake RFC blocked, bad config failed, numbers flagged)"; else bad "grounding net"; cat /tmp/_grnd.out; fi
 
+step "Clarifying-questions gate proof (no API key)"
+if "$PY" webui/test_clarify.py >/tmp/_clar.out 2>&1; then ok "clarify-gate holds (vague blocked, fully-specified ready)"; else bad "clarify gate"; cat /tmp/_clar.out; fi
+
 step "Live-mode wiring proof (mocked Claude, no API key)"
 if "$PY" webui/test_live.py >/tmp/_live.out 2>&1; then ok "live wiring chains, gates bite, hallucination caught"; else bad "live wiring"; cat /tmp/_live.out; fi
 

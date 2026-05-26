@@ -24,6 +24,10 @@ the design. The discipline: **never invent a value for an architecture-critical 
 - Vendor constraints / existing estate
 - Timeline + change windows + budget envelope
 
+The full dimension-by-dimension question bank (and which dimensions *block* design) is in
+`references/clarifying-questions.md`. The deterministic `webui/clarify.py` gate mirrors it.
+
 ## Output
-The completed brief + a numbered, prioritized open-questions list (architecture-critical first). Hand
-back to the Orchestrator as a summary.
+The completed brief + a numbered, prioritized open-questions list (architecture-critical first), and
+an explicit **ready / NOT-ready for design** verdict — NOT ready while any blocking dimension is
+unanswered. Hand back to the Orchestrator as a summary.

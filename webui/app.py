@@ -31,6 +31,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import clarify  # noqa: E402
 import grounding  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -390,7 +391,27 @@ def run_pipeline(run_id, problem, mode):
         for stage in STAGES:
             sid = stage["id"]
 
-            if sid == "critic":
+            if sid == "discovery":
+                # P0 gate: detect architecture-critical gaps and ask the right questions before
+                # any design is attempted (House Rule 7). Blocking gaps => brief is "not ready".
+                start("discovery")
+                analysis = clarify.analyze(problem)
+                text = gen(stage, problem, ctx, live, extra=clarify.live_extra(analysis))
+                if not (live and has_key()):
+                    text = clarify.render_brief(problem, analysis)
+                ctx["discovery"] = text
+                emit(q, {"type": "output", "stage": "discovery", "title": "Discovery · discovery", "content": text})
+                emit(q, {"type": "clarify", "stage": "discovery", "ready": analysis["ready"],
+                         "blocking": analysis["blocking"], "missing": analysis["missing"]})
+                if not analysis["ready"]:
+                    emit(q, {"type": "log", "stage": "discovery",
+                             "text": f"🔒 clarify-gate: {len(analysis['blocking'])} architecture-critical "
+                                     "question(s) open — Kamal must resolve before design."})
+                status, checks = grounding.ground_text(text)
+                emit(q, {"type": "grounding", "stage": "discovery", "status": status, "checks": checks})
+                done("discovery")
+
+            elif sid == "critic":
                 # Gate: review the HLD; if it doesn't pass, bounce back to the designer and revise.
                 start("critic")
                 accept, findings = critic_eval(q, problem, ctx, live, attempt=1)

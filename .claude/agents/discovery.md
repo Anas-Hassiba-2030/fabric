@@ -44,3 +44,6 @@ here poisons every downstream agent.
 
 Return the **brief as a summary**, not the raw source documents. Lead with the architecture-critical
 open questions — those are what the Orchestrator must resolve (with Kamal) before routing to design.
+End with an explicit **ready / NOT-ready for design** verdict: NOT ready while any blocking dimension
+(greenfield/brownfield, scale, SLA/SLO, vendor/platform) is unanswered. This is the `pre-design-clarify`
+gate (CLAUDE.md §4); the full question bank is in the `requirements-intake` skill's references.
