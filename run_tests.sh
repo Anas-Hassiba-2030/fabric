@@ -21,6 +21,9 @@ if bash .claude/hooks/test_csirt_guard.sh >/tmp/_csirt.out 2>&1; then ok "csirt_
 step "config_lint self-test"
 if "$PY" .claude/skills/config-audit/scripts/config_lint.py --self-test >/tmp/_lint.out 2>&1 && grep -q "SELF-TEST PASS" /tmp/_lint.out; then ok "config_lint self-test"; else bad "config_lint self-test"; cat /tmp/_lint.out; fi
 
+step "anti-hallucination grounding proof (no API key)"
+if "$PY" webui/test_grounding.py >/tmp/_grnd.out 2>&1; then ok "grounding net holds (fake RFC blocked, bad config failed, numbers flagged)"; else bad "grounding net"; cat /tmp/_grnd.out; fi
+
 step "MCP servers (stdio JSON-RPC)"
 if bash fabric/mcp/test_servers.sh >/tmp/_mcp.out 2>&1; then ok "fabric-standards + fabric-netstate ($(grep -c PASS /tmp/_mcp.out) checks)"; else bad "mcp servers"; cat /tmp/_mcp.out; fi
 

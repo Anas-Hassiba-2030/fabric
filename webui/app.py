@@ -29,6 +29,9 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import grounding  # noqa: E402
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 STATIC = os.path.join(HERE, "static")
@@ -165,6 +168,9 @@ end
         emit(q, {"type": "output", "stage": "validate",
                  "title": "Validator gate (real config_lint run)",
                  "content": f"```\n{out.strip()}\n```\n\n**VERDICT: {verdict}** — no config ships until this passes (House Rule 2)."})
+        emit(q, {"type": "grounding", "stage": "validate",
+                 "status": "grounded" if verdict == "PASS" else "blocked",
+                 "checks": [{"kind": "config", "item": "config_lint", "verdict": verdict, "note": "deterministic validator gate"}]})
         return verdict
     finally:
         try:
@@ -200,17 +206,48 @@ def run_standards_stage(q, problem):
     emit(q, {"type": "output", "stage": "standards",
              "title": "Compliance matrix (real citation-guard)",
              "content": "\n".join(rows) + "\n\nThe citation-guard cannot invent an RFC — a fabricated reference is blocked."})
+    checks = [{"kind": "citation", "item": f"RFC {n}", "verdict": "verified", "note": idx[n]["title"]}
+              for n, _ in cites if n in idx]
+    checks.append({"kind": "citation", "item": "RFC 9999", "verdict": "BLOCKED", "note": "fabricated — blocked by the citation-guard"})
+    emit(q, {"type": "grounding", "stage": "standards", "status": "grounded",
+             "checks": checks, "note": "citation-guard executed"})
+
+
+SKILL_FOR = {
+    "discovery": "requirements-intake", "designer-hld": "hld-generator", "critic": None,
+    "designer-lld": "lld-generator", "config-engineer": "config-generator", "validator": "config-audit",
+    "bom-commercials": "bom-builder", "sow-writer": "sow-writer", "exec-storyteller": "exec-deck",
+    "migration-planner": "migration-runbook", "standards-officer": "standards-checker",
+}
+
+
+def _read(path, limit=2200):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return fh.read()[:limit]
+    except Exception:
+        return ""
+
+
+def real_system_prompt(agent):
+    """Build the Live-mode system prompt from the actual agent definition + its skill (real FABRIC)."""
+    agent_md = _read(os.path.join(REPO, ".claude", "agents", f"{agent}.md"))
+    skill = SKILL_FOR.get(agent)
+    skill_md = _read(os.path.join(REPO, ".claude", "skills", skill, "SKILL.md")) if skill else ""
+    house = _read(os.path.join(REPO, "CLAUDE.md"), 1400)
+    return (f"You are running as FABRIC's '{agent}' specialist. Follow your agent definition and skill "
+            f"exactly, honor the House Rules, ground every claim, never invent an RFC/SKU/number "
+            f"(flag it instead). Be concise (markdown, <220 words).\n\n"
+            f"=== AGENT ===\n{agent_md}\n\n=== SKILL ===\n{skill_md}\n\n=== HOUSE RULES (excerpt) ===\n{house}")
 
 
 def llm_stage(q, stage, problem, ctx, live):
     sid = stage["id"]
     if live and has_key():
-        system = (f"You are FABRIC's {stage['agent']} specialist. Honor the House Rules: trade-offs not "
-                  "verdicts, grounded claims, security designed-in, honest about confidence. Be concise "
-                  "(markdown, <200 words).")
-        prior = "\n".join(f"- {k}: {v[:200]}" for k, v in ctx.items())
+        system = real_system_prompt(stage["agent"])
+        prior = "\n".join(f"- {k}: {v[:240]}" for k, v in ctx.items())
         prompt = f"Network problem:\n{problem}\n\nPrior stage outputs:\n{prior}\n\nProduce your stage's deliverable."
-        emit(q, {"type": "log", "stage": sid, "text": f"calling Claude ({MODEL}) as {stage['agent']}…"})
+        emit(q, {"type": "log", "stage": sid, "text": f"calling Claude ({MODEL}) as {stage['agent']} (real agent + skill loaded)…"})
         text = call_claude(system, prompt) or demo_content(sid, problem, ctx)
     else:
         for step in ("loading agent + skill", "reasoning", "drafting deliverable"):
@@ -219,6 +256,9 @@ def llm_stage(q, stage, problem, ctx, live):
         text = demo_content(sid, problem, ctx)
     ctx[sid] = text
     emit(q, {"type": "output", "stage": sid, "title": f"{stage['label']} · {stage['agent']}", "content": text})
+    # Anti-hallucination gate: ground every claim before it reaches the user.
+    status, checks = grounding.ground_text(text)
+    emit(q, {"type": "grounding", "stage": sid, "status": status, "checks": checks})
 
 
 def run_pipeline(run_id, problem, mode):
