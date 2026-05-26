@@ -40,6 +40,9 @@ LINT = os.path.join(REPO, ".claude", "skills", "config-audit", "scripts", "confi
 STANDARDS = os.path.join(REPO, "fabric", "mcp", "data", "standards.json")
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 PORT = int(os.environ.get("FABRIC_UI_PORT", "8765"))
+TOKEN = os.environ.get("FABRIC_UI_TOKEN", "")  # if set, the console + API require this token
+MAX_ACTIVE = int(os.environ.get("FABRIC_UI_MAX_ACTIVE", "8"))
+VERSION = "0.5.0"
 
 RUNS = {}   # run_id -> Queue
 REC = {}    # id(queue) -> run record being captured (for memory)
@@ -485,12 +488,23 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _authed(self, u):
+        if not TOKEN:
+            return True
+        tok = parse_qs(u.query).get("token", [""])[0] or self.headers.get("X-FABRIC-Token", "")
+        return tok == TOKEN
+
     def do_GET(self):
         u = urlparse(self.path)
         if u.path in ("/", "/index.html"):
             return self._serve_static("index.html", "text/html; charset=utf-8")
+        if u.path == "/api/health":
+            return self._send(200, "application/json", json.dumps(
+                {"status": "ok", "version": VERSION, "active_runs": len(RUNS), "hasKey": has_key(), "auth": bool(TOKEN)}).encode())
         if u.path == "/api/config":
-            return self._send(200, "application/json", json.dumps({"hasKey": has_key(), "model": MODEL}).encode())
+            return self._send(200, "application/json", json.dumps({"hasKey": has_key(), "model": MODEL, "auth": bool(TOKEN)}).encode())
+        if u.path in ("/api/stream", "/api/runs", "/api/run") and not self._authed(u):
+            return self._send(401, "application/json", b'{"error":"unauthorized"}')
         if u.path == "/api/stream":
             return self._stream(parse_qs(u.query).get("run_id", [""])[0])
         if u.path == "/api/runs":
@@ -505,6 +519,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         u = urlparse(self.path)
         if u.path == "/api/run":
+            if not self._authed(u):
+                return self._send(401, "application/json", b'{"error":"unauthorized"}')
+            if len(RUNS) >= MAX_ACTIVE:
+                return self._send(429, "application/json", b'{"error":"too many active runs, try again shortly"}')
             length = int(self.headers.get("Content-Length", 0))
             data = json.loads(self.rfile.read(length) or b"{}")
             problem = (data.get("problem") or "").strip()

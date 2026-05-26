@@ -31,6 +31,18 @@ Change the port with `FABRIC_UI_PORT=9000 python3 webui/app.py`.
 - `static/index.html` — single-file SPA (no build step): animated stage pipeline grouped by phase, a
   live log, and deliverables rendered from markdown.
 
+## Run it beyond localhost (Phase 5 — productionize)
+The server already binds `0.0.0.0`, so it's reachable on your LAN at `http://<your-ip>:8765`. Knobs:
+```bash
+FABRIC_UI_PORT=9000          # change the port
+FABRIC_UI_TOKEN=some-secret  # require a token: the console + API are gated (open if unset)
+FABRIC_UI_MAX_ACTIVE=8       # cap concurrent runs
+```
+With a token set, the page prompts for it once (stored in the browser) and every API call must carry it.
+- **Health check:** `GET /api/health` → `{status, version, active_runs, hasKey, auth}` (for uptime monitors).
+- **Expose to the internet:** put it behind a tunnel (e.g. `cloudflared`/`ngrok`) or a reverse proxy with
+  TLS — and **always set `FABRIC_UI_TOKEN`** if you do.
+
 ## Anti-hallucination + Live mode (hardened)
 Every stage output passes through `grounding.py` before you see it: RFC citations are verified against
 the grounded index (**fabricated ones are blocked**), prices/SKUs/latency claims are **flagged** as

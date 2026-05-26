@@ -123,6 +123,7 @@
 <script>
 let LIVE=false,hasKey=false,running=false,outputs={},grounds={},selected=null,order=[],edgeState={},rejectArcs=[],autoFollow=true;
 const $=s=>document.querySelector(s), SVGNS="http://www.w3.org/2000/svg", PER_ROW=4;
+function withTok(u){const t=localStorage.getItem("fabricTok");return t?u+(u.includes("?")?"&":"?")+"token="+encodeURIComponent(t):u;}
 const PHC={Design:"--pDesign",Implement:"--pImplement",Sell:"--pSell",Operate:"--pOperate",Scale:"--pScale"};
 const examples=[
   "Design an SR-MPLS core for a 3-DC service provider, multi-vendor; HLD + BoM + CTO one-pager.",
@@ -219,8 +220,9 @@ function onReject(m){const g=$("#n-"+m.gate);if(g){g.classList.add("reject");set
   logLine("↩ "+m.reason,m.gate);}
 async function run(){if(running)return;const problem=$("#problem").value.trim();if(!problem){$("#problem").focus();return;}
   running=true;$("#runBtn").disabled=true;$("#runBtn").textContent="● Running…";$("#log").innerHTML="";$("#detail").innerHTML='<div class="placeholder">Booting orchestrator…</div>';
-  let res;try{res=await fetch("/api/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({problem,mode:LIVE?"live":"demo"})});}catch(e){logLine("connection failed: "+e);return finish();}
-  const {run_id}=await res.json();const es=new EventSource("/api/stream?run_id="+run_id);
+  let res;try{res=await fetch(withTok("/api/run"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({problem,mode:LIVE?"live":"demo"})});}catch(e){logLine("connection failed: "+e);return finish();}
+  if(res.status===401){const t=prompt("This console requires an access token:");if(t){localStorage.setItem("fabricTok",t);}running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run FABRIC";return run();}
+  const {run_id}=await res.json();const es=new EventSource(withTok("/api/stream?run_id="+run_id));
   es.onmessage=ev=>{const m=JSON.parse(ev.data);
     if(m.type==="meta"){buildPipeline(m.stages);logLine("orchestrator booted — mode: "+m.mode,"_");}
     else if(m.type==="stage")setStage(m.id,m.status);
@@ -236,15 +238,16 @@ function exportRun(){if(!order.length)return;let md_="# FABRIC run\n\n**Problem:
   order.forEach(sid=>{const o=outputs[sid];if(!o)return;const g=grounds[sid];md_+="## "+o.title+"\n\n";
     if(g){md_+="> Grounding: "+g.status+"\n";(g.checks||[]).forEach(c=>{md_+=">  - "+c.item+" — "+c.note+(c.url?" ("+c.url+")":"")+"\n";});md_+="\n";}md_+=o.content+"\n\n---\n\n";});
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([md_],{type:"text/markdown"}));a.download="fabric-run.md";a.click();URL.revokeObjectURL(a.href);}
-async function loadHistory(){try{const runs=await(await fetch("/api/runs")).json();const h=$("#history");h.innerHTML='<option value="">↺ Recent runs ('+runs.length+')…</option>'+runs.map(r=>`<option value="${r.id}">${(r.problem||"").slice(0,40)} · ${r.mode}</option>`).join("");}catch(e){}}
-async function openSaved(id){if(!id)return;let rec;try{rec=await(await fetch("/api/run?id="+id)).json();}catch(e){return;}if(!rec||!rec.stages)return;
+async function loadHistory(){try{const runs=await(await fetch(withTok("/api/runs"))).json();const h=$("#history");h.innerHTML='<option value="">↺ Recent runs ('+runs.length+')…</option>'+runs.map(r=>`<option value="${r.id}">${(r.problem||"").slice(0,40)} · ${r.mode}</option>`).join("");}catch(e){}}
+async function openSaved(id){if(!id)return;let rec;try{rec=await(await fetch(withTok("/api/run?id="+id))).json();}catch(e){return;}if(!rec||!rec.stages)return;
   buildPipeline(rec.stages);autoFollow=false;
   setTimeout(()=>{order.forEach((sid,i)=>{const n=$("#n-"+sid);if(n){n.classList.remove("idle","run");n.classList.add("done");const b=n.querySelector(".b");if(b)b.textContent=n.classList.contains("gate")?"⚑":"✓";}if(i>0)setEdge(i-1,"done");});
     Object.entries(rec.deliverables||{}).forEach(([sid,o])=>{outputs[sid]=o;});
     Object.entries(rec.grounding||{}).forEach(([sid,g])=>showGround({stage:sid,status:g.status,checks:g.checks}));
     const first=order.find(s=>outputs[s]);if(first)showDetail(first);logLine("loaded saved run "+id.slice(0,8),"_");},80);}
 let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(drawEdges,120);});
-(async function(){initChips();try{const c=await(await fetch("/api/config")).json();hasKey=c.hasKey;}catch(e){}
+(async function(){initChips();try{const c=await(await fetch("/api/config")).json();hasKey=c.hasKey;
+    if(c.auth&&!localStorage.getItem("fabricTok")){const t=prompt("This console requires an access token:");if(t)localStorage.setItem("fabricTok",t);}}catch(e){}
   if(!hasKey)$("#livePill").textContent="set ANTHROPIC_API_KEY";setMode(false);
   $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;$("#exportBtn").onclick=exportRun;
   $("#history").onchange=e=>openSaved(e.target.value);

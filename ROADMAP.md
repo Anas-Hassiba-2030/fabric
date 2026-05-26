@@ -45,8 +45,10 @@ run, loading + error states, keyboard nav.
 **Next:** finer animation timing, copy/share link, loading/error states — tuned to Kamal's taste.
 **Done when:** it feels like a premium product on any screen size.
 
-## Phase 5 — Productionize (later)
-Auth, save/load runs, deploy beyond localhost, multi-user.
+## Phase 5 — Productionize  ✅ DONE
+Save/load runs (memory), optional token auth (`FABRIC_UI_TOKEN`) gating the console + API,
+`/api/health` endpoint, concurrent-run cap (`FABRIC_UI_MAX_ACTIVE`), binds `0.0.0.0` for LAN, and
+deploy/expose docs (tunnel + TLS + token). Multi-user beyond a shared token is a future build.
 
 ---
 
