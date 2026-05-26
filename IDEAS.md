@@ -26,7 +26,10 @@ Nothing here is built unless it says "DONE". The interface is tracked separately
   stages (formatting, BoM tables) — better cost/speed without losing quality. (Engine default already Opus 4.7.)
 - **P2 — What-if / compare designs.** Re-run with a changed constraint and **diff** the two designs
   side-by-side (e.g. "SR-MPLS vs SRv6", "2 RRs vs 4").
-- **P2 — Memory RAG.** At run start, recall similar past engagements + patterns and cite them.
+- **DONE — Memory RAG.** At run start, Discovery recalls the most relevant prior knowledge —
+  patterns (semantic), customer files (episodic), and past saved runs — by network-term overlap and
+  cites them (curated knowledge ranked first; no false positives). `webui/recall.py`, surfaced atop
+  the Discovery stage + saved into the run record, proven by `webui/test_recall.py`. (House Rule 8.)
 
 ## Richer deliverables
 - **DONE (P1) — Auto topology diagram.** Every HLD now embeds an inferred reference topology

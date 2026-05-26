@@ -49,6 +49,7 @@ line(os.path.isfile(os.path.join(REPO, "wrath/mcp/data/standards.json")), "groun
 print("=== safety nets (deterministic, no key) ===")
 run("anti-hallucination grounding proof", [sys.executable, "webui/test_grounding.py"])
 run("clarifying-questions gate proof", [sys.executable, "webui/test_clarify.py"])
+run("memory recall proof", [sys.executable, "webui/test_recall.py"])
 run("auto topology diagram proof", [sys.executable, "webui/test_topology.py"])
 run("cost/TCO + risk register honesty proof", [sys.executable, "webui/test_tco.py"])
 run("trust report fidelity proof", [sys.executable, "webui/test_trust.py"])

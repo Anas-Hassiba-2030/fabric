@@ -27,6 +27,9 @@ if "$PY" webui/test_grounding.py >/tmp/_grnd.out 2>&1; then ok "grounding net ho
 step "Clarifying-questions gate proof (no API key)"
 if "$PY" webui/test_clarify.py >/tmp/_clar.out 2>&1; then ok "clarify-gate holds (vague blocked, fully-specified ready)"; else bad "clarify gate"; cat /tmp/_clar.out; fi
 
+step "Memory recall proof (no API key)"
+if "$PY" webui/test_recall.py >/tmp/_rec.out 2>&1; then ok "memory recall compounds (pattern recalled, no false positives)"; else bad "memory recall"; cat /tmp/_rec.out; fi
+
 step "Auto topology diagram proof (no API key)"
 if "$PY" webui/test_topology.py >/tmp/_topo.out 2>&1; then ok "auto topology renders valid Mermaid (core+redundancy, DC vs SP)"; else bad "auto topology"; cat /tmp/_topo.out; fi
 

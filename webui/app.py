@@ -33,6 +33,7 @@ from urllib.parse import urlparse, parse_qs
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import clarify  # noqa: E402
 import grounding  # noqa: E402
+import recall  # noqa: E402
 import tco  # noqa: E402
 import topology  # noqa: E402
 import trust  # noqa: E402
@@ -223,6 +224,8 @@ def emit(q, obj):
             rec["grounding"][obj["stage"]] = {"status": obj["status"], "checks": obj.get("checks", [])}
         elif t == "trust":
             rec["trust"] = {k: obj[k] for k in ("confidence", "headline", "counts", "ledger", "assumptions")}
+        elif t == "recall":
+            rec["recall"] = obj.get("matches", [])
 
 
 def demo_config(attempt):
@@ -407,11 +410,21 @@ def run_pipeline(run_id, problem, mode):
                 start("discovery")
                 analysis = clarify.analyze(problem)
                 ctx["__clarify__"] = analysis
-                text = gen(stage, problem, ctx, live, extra=clarify.live_extra(analysis))
+                matches = recall.recall(problem)
+                recall_md = recall.render(matches)
+                extra = clarify.live_extra(analysis)
+                if recall_md:
+                    extra += "\n\nRelevant prior WRATH memory — cite/adapt, don't solve from scratch " \
+                             "(House Rule 8):\n" + recall_md
+                text = gen(stage, problem, ctx, live, extra=extra)
                 if not (live and has_key()):
                     text = clarify.render_brief(problem, analysis)
+                if recall_md:
+                    text = recall_md + "\n\n" + text
                 ctx["discovery"] = text
                 emit(q, {"type": "output", "stage": "discovery", "title": "Discovery · discovery", "content": text})
+                if matches:
+                    emit(q, {"type": "recall", "stage": "discovery", "matches": matches})
                 emit(q, {"type": "clarify", "stage": "discovery", "ready": analysis["ready"],
                          "blocking": analysis["blocking"], "missing": analysis["missing"]})
                 if not analysis["ready"]:
