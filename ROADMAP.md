@@ -31,16 +31,18 @@ RFCs, SKUs, or numbers.
 stage re-runs on screen (the design→critique→revise loop, live).
 **Done when:** a failing config is sent back, fixed, and re-passes — visibly.
 
-## Phase 3 — Provenance + compounding memory
+## Phase 3 — Provenance + compounding memory  ✅ DONE
 **Goal:** every claim traceable; the system learns.
 **Build:** deliverables cite sources (RFC links, customer conventions); each finished run is saved to memory
 (`fabric/memory/customers` + `patterns`) and reused next time.
 **Done when:** a claim links to its source; a second run reuses the first's conventions.
 
-## Phase 4 — Agile, smooth, modern UX
+## Phase 4 — Agile, smooth, modern UX  🟡 IN PROGRESS
 **Goal:** the polish.
 **Build:** smoother animations/transitions, responsive layout, export deliverables (PDF/Markdown), copy/share a
 run, loading + error states, keyboard nav.
+**Done so far:** Markdown export of the deliverable stack; responsive layout; fade transitions.
+**Next:** finer animation timing, copy/share link, loading/error states — tuned to Kamal's taste.
 **Done when:** it feels like a premium product on any screen size.
 
 ## Phase 5 — Productionize (later)
