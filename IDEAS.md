@@ -10,6 +10,9 @@ Nothing here is built unless it says "DONE".
   revise-arcs on gate bounces) instead of tall stacked card columns; the **deliverable** now owns the
   main panel. Glassmorphism, phase color-coding, running-node gradient ring, staged entrance, mermaid
   topology rendering (CDN, graceful fallback). Verified via headless Chromium screenshots.
+- **DONE — Expand-to-fullscreen.** Both the Deliverable and Live-activity panels have an **⤢ EXPAND**
+  button that opens the full content in a large modal (Esc / click-outside / ✕ to close); the
+  deliverable view re-renders the topology diagram. Verified via headless screenshots.
 
 ## Quality & trust (least hallucination, best output)
 - **DONE (P0) — Clarifying-questions gate.** Before designing, Discovery asks the *right* missing

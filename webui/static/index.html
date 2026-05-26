@@ -187,6 +187,31 @@
   .placeholder .big{font-size:15px;color:var(--ink);font-weight:600;margin-bottom:6px}
   kbd{background:rgba(255,255,255,.08);border:1px solid var(--brd);border-bottom-width:2px;border-radius:6px;padding:1px 7px;font:inherit;font-size:12px}
 
+  /* expand button + modal overlay */
+  .exp{margin-left:auto;background:rgba(255,255,255,.05);border:1px solid var(--brd);color:var(--muted);
+    border-radius:8px;cursor:pointer;font-size:13px;line-height:1;padding:5px 9px;transition:.15s;display:inline-flex;
+    align-items:center;gap:5px;text-transform:none;letter-spacing:0}
+  .exp:hover{color:var(--accent2);border-color:var(--accent2);background:rgba(54,224,200,.08)}
+  .exp .lab{font-size:10px;font-weight:700;letter-spacing:.5px}
+  .modal{position:fixed;inset:0;background:rgba(3,6,12,.68);backdrop-filter:blur(7px);z-index:60;display:none;
+    align-items:center;justify-content:center;padding:34px;animation:fade .2s ease}
+  .modal.show{display:flex}
+  .sheet{width:min(1120px,93vw);height:min(87vh,940px);background:linear-gradient(180deg,#0c1322,#080d1a);
+    border:1px solid var(--brd2);border-radius:20px;display:flex;flex-direction:column;
+    box-shadow:0 40px 110px rgba(0,0,0,.65);animation:popin .26s ease}
+  @keyframes popin{from{opacity:0;transform:scale(.97) translateY(12px)}to{opacity:1;transform:none}}
+  .sheethead{display:flex;align-items:center;gap:11px;padding:17px 22px;border-bottom:1px solid var(--brd);flex:none}
+  .sheethead .t{font-size:15.5px;font-weight:740;display:flex;align-items:center;gap:10px}
+  .sheethead .t .ico{width:27px;height:27px;border-radius:8px;display:grid;place-items:center;color:var(--accent2);
+    background:rgba(54,224,200,.12);border:1px solid rgba(54,224,200,.3)}
+  .sheethead .t .ico svg{width:15px;height:15px}
+  .sheetclose{margin-left:auto;background:rgba(255,255,255,.05);border:1px solid var(--brd);color:var(--muted);
+    width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:15px;transition:.15s}
+  .sheetclose:hover{color:var(--bad);border-color:var(--bad);background:rgba(255,107,138,.08)}
+  .sheetbody{overflow:auto;padding:20px 24px;flex:1}
+  .sheetbody .md{font-size:14px}.sheetbody .md table{font-size:13px}
+  .logfull{font:13px/1.65 ui-monospace,Menlo,Consolas,monospace;color:#bdebd6;white-space:pre-wrap;word-break:break-word}
+  .logfull .s{color:var(--accent)}
   @media(max-width:1100px){.workspace{grid-template-columns:1fr}html,body{overflow:auto}.app{height:auto;min-height:100vh}}
 </style>
 </head>
@@ -224,10 +249,19 @@
       <div class="flow" id="flow"><div class="placeholder"><div><div class="big">Ready when you are.</div>Type a network problem and hit <kbd>Run&nbsp;WRATH</kbd> — the orchestrator decomposes it and routes the work across specialist agents, gate by gate.</div></div></div>
     </div>
     <div class="workspace">
-      <div class="card detailcard"><p class="ct"><span class="k">Deliverable</span></p>
+      <div class="card detailcard"><p class="ct"><span class="k">Deliverable</span>
+        <button class="exp" id="expDetail" title="Expand the deliverable">⤢ <span class="lab">EXPAND</span></button></p>
         <div class="detail" id="detail"><div class="placeholder">Click any completed stage to read its deliverable.<br/>The running one opens automatically.</div></div></div>
-      <div class="card logcard"><p class="ct"><span class="k">Live activity</span></p><div class="log" id="log"></div></div>
+      <div class="card logcard"><p class="ct"><span class="k">Live activity</span>
+        <button class="exp" id="expLog" title="Expand the live activity log">⤢ <span class="lab">EXPAND</span></button></p>
+        <div class="log" id="log"></div></div>
     </div>
+  </div>
+</div>
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div class="sheethead"><span class="t" id="modalTitle"></span><button class="sheetclose" id="modalClose" title="Close (Esc)">✕</button></div>
+    <div class="sheetbody" id="modalBody"></div>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" onerror="window.__noMermaid=1"></script>
@@ -405,12 +439,23 @@ async function openSaved(id){if(!id)return;let rec;try{rec=await(await fetch(wit
     Object.entries(rec.deliverables||{}).forEach(([sid,o])=>{outputs[sid]=o;});
     Object.entries(rec.grounding||{}).forEach(([sid,g])=>showGround({stage:sid,status:g.status,checks:g.checks}));
     const first=order.find(s=>outputs[s]);if(first)showDetail(first);logLine("loaded saved run "+id.slice(0,8),"_");$("#exportBtn").disabled=false;},90);}
+function openModal(titleHtml,bodyHtml,isDeliverable){const m=$("#modal");$("#modalTitle").innerHTML=titleHtml;
+  $("#modalBody").innerHTML=bodyHtml;m.classList.add("show");if(isDeliverable)renderMermaid($("#modalBody"));}
+function closeModal(){$("#modal").classList.remove("show");}
+function expandDetail(){const o=selected&&outputs[selected];
+  if(!o){openModal("Deliverable",'<div class="placeholder">No deliverable selected yet — run WRATH or click a completed stage.</div>');return;}
+  const icHtml=stageMeta[selected]?`<span class="ico">${ico(selected)}</span>`:"";
+  openModal(`${icHtml}${o.title}`,`${groundHtml(grounds[selected])}<div class="md">${md(o.content)}</div>`,true);}
+function expandLog(){openModal("🛰 Live activity",`<div class="logfull">${$("#log").innerHTML||'<span style="color:var(--muted)">No activity yet.</span>'}</div>`);}
 let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(drawEdges,120);});
 (async function(){initChips();initMermaid();try{const c=await(await fetch("/api/config")).json();hasKey=c.hasKey;MODELNAME=c.model||MODELNAME;
     if(c.auth&&!localStorage.getItem("wrathTok")){const t=prompt("This console requires an access token:");if(t)localStorage.setItem("wrathTok",t);}}catch(e){}
   if(!hasKey)$("#livePill").textContent="set ANTHROPIC_API_KEY";setMode(false);
   $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;$("#exportBtn").onclick=exportRun;
   $("#history").onchange=e=>openSaved(e.target.value);
+  $("#expDetail").onclick=expandDetail;$("#expLog").onclick=expandLog;$("#modalClose").onclick=closeModal;
+  $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
   $("#problem").addEventListener("keydown",e=>{if(e.key==="Enter")run();});loadHistory();})();
 </script>
 </body>
