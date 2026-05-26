@@ -31,6 +31,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import blueprints  # noqa: E402
 import clarify  # noqa: E402
 import export_run  # noqa: E402
 import grounding  # noqa: E402
@@ -579,6 +580,8 @@ class Handler(BaseHTTPRequestHandler):
                 {"status": "ok", "version": VERSION, "active_runs": len(RUNS), "hasKey": has_key(), "auth": bool(TOKEN)}).encode())
         if u.path == "/api/config":
             return self._send(200, "application/json", json.dumps({"hasKey": has_key(), "model": MODEL, "auth": bool(TOKEN)}).encode())
+        if u.path == "/api/blueprints":
+            return self._send(200, "application/json", json.dumps(blueprints.all()).encode())
         if u.path in ("/api/stream", "/api/runs", "/api/run", "/api/export", "/api/compare") and not self._authed(u):
             return self._send(401, "application/json", b'{"error":"unauthorized"}')
         if u.path == "/api/compare":

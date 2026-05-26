@@ -235,6 +235,19 @@
   .cmpcell{border:1px solid var(--brd);border-radius:10px;padding:11px;background:rgba(255,255,255,.015);overflow:auto}
   .cmpcell.changed{border-color:rgba(255,206,107,.4);background:rgba(255,206,107,.045)}
   .cmpcell.empty{color:var(--muted);font-style:italic;display:grid;place-items:center;min-height:48px}
+  .bpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px}
+  .bpcard{border:1px solid var(--brd);border-radius:14px;padding:14px 15px;cursor:pointer;
+    background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.012));transition:.18s;position:relative;overflow:hidden}
+  .bpcard:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 14px 34px rgba(0,0,0,.3)}
+  .bpcard .h{display:flex;align-items:center;gap:11px;margin-bottom:8px}
+  .bpcard .ico{width:34px;height:34px;flex:none;border-radius:10px;display:grid;place-items:center;color:var(--accent2);
+    background:rgba(54,224,200,.12);border:1px solid rgba(54,224,200,.3)}
+  .bpcard .ico svg{width:18px;height:18px}
+  .bpcard .nm{font-weight:740;font-size:14px}
+  .bpcard .cat{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+  .bpcard .pr{font-size:11.5px;color:#c2cce0;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .bpcard .go{position:absolute;top:13px;right:14px;font-size:10px;color:var(--accent2);opacity:0;transition:.18s}
+  .bpcard:hover .go{opacity:1}
   @media(max-width:1100px){.workspace{grid-template-columns:1fr}html,body{overflow:auto}.app{height:auto;min-height:100vh}}
 </style>
 </head>
@@ -258,6 +271,7 @@
     </div>
     <div style="display:flex;gap:9px;align-items:center;margin-top:10px">
       <div class="chips" id="chips" style="flex:1"></div>
+      <button class="minibtn" id="blueprintBtn" title="Start from a ready-made engagement blueprint">⊞ Blueprints</button>
       <button class="minibtn" id="whatifBtn" disabled title="Re-run with one changed constraint, then compare">⤳ What-if</button>
       <button class="minibtn" id="compareBtn" title="Compare two saved runs side by side">⇄ Compare</button>
       <select id="history" class="hist" title="Reload a saved run"><option value="">↺ Recent runs…</option></select>
@@ -503,6 +517,13 @@ function renderCompare(data){const d=data.diff;$("#cmpChg").innerHTML=`<b style=
     h+=ca?`<div class="cmpcell ${cls}"><div class="md">${md(ca.content)}</div></div>`:'<div class="cmpcell empty">not produced</div>';
     h+=cb?`<div class="cmpcell ${cls}"><div class="md">${md(cb.content)}</div></div>`:'<div class="cmpcell empty">not produced</div>';});
   h+="</div>";$("#cmpResult").innerHTML=h;renderMermaid($("#cmpResult"));}
+async function openBlueprints(){let list=[];try{list=await(await fetch("/api/blueprints")).json();}catch(e){}
+  if(!list.length){openModal("⊞ Engagement blueprints",'<div class="placeholder">No blueprints available.</div>');return;}
+  const cards=list.map(b=>`<div class="bpcard" data-id="${b.id}"><span class="go">run ▶</span>
+    <div class="h"><span class="ico">${ico(b.icon)}</span><div><div class="nm">${b.name}</div><div class="cat">${b.category}</div></div></div>
+    <div class="pr">${b.problem.replace(/</g,"&lt;")}</div></div>`).join("");
+  openModal("⊞ Engagement blueprints",`<p style="color:var(--muted);font-size:12px;margin:0 0 14px">Ready-to-run starters — each is complete enough to clear the clarify-gate and go straight to design. Click one to load and run it.</p><div class="bpgrid">${cards}</div>`);
+  document.querySelectorAll(".bpcard").forEach(c=>c.onclick=()=>{const b=list.find(x=>x.id===c.dataset.id);if(!b)return;$("#problem").value=b.problem;closeModal();run();});}
 function forkWhatIf(){if(!lastSavedId)return;const tweak=prompt("Re-run with one changed constraint (e.g. 'use SRv6 instead of SR-MPLS', '4 route reflectors', 'add HIPAA'):");
   if(!tweak)return;pendingFork={base:lastSavedId};const cur=$("#problem").value.replace(/\s*—\s*what-if:.*$/,"");$("#problem").value=cur+" — what-if: "+tweak;run();}
 let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(drawEdges,120);});
@@ -512,7 +533,7 @@ let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(draw
   $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;$("#exportBtn").onclick=exportRun;
   $("#history").onchange=e=>openSaved(e.target.value);
   $("#expDetail").onclick=expandDetail;$("#expLog").onclick=expandLog;$("#modalClose").onclick=closeModal;
-  $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;
+  $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;
   $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
   $("#problem").addEventListener("keydown",e=>{if(e.key==="Enter")run();});loadHistory();})();

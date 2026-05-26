@@ -70,7 +70,10 @@ Nothing here is built unless it says "DONE".
 ## Workflow & reach
 - **P1 — Shareable read-only run links** + one-click PDF of the whole stack.
 - **P2 — CLI / API mode** so runs can be triggered from CI or scripts (headless WRATH).
-- **P2 — Engagement blueprints.** Starter packs (SP core, DC fabric, campus, SD-WAN, secure edge) to seed a run.
+- **DONE — Engagement blueprints.** `⊞ Blueprints` opens a gallery of ready-to-run starters (SP core,
+  DC fabric, DCI, campus, secure edge, SD-WAN); clicking one loads + runs it. Each is complete enough
+  to clear the clarify-gate. `webui/blueprints.py` + `/api/blueprints`, enforced by
+  `webui/test_blueprints.py` (every blueprint must pass clarify), UI verified via screenshot.
 - **DONE — Run history / compounding memory**, **token auth + health for productionizing**, **doctor** (system self-check).
 
 ## Verification (already real, keep growing)

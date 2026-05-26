@@ -45,6 +45,9 @@ if "$PY" webui/test_export.py >/tmp/_exp.out 2>&1; then ok "run export bundles t
 step "What-if compare proof (no API key)"
 if "$PY" webui/test_whatif.py >/tmp/_wif.out 2>&1; then ok "what-if compare diffs runs (changed/same/only, metrics, deltas)"; else bad "what-if compare"; cat /tmp/_wif.out; fi
 
+step "Engagement blueprints proof (no API key)"
+if "$PY" webui/test_blueprints.py >/tmp/_bp.out 2>&1; then ok "blueprints complete + clear the clarify-gate"; else bad "blueprints"; cat /tmp/_bp.out; fi
+
 step "Live-mode wiring proof (mocked Claude, no API key)"
 if "$PY" webui/test_live.py >/tmp/_live.out 2>&1; then ok "live wiring chains, gates bite, hallucination caught"; else bad "live wiring"; cat /tmp/_live.out; fi
 
