@@ -362,13 +362,16 @@ def gen(stage, problem, ctx, live, extra=""):
     return demo_content(stage["id"], problem, ctx)
 
 
+_qlocal = threading.local()
+
+
 class q_global:
-    """Tiny thread-local-ish holder so gen() can emit without threading the queue everywhere."""
-    _q = None
+    """Per-thread queue holder so gen() can emit without threading the queue everywhere. Thread-local
+    so concurrent runs (each in its own run_pipeline thread) never cross-wire their SSE streams."""
     @classmethod
-    def set(cls, q): cls._q = q
+    def set(cls, q): _qlocal.q = q
     @classmethod
-    def get(cls): return cls._q
+    def get(cls): return getattr(_qlocal, "q", None)
 
 
 def emit_text_stage(q, stage, problem, ctx, live, extra=""):
@@ -554,6 +557,11 @@ def run_pipeline(run_id, problem, mode, intensity="standard"):
                     start("validate")
                     verdict, out = validate_cfg(q, ctx["__cfg__"])
                     attempt += 1
+                if verdict == "FAIL":
+                    # House Rule 2: no config ships unvalidated. Don't pretend the run converged.
+                    ctx["__gatefail__"] = "Validator gate never passed after retries — config is NOT shippable"
+                    emit(q, {"type": "log", "stage": "validate",
+                             "text": "⛔ config still FAILING after retries — gate NOT cleared (House Rule 2)"})
                 done("validate")
 
             elif stage["kind"] == "tool-cost":
@@ -595,7 +603,10 @@ def run_pipeline(run_id, problem, mode, intensity="standard"):
                 emit_text_stage(q, stage, problem, ctx, live)
                 done(sid)
 
-        emit(q, {"type": "log", "stage": "_", "text": "✅ Converged — every gate cleared, deliverable stack ready."})
+        if ctx.get("__gatefail__"):
+            emit(q, {"type": "log", "stage": "_", "text": "⚠ NOT converged — " + ctx["__gatefail__"] + " (House Rule 2)."})
+        else:
+            emit(q, {"type": "log", "stage": "_", "text": "✅ Converged — every gate cleared, deliverable stack ready."})
         save_run(REC.get(id(q), {}))
         emit(q, {"type": "saved", "id": run_id})
     except Exception as e:
@@ -645,6 +656,8 @@ class Handler(BaseHTTPRequestHandler):
             svg = topology.svg_for(parse_qs(u.query).get("problem", [""])[0])
             return self._send(200, "image/svg+xml; charset=utf-8", svg.encode())
         if u.path == "/api/assurance":
+            if not self._authed(u):  # reads live read-only network state — gate it like the run APIs
+                return self._send(401, "application/json", b'{"error":"unauthorized"}')
             problem = parse_qs(u.query).get("problem", [""])[0]
             state, sd = {"devices": {}}, os.environ.get("WRATH_NETSTATE_DIR", os.path.join(REPO, "wrath", "mcp", "state"))
             try:
@@ -715,7 +728,10 @@ class Handler(BaseHTTPRequestHandler):
             if len(RUNS) >= MAX_ACTIVE:
                 return self._send(429, "application/json", b'{"error":"too many active runs, try again shortly"}')
             length = int(self.headers.get("Content-Length", 0))
-            data = json.loads(self.rfile.read(length) or b"{}")
+            try:
+                data = json.loads(self.rfile.read(length) or b"{}")
+            except (ValueError, json.JSONDecodeError):
+                return self._send(400, "application/json", b'{"error":"invalid JSON body"}')
             problem = (data.get("problem") or "").strip()
             mode = data.get("mode") or "demo"
             intensity = data.get("intensity") or "standard"

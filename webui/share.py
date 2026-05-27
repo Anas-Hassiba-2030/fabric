@@ -21,7 +21,8 @@ def _inline(s):
     s = _html.escape(s, quote=False)
     s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
     s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
-    s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2" target="_blank" rel="noopener">\1</a>', s)
+    s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)",
+               lambda m: f'<a href="{m.group(2).replace(chr(34), "%22")}" target="_blank" rel="noopener">{m.group(1)}</a>', s)
     return s
 
 

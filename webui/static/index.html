@@ -425,7 +425,7 @@ function setMode(l){LIVE=l&&hasKey;$("#modeSwitch").classList.toggle("on",LIVE);
 const md=(function(){
  function il(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
    .replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
-   .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');}
+   .replace(/\[([^\]]+)\]\(([^)]+)\)/g,(m,t,u)=>'<a href="'+u.replace(/"/g,"%22")+'" target="_blank" rel="noopener">'+t+'</a>');}
  return function(src){const L=src.split("\n");let o=[],i=0;while(i<L.length){let ln=L[i];
   if(ln.startsWith("```")){let lang=ln.slice(3).trim().toLowerCase();let c=[];i++;
     while(i<L.length&&!L[i].startsWith("```")){c.push(L[i]);i++;}i++;
@@ -646,7 +646,7 @@ async function openCompliance(){const prob=currentProblem||$("#problem").value.t
 async function openAssurance(){const prob=currentProblem||$("#problem").value.trim();
   if(!prob){openModal("📡 Service assurance",'<div class="placeholder">State a problem (or run one) first — assurance is generated from the design.</div>');return;}
   openModal("📡 Service assurance",'<div class="placeholder">building telemetry/SLO catalog + drift check…</div>');
-  try{const r=await(await fetch("/api/assurance?problem="+encodeURIComponent(prob))).json();
+  try{const r=await(await fetch(withTok("/api/assurance?problem="+encodeURIComponent(prob)))).json();
     $("#modalBody").innerHTML=`<div class="md">${md(r.markdown)}</div>`;}catch(e){$("#modalBody").innerHTML='<div class="placeholder">failed</div>';}}
 function bar(nm,val,max,color){const pct=max>0?Math.round(val/max*100):0;
   return `<div class="anbar"><span class="nm">${nm}</span><span class="tk"><span class="fl" style="width:${pct}%;background:${color}"></span></span><span class="ct">${val}</span></div>`;}
