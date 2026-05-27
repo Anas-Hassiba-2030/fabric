@@ -243,6 +243,20 @@
   .cmpcell{border:1px solid var(--brd);border-radius:10px;padding:11px;background:rgba(255,255,255,.015);overflow:auto}
   .cmpcell.changed{border-color:rgba(255,206,107,.4);background:rgba(255,206,107,.045)}
   .cmpcell.empty{color:var(--muted);font-style:italic;display:grid;place-items:center;min-height:48px}
+  .ask{position:fixed;inset:0;background:rgba(3,6,12,.62);backdrop-filter:blur(6px);z-index:80;display:flex;
+    align-items:center;justify-content:center;padding:30px;animation:fade .15s ease}
+  .asksheet{width:min(490px,93vw);background:linear-gradient(180deg,#0e1728,#0a1120);border:1px solid var(--brd2);
+    border-radius:16px;padding:21px 22px;box-shadow:0 32px 90px rgba(0,0,0,.6);animation:popin .2s ease}
+  .askt{font-size:14px;font-weight:680;margin-bottom:14px;line-height:1.55;color:var(--ink)}
+  .aski{width:100%;background:rgba(0,0,0,.32);border:1px solid var(--brd);border-radius:10px;color:var(--ink);
+    padding:12px 14px;font:inherit;outline:none}
+  .aski:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(110,168,255,.16)}
+  .askbtns{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+  .askbtns button{padding:10px 19px;border-radius:10px;cursor:pointer;font:inherit;font-weight:680;font-size:13px;
+    border:1px solid var(--brd);transition:.15s}
+  .askcancel{background:transparent;color:var(--muted)}.askcancel:hover{color:var(--ink);border-color:var(--brd2)}
+  .askok{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#06121f;border:0}
+  .askok:hover{filter:brightness(1.08)}
   .bpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px}
   .bpcard{border:1px solid var(--brd);border-radius:14px;padding:14px 15px;cursor:pointer;
     background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.012));transition:.18s;position:relative;overflow:hidden}
@@ -348,6 +362,17 @@
 let LIVE=false,hasKey=false,running=false,outputs={},grounds={},selected=null,order=[],edgeState={},rejectArcs=[],autoFollow=true,stageMeta={};
 const $=s=>document.querySelector(s), SVGNS="http://www.w3.org/2000/svg";
 function withTok(u){const t=localStorage.getItem("wrathTok");return t?u+(u.includes("?")?"&":"?")+"token="+encodeURIComponent(t):u;}
+function askInput(title,placeholder,value){return new Promise(res=>{
+  const wrap=document.createElement("div");wrap.className="ask";
+  wrap.innerHTML=`<div class="asksheet"><div class="askt">${title}</div>
+    <input class="aski" type="text" placeholder="${(placeholder||"").replace(/"/g,'&quot;')}"/>
+    <div class="askbtns"><button class="askcancel">Cancel</button><button class="askok">OK</button></div></div>`;
+  document.body.appendChild(wrap);const inp=wrap.querySelector(".aski");if(value)inp.value=value;
+  const close=v=>{wrap.remove();res(v);};setTimeout(()=>inp.focus(),30);
+  wrap.querySelector(".askok").onclick=()=>close(inp.value.trim());
+  wrap.querySelector(".askcancel").onclick=()=>close(null);
+  wrap.addEventListener("click",e=>{if(e.target===wrap)close(null);});
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();close(inp.value.trim());}if(e.key==="Escape")close(null);});});}
 const PHC={Design:"--pDesign",Implement:"--pImplement",Sell:"--pSell",Operate:"--pOperate",Scale:"--pScale"};
 const ICONS={
   discovery:'<circle cx="6.8" cy="6.8" r="4.6"/><line x1="10.2" y1="10.2" x2="14.5" y2="14.5"/>',
@@ -492,7 +517,7 @@ function onReject(m){const g=$("#n-"+m.gate);if(g){g.classList.add("reject");set
 async function run(){if(running)return;const problem=$("#problem").value.trim();if(!problem){$("#problem").focus();return;}
   running=true;$("#runBtn").disabled=true;$("#runBtn").textContent="● Running…";$("#log").innerHTML="";$("#detail").innerHTML='<div class="placeholder">Booting orchestrator…</div>';
   let res;try{res=await fetch(withTok("/api/run"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({problem,mode:LIVE?"live":"demo"})});}catch(e){logLine("connection failed: "+e);return finish();}
-  if(res.status===401){const t=prompt("This console requires an access token:");if(t){localStorage.setItem("wrathTok",t);}running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";return run();}
+  if(res.status===401){const t=await askInput("This console requires an access token","paste your token");if(t){localStorage.setItem("wrathTok",t);}running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";if(t)return run();return finish();}
   const {run_id}=await res.json();const es=new EventSource(withTok("/api/stream?run_id="+run_id));
   es.onmessage=ev=>{const m=JSON.parse(ev.data);
     if(m.type==="meta"){runMode=m.mode;buildPipeline(m.stages);logLine("orchestrator booted — mode: "+m.mode,"_");}
@@ -574,10 +599,10 @@ async function openInbox(){let items=[];try{items=await(await fetch(withTok("/ap
       <div class="ibacts"><button data-open="${it.run_id}" title="Open">↗</button><button data-note="${it.run_id}" title="Edit note">✎</button><button class="del" data-del="${it.run_id}" title="Remove">✕</button></div></div>`;}).join("")
     :'<div class="placeholder">Inbox empty — run something, then ＋ Save current run.</div>';
   openModal("📥 Saved-results inbox",`<div class="ibtop">${saveBtn}${hint}</div><div id="ibList">${rows}</div>`);
-  const sb=$("#ibSave");if(sb)sb.onclick=async()=>{const note=prompt("Note for this saved run (what were you testing?):")||"";
+  const sb=$("#ibSave");if(sb)sb.onclick=async()=>{const note=(await askInput("Save to inbox — add a note","what were you testing? (optional)"))||"";
     await fetch(withTok("/api/inbox"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"save",run_id:lastSavedId,note})});openInbox();};
   document.querySelectorAll("[data-open]").forEach(el=>el.onclick=()=>{closeModal();openSaved(el.dataset.open);});
-  document.querySelectorAll("[data-note]").forEach(el=>el.onclick=async()=>{const note=prompt("Edit note:")||"";
+  document.querySelectorAll("[data-note]").forEach(el=>el.onclick=async()=>{const note=(await askInput("Edit note",""))||"";
     await fetch(withTok("/api/inbox"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"note",run_id:el.dataset.note,note})});openInbox();});
   document.querySelectorAll("[data-del]").forEach(el=>el.onclick=async()=>{
     await fetch(withTok("/api/inbox"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"delete",run_id:el.dataset.del})});openInbox();});}
@@ -615,11 +640,12 @@ async function savePattern(){if(!lastSavedId)return;let r;
   logLine("★ distilled to memory → wrath/memory/patterns/"+r.slug+".md"+git+" — will be recalled next time","_");
   const gitNote=p.committed?`<span style="color:var(--ok)"> · committed to git (<code>${p.sha}</code>) so it survives restarts</span>`:"";
   openModal("★ Pattern distilled — saved to memory",`<p style="color:var(--muted);font-size:12px;margin:0 0 12px">Saved to <code>wrath/memory/patterns/${r.slug}.md</code>${gitNote}. WRATH will recall this on the next similar problem (House Rule 8 — compounding memory).</p><div class="md">${md(r.markdown)}</div>`,true);}
-function forkWhatIf(){if(!lastSavedId)return;const tweak=prompt("Re-run with one changed constraint (e.g. 'use SRv6 instead of SR-MPLS', '4 route reflectors', 'add HIPAA'):");
+async function forkWhatIf(){if(!lastSavedId)return;
+  const tweak=await askInput("What-if — re-run with one changed constraint","e.g. use SRv6 instead of SR-MPLS · 4 route reflectors · add HIPAA");
   if(!tweak)return;pendingFork={base:lastSavedId};const cur=$("#problem").value.replace(/\s*—\s*what-if:.*$/,"");$("#problem").value=cur+" — what-if: "+tweak;run();}
 let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(drawEdges,120);});
 (async function(){initChips();initMermaid();try{const c=await(await fetch("/api/config")).json();hasKey=c.hasKey;MODELNAME=c.model||MODELNAME;
-    if(c.auth&&!localStorage.getItem("wrathTok")){const t=prompt("This console requires an access token:");if(t)localStorage.setItem("wrathTok",t);}}catch(e){}
+    if(c.auth&&!localStorage.getItem("wrathTok")){const t=await askInput("This console requires an access token","paste your token");if(t)localStorage.setItem("wrathTok",t);}}catch(e){}
   if(!hasKey)$("#livePill").textContent="set ANTHROPIC_API_KEY";setMode(false);
   $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;$("#exportBtn").onclick=exportRun;
   $("#history").onchange=e=>openSaved(e.target.value);

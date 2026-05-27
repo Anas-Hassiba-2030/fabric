@@ -5,6 +5,8 @@ Priority: **P0** = do next, **P1** = high value soon, **P2** = later, **★** = 
 Nothing here is built unless it says "DONE".
 
 ## Trust & transparency
+- **DONE — Modern in-app dialogs.** Replaced every native browser `prompt()` (What-if tweak, inbox
+  notes, access token) with a themed modal input (Enter/Esc/click-outside) — no more "localhost says".
 - **DONE (Phase 2) — Provenance labelling (no ambiguity).** Every deliverable is badged **REAL**
   (deterministic gate actually ran — Validator/Standards/Cost/Trust, in any mode), **LIVE · Opus 4.7**
   (model reasoning), or **DEMO** (representative). A legend sits on the pipeline; the export bundle
