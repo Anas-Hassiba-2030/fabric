@@ -92,7 +92,7 @@ Nothing here is built unless it says "DONE".
 
 ## Workflow & reach
 - **P1 — Shareable read-only run links** + one-click PDF of the whole stack.
-- **P2 — CLI / API mode** so runs can be triggered from CI or scripts (headless WRATH).
+- **DONE — Headless CLI / API mode.** `python webui/cli.py "<problem>" [--mode live] [--intensity max] [--format json] [--out file]` runs the full pipeline with no browser and emits the deliverable bundle (reuses the engine + exporter). Honors mode + Critic dial. `webui/cli.py`, proven by `webui/test_cli.py`.
 - **DONE — Engagement blueprints.** `⊞ Blueprints` opens a gallery of ready-to-run starters (SP core,
   DC fabric, DCI, campus, secure edge, SD-WAN); clicking one loads + runs it. Each is complete enough
   to clear the clarify-gate. `webui/blueprints.py` + `/api/blueprints`, enforced by

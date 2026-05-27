@@ -55,6 +55,7 @@ run("cost/TCO + risk register honesty proof", [sys.executable, "webui/test_tco.p
 run("trust report fidelity proof", [sys.executable, "webui/test_trust.py"])
 run("provenance labelling proof", [sys.executable, "webui/test_provenance.py"])
 run("multi-model routing proof", [sys.executable, "webui/test_routing.py"])
+run("headless cli proof", [sys.executable, "webui/test_cli.py"])
 run("critic-intensity dial proof", [sys.executable, "webui/test_criticism.py"])
 run("audience reframing proof", [sys.executable, "webui/test_audience.py"])
 run("compliance pack proof", [sys.executable, "webui/test_compliance.py"])

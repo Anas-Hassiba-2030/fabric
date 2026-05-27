@@ -42,6 +42,9 @@ if "$PY" webui/test_trust.py >/tmp/_trust.out 2>&1; then ok "trust report faithf
 step "Compliance pack proof (no API key)"
 if "$PY" webui/test_compliance.py >/tmp/_cmp.out 2>&1; then ok "compliance pack maps frameworks honestly (design-addressed, audit-confirmed)"; else bad "compliance"; cat /tmp/_cmp.out; fi
 
+step "Headless CLI proof (no API key)"
+if "$PY" webui/test_cli.py >/tmp/_cli.out 2>&1; then ok "headless WRATH runs + emits a faithful bundle"; else bad "headless cli"; cat /tmp/_cli.out; fi
+
 step "Multi-model routing proof (no API key)"
 if "$PY" webui/test_routing.py >/tmp/_rt.out 2>&1; then ok "routing matches charter tiers (Opus heavy / Sonnet / Haiku)"; else bad "routing"; cat /tmp/_rt.out; fi
 
