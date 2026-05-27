@@ -42,6 +42,9 @@ if "$PY" webui/test_trust.py >/tmp/_trust.out 2>&1; then ok "trust report faithf
 step "Compliance pack proof (no API key)"
 if "$PY" webui/test_compliance.py >/tmp/_cmp.out 2>&1; then ok "compliance pack maps frameworks honestly (design-addressed, audit-confirmed)"; else bad "compliance"; cat /tmp/_cmp.out; fi
 
+step "Critic-intensity dial proof (no API key)"
+if "$PY" webui/test_criticism.py >/tmp/_cr.out 2>&1; then ok "critic dial maps (lenient 0 / standard 1 / max 2 passes)"; else bad "critic dial"; cat /tmp/_cr.out; fi
+
 step "Audience reframing proof (no API key)"
 if "$PY" webui/test_audience.py >/tmp/_aud.out 2>&1; then ok "audience reframing honest (CFO/CISO/NOC voices, no invented $)"; else bad "audience"; cat /tmp/_aud.out; fi
 

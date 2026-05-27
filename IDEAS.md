@@ -47,7 +47,7 @@ Nothing here is built unless it says "DONE".
   saved into the run record, proven by `webui/test_trust.py`.
 - **P1 — Provenance everywhere** (DONE for citations): every factual claim links to its source or is
   marked unverified. Extend to SKUs (vendor EoL pages) and CVDs.
-- **P2 — Adjustable red-team intensity.** A "Critic aggressiveness" dial; optional second adversarial pass.
+- **DONE (Phase 4) — Critic-intensity dial.** A red-team aggressiveness control (Lenient / Standard / Aggressive / Max·2-passes): Lenient passes unless a clear blocker; Max runs two adversarial revision cycles. Live mode injects the aggressiveness into the Critic prompt. `webui/criticism.py`, proven by `webui/test_criticism.py`; verified end-to-end (Lenient=0 bounces, Max=2).
 - **DONE (Phase 3) — Persisted compounding memory.** Saving a pattern now **commits it to git** (path-scoped — never sweeps up other working changes; optional push via `WRATH_AUTO_PUSH=1`) so learning survives restarts. `webui/persist.py`, proven by `webui/test_persist.py`.
 - **DONE (★) — Self-improving pattern library.** `★ Save pattern` distils an accepted run into a
   reusable, customer-agnostic pattern (shape + only-verified references + provenance) written to

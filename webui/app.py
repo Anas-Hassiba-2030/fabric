@@ -36,6 +36,7 @@ import audience  # noqa: E402
 import blueprints  # noqa: E402
 import clarify  # noqa: E402
 import compliance  # noqa: E402
+import criticism  # noqa: E402
 import distill  # noqa: E402
 import export_run  # noqa: E402
 import grounding  # noqa: E402
@@ -377,13 +378,14 @@ def emit_text_stage(q, stage, problem, ctx, live, extra=""):
     return text
 
 
-def critic_eval(q, problem, ctx, live, attempt):
+def critic_eval(q, problem, ctx, live, attempt, hint=""):
     """The Critic gate. Demo: pass 1 -> ACCEPT-WITH-FIXES (findings), pass 2 -> ACCEPT.
-    Returns (accept, findings_text)."""
+    Returns (accept, findings_text). `hint` tunes Live-mode red-team aggressiveness."""
     if live and has_key():
         sys_p = real_system_prompt("critic")
         try:
             verdict = call_claude(sys_p, f"Problem:\n{problem}\n\nHLD to review:\n{ctx.get('hld','')}\n\n"
+                                  f"Red-team intensity: {hint}\n"
                                   "Return VERDICT: ACCEPT or ACCEPT-WITH-FIXES, then a short severity-tagged defect list.")
         except ClaudeError as e:
             emit(q, {"type": "log", "stage": "critic", "text": f"⚠ live critic failed ({e}) — accepting without gate"})
@@ -397,7 +399,7 @@ def critic_eval(q, problem, ctx, live, attempt):
     return True, "**VERDICT: ACCEPT** — the revised HLD clears the earlier findings."
 
 
-def run_pipeline(run_id, problem, mode):
+def run_pipeline(run_id, problem, mode, intensity="standard"):
     q = RUNS[run_id]
     q_global.set(q)
     REC[id(q)] = {"id": run_id, "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -447,27 +449,61 @@ def run_pipeline(run_id, problem, mode):
                 done("discovery")
 
             elif sid == "critic":
-                # Gate: review the HLD; if it doesn't pass, bounce back to the designer and revise.
+                # Gate: review the HLD; intensity (the Critic dial) sets how hard it pushes back.
+                cplan = criticism.plan(intensity)
                 start("critic")
-                accept, findings = critic_eval(q, problem, ctx, live, attempt=1)
-                emit(q, {"type": "output", "stage": "critic", "title": "Critic gate · critic", "content": findings})
-                emit(q, {"type": "grounding", "stage": "critic", **dict(zip(["status", "checks"], grounding.ground_text(findings)))})
-                if not accept:
-                    emit(q, {"type": "reject", "gate": "critic", "producer": "hld",
-                             "reason": "Critic returned ACCEPT-WITH-FIXES — revising the HLD"})
-                    emit(q, {"type": "log", "stage": "critic", "text": "⛔ gate not clear → routing back to designer-hld"})
-                    time.sleep(0.5)
-                    start("hld")
-                    emit_text_stage(q, by_id["hld"], problem, ctx, live,
-                                    extra="Revise the HLD to clear the Critic findings (state HW dependency; add MTU budget + rollback).")
-                    if not (live and has_key()):
-                        ctx["hld"] += "\n\n**Revision (v2):** convergence claim now states its BFD-in-HW dependency; MTU budget + per-step rollback added."
-                        emit(q, {"type": "output", "stage": "hld", "title": "HLD · designer-hld (revised v2)", "content": ctx["hld"]})
-                    done("hld")
-                    start("critic")
-                    _, ok = critic_eval(q, problem, ctx, live, attempt=2)
-                    emit(q, {"type": "output", "stage": "critic", "title": "Critic gate · critic (re-review)", "content": ok})
-                    emit(q, {"type": "log", "stage": "critic", "text": "✓ gate clear after revision"})
+                emit(q, {"type": "log", "stage": "critic", "text": f"red-team intensity: {cplan['label']}"})
+
+                if live and has_key():
+                    accept, findings = critic_eval(q, problem, ctx, live, attempt=1, hint=cplan["hint"])
+                    emit(q, {"type": "output", "stage": "critic", "title": "Critic gate · critic", "content": findings})
+                    emit(q, {"type": "grounding", "stage": "critic", **dict(zip(["status", "checks"], grounding.ground_text(findings)))})
+                    if not accept:
+                        emit(q, {"type": "reject", "gate": "critic", "producer": "hld",
+                                 "reason": "Critic returned ACCEPT-WITH-FIXES — revising the HLD"})
+                        time.sleep(0.5)
+                        start("hld")
+                        emit_text_stage(q, by_id["hld"], problem, ctx, live,
+                                        extra="Revise the HLD to clear the Critic findings.")
+                        done("hld")
+                        start("critic")
+                        _, ok = critic_eval(q, problem, ctx, live, attempt=2, hint=cplan["hint"])
+                        emit(q, {"type": "output", "stage": "critic", "title": "Critic gate · critic (re-review)", "content": ok})
+                        emit(q, {"type": "log", "stage": "critic", "text": "✓ gate clear after revision"})
+                else:
+                    rounds = cplan["rounds"]
+                    if rounds == 0:
+                        ok = "**VERDICT: ACCEPT** — lenient review; no shipping-blocking findings."
+                        emit(q, {"type": "output", "stage": "critic", "title": "Critic gate · critic", "content": ok})
+                        emit(q, {"type": "grounding", "stage": "critic", **dict(zip(["status", "checks"], grounding.ground_text(ok)))})
+                    else:
+                        base = ["- [HIGH] failure/convergence claim must state its HW (BFD-in-HW) dependency.",
+                                "- [MEDIUM] MTU budget + per-step rollback coverage not explicit."]
+                        harsh = cplan["label"] != "Standard"
+                        for r in range(rounds):
+                            items = list(base)
+                            if harsh:
+                                items.append("- [HIGH] blast-radius per failure domain not bounded.")
+                                items.append("- [LOW] naming not validated against customer conventions.")
+                            findings = (f"**VERDICT: ACCEPT-WITH-FIXES** ({cplan['label']} red-team · pass {r + 1}/{rounds})\n\n"
+                                        + "\n".join(items) + "\n\nRouting back to the designer.")
+                            title = "Critic gate · critic" + (f" (pass {r + 1})" if rounds > 1 else "")
+                            emit(q, {"type": "output", "stage": "critic", "title": title, "content": findings})
+                            emit(q, {"type": "grounding", "stage": "critic", **dict(zip(["status", "checks"], grounding.ground_text(findings)))})
+                            emit(q, {"type": "reject", "gate": "critic", "producer": "hld",
+                                     "reason": f"Critic ({cplan['label']}) returned ACCEPT-WITH-FIXES — revising the HLD"})
+                            emit(q, {"type": "log", "stage": "critic", "text": "⛔ gate not clear → routing back to designer-hld"})
+                            time.sleep(0.45)
+                            start("hld")
+                            emit_text_stage(q, by_id["hld"], problem, ctx, live, extra="Revise the HLD to clear the Critic findings.")
+                            ctx["hld"] += f"\n\n**Revision (v{r + 2}):** addressed the Critic's pass-{r + 1} findings (HW dependency, MTU budget, rollback" + (", blast-radius, naming" if harsh else "") + ")."
+                            emit(q, {"type": "output", "stage": "hld", "title": f"HLD · designer-hld (revised v{r + 2})", "content": ctx["hld"]})
+                            done("hld")
+                            start("critic")
+                        ok = "**VERDICT: ACCEPT** — the revised HLD clears all earlier findings."
+                        emit(q, {"type": "output", "stage": "critic", "title": "Critic gate · critic (re-review)", "content": ok})
+                        emit(q, {"type": "grounding", "stage": "critic", **dict(zip(["status", "checks"], grounding.ground_text(ok)))})
+                        emit(q, {"type": "log", "stage": "critic", "text": "✓ gate clear after revision"})
                 done("critic")
 
             elif sid == "config":
@@ -655,11 +691,12 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length) or b"{}")
             problem = (data.get("problem") or "").strip()
             mode = data.get("mode") or "demo"
+            intensity = data.get("intensity") or "standard"
             if not problem:
                 return self._send(400, "application/json", b'{"error":"problem required"}')
             run_id = uuid.uuid4().hex
             RUNS[run_id] = queue.Queue()
-            threading.Thread(target=run_pipeline, args=(run_id, problem, mode), daemon=True).start()
+            threading.Thread(target=run_pipeline, args=(run_id, problem, mode, intensity), daemon=True).start()
             return self._send(200, "application/json", json.dumps({"run_id": run_id}).encode())
         if u.path == "/api/inbox":
             if not self._authed(u):

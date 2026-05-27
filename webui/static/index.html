@@ -322,6 +322,8 @@
     <div class="composer">
       <input id="problem" placeholder="Design an SR-MPLS core for a 3-DC service provider, multi-vendor; HLD + BoM + CTO one-pager."/>
       <div class="toggle"><span>Demo</span><div class="switch" id="modeSwitch"><i></i></div><span>Live <span class="pill" id="livePill">Claude API</span></span></div>
+      <div class="toggle" title="How hard the Critic red-teams the design"><span>Critic</span>
+        <select id="critic" class="hist" style="max-width:130px"><option value="low">Lenient</option><option value="standard" selected>Standard</option><option value="high">Aggressive</option><option value="max">Max · 2 passes</option></select></div>
       <button class="run" id="runBtn">▶ Run WRATH</button>
       <button class="run2" id="exportBtn" disabled title="Download the deliverable stack as Markdown">⬇ Export</button>
     </div>
@@ -533,7 +535,7 @@ function onReject(m){const g=$("#n-"+m.gate);if(g){g.classList.add("reject");set
   logLine("↩ "+m.reason,m.gate);}
 async function run(){if(running)return;const problem=$("#problem").value.trim();if(!problem){$("#problem").focus();return;}
   running=true;$("#runBtn").disabled=true;$("#runBtn").textContent="● Running…";$("#log").innerHTML="";$("#detail").innerHTML='<div class="placeholder">Booting orchestrator…</div>';
-  let res;try{res=await fetch(withTok("/api/run"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({problem,mode:LIVE?"live":"demo"})});}catch(e){logLine("connection failed: "+e);return finish();}
+  let res;try{res=await fetch(withTok("/api/run"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({problem,mode:LIVE?"live":"demo",intensity:$("#critic").value})});}catch(e){logLine("connection failed: "+e);return finish();}
   if(res.status===401){const t=await askInput("This console requires an access token","paste your token");if(t){localStorage.setItem("wrathTok",t);}running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";if(t)return run();return finish();}
   const {run_id}=await res.json();const es=new EventSource(withTok("/api/stream?run_id="+run_id));
   es.onmessage=ev=>{const m=JSON.parse(ev.data);
