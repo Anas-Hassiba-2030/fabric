@@ -96,6 +96,9 @@ if "$PY" webui/test_assurance.py >/tmp/_as.out 2>&1; then ok "assurance: SLO cat
 step "Pipeline integrity proof (stage -> subagent -> skill, no API key)"
 if "$PY" webui/test_agents.py >/tmp/_ag.out 2>&1; then ok "every stage wired to a real subagent+skill; routing matches; slash commands present"; else bad "pipeline integrity"; cat /tmp/_ag.out; fi
 
+step "Worked-example reader proof (path-jailed, no API key)"
+if "$PY" webui/test_examples.py >/tmp/_ex.out 2>&1; then ok "examples reader lists+serves, traversal refused"; else bad "examples reader"; cat /tmp/_ex.out; fi
+
 step "MCP servers (stdio JSON-RPC)"
 if bash wrath/mcp/test_servers.sh >/tmp/_mcp.out 2>&1; then ok "wrath-standards + wrath-netstate ($(grep -c PASS /tmp/_mcp.out) checks)"; else bad "mcp servers"; cat /tmp/_mcp.out; fi
 

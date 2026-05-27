@@ -342,6 +342,7 @@
       <span class="tbsep"></span>
       <span class="tbgroup" title="Reports & library">
         <button class="minibtn" id="blueprintBtn" title="Start from a ready-made engagement blueprint">⊞ Blueprints</button>
+        <button class="minibtn" id="examplesBtn" title="Browse the worked-example engagements (reference)">📚 Examples</button>
         <button class="minibtn" id="complianceBtn" title="Standalone NIST/CIS/PCI/HIPAA compliance pack">🛡 Compliance</button>
         <button class="minibtn" id="assuranceBtn" title="Telemetry/SLO catalog + drift check vs live read-only state">📡 Assurance</button>
         <button class="minibtn" id="rcaBtn" title="Root-cause analysis: isolate a fault from the read-only network state">🔧 Troubleshoot</button>
@@ -655,6 +656,16 @@ async function downloadTopologyPng(){
     img.onerror=()=>{URL.revokeObjectURL(u);window.open(svgUrl,"_blank");};
     img.src=u;
   }catch(e){window.open(svgUrl,"_blank");}}
+async function openExamples(){let list=[];try{list=await(await fetch("/api/examples")).json();}catch(e){}
+  if(!list.length){openModal("📚 Worked examples",'<div class="placeholder">No worked examples found.</div>');return;}
+  const blocks=list.map(e=>`<div style="margin-bottom:14px"><div style="font-weight:700;font-size:13px;margin-bottom:7px">${e.name}</div><div style="display:flex;flex-wrap:wrap;gap:7px">`+
+    e.files.map(f=>`<button class="minibtn exfile" data-path="${e.name}/${f}">${f}</button>`).join("")+`</div></div>`).join("");
+  openModal("📚 Worked examples",`<p style="color:var(--muted);font-size:12px;margin:0 0 14px">Reference engagements threaded through every phase. Click a file to read it.</p>${blocks}<div id="exView" style="margin-top:6px"></div>`);
+  document.querySelectorAll(".exfile").forEach(b=>b.onclick=async()=>{const p=b.dataset.path;
+    const v=$("#exView");v.innerHTML='<div class="placeholder">loading…</div>';
+    try{const t=await(await fetch("/api/example?path="+encodeURIComponent(p))).text();
+      v.innerHTML=p.endsWith(".cfg")?`<h3 style="margin:.4em 0">${p}</h3><pre><code>${t.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</code></pre>`:`<h3 style="margin:.4em 0">${p}</h3><div class="md">${md(t)}</div>`;
+      renderMermaid(v);v.scrollIntoView({behavior:"smooth",block:"nearest"});}catch(e){v.innerHTML='<div class="placeholder">failed</div>';}});}
 async function openTroubleshoot(){const sym=await askInput("Troubleshoot — describe the symptom","e.g. Customer A lost connectivity · BGP session down · link flapping");
   if(!sym)return;openModal("🔧 Root-cause analysis",'<div class="placeholder">walking the hypothesis tree against read-only state…</div>');
   try{const r=await(await fetch(withTok("/api/rca?symptom="+encodeURIComponent(sym)))).json();
@@ -714,7 +725,7 @@ let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(draw
   $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;$("#exportBtn").onclick=exportRun;
   $("#history").onchange=e=>openSaved(e.target.value);
   $("#expDetail").onclick=expandDetail;$("#expLog").onclick=expandLog;$("#modalClose").onclick=closeModal;
-  $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;$("#patternBtn").onclick=savePattern;$("#analyticsBtn").onclick=openAnalytics;$("#inboxBtn").onclick=openInbox;$("#complianceBtn").onclick=openCompliance;$("#assuranceBtn").onclick=openAssurance;$("#rcaBtn").onclick=openTroubleshoot;
+  $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;$("#examplesBtn").onclick=openExamples;$("#patternBtn").onclick=savePattern;$("#analyticsBtn").onclick=openAnalytics;$("#inboxBtn").onclick=openInbox;$("#complianceBtn").onclick=openCompliance;$("#assuranceBtn").onclick=openAssurance;$("#rcaBtn").onclick=openTroubleshoot;
   $("#shareBtn").onclick=()=>{if(lastSavedId)window.open(withTok("/api/export.html?id="+lastSavedId),"_blank");};
   $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});

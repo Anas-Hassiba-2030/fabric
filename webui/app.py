@@ -41,6 +41,7 @@ import criticism  # noqa: E402
 import routing  # noqa: E402
 import share  # noqa: E402
 import distill  # noqa: E402
+import examples  # noqa: E402
 import export_run  # noqa: E402
 import grounding  # noqa: E402
 import inbox  # noqa: E402
@@ -653,6 +654,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, "application/json", json.dumps({"hasKey": has_key(), "model": MODEL, "auth": bool(TOKEN)}).encode())
         if u.path == "/api/blueprints":
             return self._send(200, "application/json", json.dumps(blueprints.all()).encode())
+        if u.path == "/api/examples":
+            return self._send(200, "application/json", json.dumps(examples.list_examples()).encode())
+        if u.path == "/api/example":
+            txt = examples.read_example(parse_qs(u.query).get("path", [""])[0])
+            if txt is None:
+                return self._send(404, "text/plain", b"not found")
+            return self._send(200, "text/plain; charset=utf-8", txt.encode())
         if u.path == "/api/reframe":
             qs = parse_qs(u.query)
             md = audience.reframe(qs.get("problem", [""])[0], qs.get("audience", ["exec"])[0])
