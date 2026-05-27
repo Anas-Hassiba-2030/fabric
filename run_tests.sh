@@ -103,6 +103,7 @@ step "Worked-example configs pass the audit gate"
 for cfg in deliverables/example-acme-sp/03-config-pe1.cfg deliverables/example-acme-sp/03b-config-pe3.cfg; do
   if "$PY" .claude/skills/config-audit/scripts/config_lint.py "$cfg" >/tmp/_cfg.out 2>&1; then ok "$(basename "$cfg") (no CRITICAL/HIGH)"; else bad "$(basename "$cfg") — $(grep -E '^\[' /tmp/_cfg.out | head -3)"; fi
 done
+if "$PY" .claude/skills/config-audit/scripts/config_lint.py deliverables/example-dc-evpn/03-config-leaf1.cfg --vendor nxos >/tmp/_cfg.out 2>&1; then ok "03-config-leaf1.cfg EVPN-VXLAN (no CRITICAL/HIGH)"; else bad "03-config-leaf1.cfg — $(grep -E '^\[' /tmp/_cfg.out | head -3)"; fi
 
 step "Skills + MCP servers present"
 sk=$(find .claude/skills -name SKILL.md | wc -l); mc=$(ls wrath/mcp/*_server.py 2>/dev/null | wc -l)
