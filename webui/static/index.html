@@ -529,7 +529,7 @@ function showDetail(id,isRun){selected=id;document.querySelectorAll(".node").for
   if(o){const icHtml=stageMeta[id]?`<span class="ico">${ico(id)}</span>`:"";
     const tabs=id==="exec"?`<div class="aud" id="audTabs"><span class="lbl">Re-voice for</span>`+
       [["exec","Board"],["cfo","CFO"],["ciso","CISO"],["noc","NOC"]].map((x,i)=>`<button class="audb${i===0?" on":""}" data-aud="${x[0]}">${x[1]}</button>`).join("")+`</div>`:"";
-    const dl=id==="hld"?`<a class="minibtn" style="text-decoration:none;margin:0 0 12px;display:inline-block" href="/api/topology.svg?problem=${encodeURIComponent(currentProblem)}" target="_blank" download="wrath-topology.svg">⬇ Topology SVG</a>`:"";
+    const dl=id==="hld"?`<div style="margin:0 0 12px;display:flex;gap:8px"><a class="minibtn" style="text-decoration:none" href="/api/topology.svg?problem=${encodeURIComponent(currentProblem)}" target="_blank" download="wrath-topology.svg">⬇ Topology SVG</a><button class="minibtn" onclick="downloadTopologyPng()">⬇ Topology PNG</button></div>`:"";
     d.innerHTML=`<div class="dt">${icHtml}${o.title}<span style="margin-left:auto">${pvBadge(id)}</span></div>${tabs}${groundHtml(grounds[id])}${dl}<div class="md" id="dmd">${md(o.content)}</div>`;
     renderMermaid(d);
     if(id==="exec")bindAudience(o.content);}
@@ -639,6 +639,20 @@ async function openInbox(){let items=[];try{items=await(await fetch(withTok("/ap
     await fetch(withTok("/api/inbox"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"note",run_id:el.dataset.note,note})});openInbox();});
   document.querySelectorAll("[data-del]").forEach(el=>el.onclick=async()=>{
     await fetch(withTok("/api/inbox"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"delete",run_id:el.dataset.del})});openInbox();});}
+async function downloadTopologyPng(){
+  const svgUrl="/api/topology.svg?problem="+encodeURIComponent(currentProblem||"");
+  try{
+    const svgText=await(await fetch(svgUrl)).text();
+    const m=svgText.match(/width="(\d+)" height="(\d+)"/);const w=m?+m[1]:900,h=m?+m[2]:520,scale=2;
+    const blob=new Blob([svgText],{type:"image/svg+xml;charset=utf-8"});const u=URL.createObjectURL(blob);
+    const img=new Image();
+    img.onload=()=>{const c=document.createElement("canvas");c.width=w*scale;c.height=h*scale;
+      const x=c.getContext("2d");x.fillStyle="#0b1120";x.fillRect(0,0,c.width,c.height);x.scale(scale,scale);x.drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(u);
+      c.toBlob(b=>{if(!b){window.open(svgUrl,"_blank");return;}const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="wrath-topology.png";a.click();URL.revokeObjectURL(a.href);},"image/png");};
+    img.onerror=()=>{URL.revokeObjectURL(u);window.open(svgUrl,"_blank");};
+    img.src=u;
+  }catch(e){window.open(svgUrl,"_blank");}}
 async function openTroubleshoot(){const sym=await askInput("Troubleshoot — describe the symptom","e.g. Customer A lost connectivity · BGP session down · link flapping");
   if(!sym)return;openModal("🔧 Root-cause analysis",'<div class="placeholder">walking the hypothesis tree against read-only state…</div>');
   try{const r=await(await fetch(withTok("/api/rca?symptom="+encodeURIComponent(sym)))).json();

@@ -30,7 +30,7 @@ Nothing here is built unless it says "DONE".
   rail** (Orchestrator on top, phases left→right, icon cards, animated flowing connectors + red
   revise-arcs on gate bounces) instead of tall stacked card columns; the **deliverable** now owns the
   main panel. Glassmorphism, phase color-coding, running-node gradient ring, staged entrance, mermaid
-  topology rendering (CDN, graceful fallback). Verified via headless Chromium screenshots.
+  topology rendering (CDN, graceful fallback) + **topology export as SVG (server-side) and PNG (client-side canvas rasterization)**. Verified via headless Chromium (SVG valid; PNG downloads with correct magic bytes).
 - **DONE — Expand-to-fullscreen.** Both the Deliverable and Live-activity panels have an **⤢ EXPAND**
   button that opens the full content in a large modal (Esc / click-outside / ✕ to close); the
   deliverable view re-renders the topology diagram. Verified via headless screenshots.
