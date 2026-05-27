@@ -57,6 +57,9 @@ if "$PY" webui/test_audience.py >/tmp/_aud.out 2>&1; then ok "audience reframing
 step "Provenance labelling proof (no API key)"
 if "$PY" webui/test_provenance.py >/tmp/_pv.out 2>&1; then ok "provenance honest (real gates stay REAL in any mode)"; else bad "provenance"; cat /tmp/_pv.out; fi
 
+step "Shareable HTML report proof (no API key)"
+if "$PY" webui/test_share.py >/tmp/_sh.out 2>&1; then ok "shareable HTML report self-contained + faithful"; else bad "share"; cat /tmp/_sh.out; fi
+
 step "Run export proof (no API key)"
 if "$PY" webui/test_export.py >/tmp/_exp.out 2>&1; then ok "run export bundles the stack (order, deliverables, grounding, trust)"; else bad "run export"; cat /tmp/_exp.out; fi
 

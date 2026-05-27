@@ -337,6 +337,7 @@
         <button class="minibtn" id="whatifBtn" disabled title="Re-run with one changed constraint, then compare">⤳ What-if</button>
         <button class="minibtn" id="patternBtn" disabled title="Accept this run and distil it into a reusable pattern in memory">★ Save pattern</button>
         <button class="minibtn" id="compareBtn" title="Compare two saved runs side by side">⇄ Compare</button>
+        <button class="minibtn" id="shareBtn" disabled title="Open a self-contained shareable HTML report of this run">🔗 Share</button>
       </span>
       <span class="tbsep"></span>
       <span class="tbgroup" title="Reports & library">
@@ -562,7 +563,7 @@ async function run(){if(running)return;const problem=$("#problem").value.trim();
   es.onerror=()=>{es.close();finish();};}
 function finish(){running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";
   $("#exportBtn").disabled=!order.some(s=>outputs[s]);$("#orchLive").textContent="idle";
-  $("#whatifBtn").disabled=!lastSavedId;$("#patternBtn").disabled=!lastSavedId;
+  $("#whatifBtn").disabled=!lastSavedId;$("#patternBtn").disabled=!lastSavedId;$("#shareBtn").disabled=!lastSavedId;
   if(pendingFork&&lastSavedId&&lastSavedId!==pendingFork.base){const a=pendingFork.base,b=lastSavedId;pendingFork=null;setTimeout(()=>openCompareUI(a,b),350);}}
 function exportRun(){if(!order.length)return;let md_="# WRATH run\n\n**Problem:** "+($("#problem").value||"")+"\n\n";
   order.forEach(sid=>{const o=outputs[sid];if(!o)return;const g=grounds[sid];md_+="## "+o.title+"\n\n";
@@ -570,7 +571,7 @@ function exportRun(){if(!order.length)return;let md_="# WRATH run\n\n**Problem:*
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([md_],{type:"text/markdown"}));a.download="wrath-run.md";a.click();URL.revokeObjectURL(a.href);}
 async function loadHistory(){try{const runs=await(await fetch(withTok("/api/runs"))).json();const h=$("#history");h.innerHTML='<option value="">↺ Recent runs ('+runs.length+')…</option>'+runs.map(r=>`<option value="${r.id}">${(r.problem||"").slice(0,40)} · ${r.mode}</option>`).join("");}catch(e){}}
 async function openSaved(id){if(!id)return;let rec;try{rec=await(await fetch(withTok("/api/run?id="+id))).json();}catch(e){return;}if(!rec||!rec.stages)return;
-  runMode=rec.mode||"demo";currentProblem=rec.problem||"";buildPipeline(rec.stages);autoFollow=false;lastSavedId=id;$("#whatifBtn").disabled=false;$("#patternBtn").disabled=false;
+  runMode=rec.mode||"demo";currentProblem=rec.problem||"";buildPipeline(rec.stages);autoFollow=false;lastSavedId=id;$("#whatifBtn").disabled=false;$("#patternBtn").disabled=false;$("#shareBtn").disabled=false;
   setTimeout(()=>{order.forEach((sid,i)=>{const n=$("#n-"+sid);if(n){n.classList.remove("idle","run");n.classList.add("done");const b=n.querySelector(".b");if(b)b.textContent=n.classList.contains("gate")?"⚑":"✓";}if(i>0)setEdge(i-1,"done");});
     Object.entries(rec.deliverables||{}).forEach(([sid,o])=>{outputs[sid]=o;});
     Object.entries(rec.grounding||{}).forEach(([sid,g])=>showGround({stage:sid,status:g.status,checks:g.checks}));
@@ -686,6 +687,7 @@ let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(draw
   $("#history").onchange=e=>openSaved(e.target.value);
   $("#expDetail").onclick=expandDetail;$("#expLog").onclick=expandLog;$("#modalClose").onclick=closeModal;
   $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;$("#patternBtn").onclick=savePattern;$("#analyticsBtn").onclick=openAnalytics;$("#inboxBtn").onclick=openInbox;$("#complianceBtn").onclick=openCompliance;
+  $("#shareBtn").onclick=()=>{if(lastSavedId)window.open(withTok("/api/export.html?id="+lastSavedId),"_blank");};
   $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
   $("#problem").addEventListener("keydown",e=>{if(e.key==="Enter")run();});loadHistory();})();

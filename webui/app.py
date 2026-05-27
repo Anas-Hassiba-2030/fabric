@@ -38,6 +38,7 @@ import clarify  # noqa: E402
 import compliance  # noqa: E402
 import criticism  # noqa: E402
 import routing  # noqa: E402
+import share  # noqa: E402
 import distill  # noqa: E402
 import export_run  # noqa: E402
 import grounding  # noqa: E402
@@ -642,7 +643,7 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/topology.svg":
             svg = topology.svg_for(parse_qs(u.query).get("problem", [""])[0])
             return self._send(200, "image/svg+xml; charset=utf-8", svg.encode())
-        if u.path in ("/api/stream", "/api/runs", "/api/run", "/api/export", "/api/compare", "/api/analytics", "/api/inbox") and not self._authed(u):
+        if u.path in ("/api/stream", "/api/runs", "/api/run", "/api/export", "/api/export.html", "/api/compare", "/api/analytics", "/api/inbox") and not self._authed(u):
             return self._send(401, "application/json", b'{"error":"unauthorized"}')
         if u.path == "/api/inbox":
             items = []
@@ -678,6 +679,11 @@ class Handler(BaseHTTPRequestHandler):
             if not rec:
                 return self._send(404, "text/plain", b"run not found")
             return self._send(200, "text/markdown; charset=utf-8", export_run.to_markdown(rec).encode())
+        if u.path == "/api/export.html":
+            rec = load_run(parse_qs(u.query).get("id", [""])[0])
+            if not rec:
+                return self._send(404, "text/plain", b"run not found")
+            return self._send(200, "text/html; charset=utf-8", share.to_html(rec).encode())
         if u.path == "/api/stream":
             return self._stream(parse_qs(u.query).get("run_id", [""])[0])
         if u.path == "/api/runs":
