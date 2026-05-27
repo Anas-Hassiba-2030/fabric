@@ -45,6 +45,7 @@ import export_run  # noqa: E402
 import grounding  # noqa: E402
 import inbox  # noqa: E402
 import persist  # noqa: E402
+import rca  # noqa: E402
 import recall  # noqa: E402
 import tco  # noqa: E402
 import topology  # noqa: E402
@@ -103,6 +104,21 @@ def load_run(rid):
     p = os.path.join(MEM, rid + ".json")
     try:
         return json.load(open(p)) if os.path.isfile(p) else None
+    except Exception:
+        return None
+
+
+def load_netstate():
+    """Merge the read-only network-state snapshots (WRATH_NETSTATE_DIR or wrath/mcp/state). The MCP
+    and these readers NEVER write to devices. Returns {"devices": {...}} or None if unreadable."""
+    sd = os.environ.get("WRATH_NETSTATE_DIR", os.path.join(REPO, "wrath", "mcp", "state"))
+    state = {"devices": {}}
+    try:
+        for fn in sorted(os.listdir(sd)):
+            if fn.endswith(".json"):
+                for k, v in (json.load(open(os.path.join(sd, fn))).get("devices", {}) or {}).items():
+                    state["devices"][k] = v
+        return state
     except Exception:
         return None
 
@@ -655,19 +671,16 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/topology.svg":
             svg = topology.svg_for(parse_qs(u.query).get("problem", [""])[0])
             return self._send(200, "image/svg+xml; charset=utf-8", svg.encode())
-        if u.path == "/api/assurance":
-            if not self._authed(u):  # reads live read-only network state — gate it like the run APIs
+        if u.path in ("/api/assurance", "/api/rca"):
+            if not self._authed(u):  # read live read-only network state — gate like the run APIs
                 return self._send(401, "application/json", b'{"error":"unauthorized"}')
-            problem = parse_qs(u.query).get("problem", [""])[0]
-            state, sd = {"devices": {}}, os.environ.get("WRATH_NETSTATE_DIR", os.path.join(REPO, "wrath", "mcp", "state"))
-            try:
-                for fn in sorted(os.listdir(sd)):
-                    if fn.endswith(".json"):
-                        for k, v in (json.load(open(os.path.join(sd, fn))).get("devices", {}) or {}).items():
-                            state["devices"][k] = v
-            except Exception:
-                state = None
-            return self._send(200, "application/json", json.dumps({"markdown": assurance.render(problem, state)}).encode())
+            qs = parse_qs(u.query)
+            state = load_netstate()
+            if u.path == "/api/rca":
+                md = rca.render(qs.get("symptom", [""])[0], state or {"devices": {}})
+            else:
+                md = assurance.render(qs.get("problem", [""])[0], state)
+            return self._send(200, "application/json", json.dumps({"markdown": md}).encode())
         if u.path in ("/api/stream", "/api/runs", "/api/run", "/api/export", "/api/export.html", "/api/compare", "/api/analytics", "/api/inbox") and not self._authed(u):
             return self._send(401, "application/json", b'{"error":"unauthorized"}')
         if u.path == "/api/inbox":

@@ -87,6 +87,9 @@ Nothing here is built unless it says "DONE".
 - **DONE (Phase 4) — Audience reframing.** The Exec one-pager has Board / CFO / CISO / NOC re-voice tabs — each emphasizes that audience's concerns (money/risk, security/compliance, operability/SLA) with no invented currency. `webui/audience.py` + `/api/reframe`, proven by `webui/test_audience.py`.
 - **DONE (Phase 4) — Compliance pack.** `🛡 Compliance` builds a standalone PCI/HIPAA/NIST/CIS matrix mapping each control area to the design measure that addresses it — honest (Design-addressed, audit-confirmed; never claims 'certified'). `webui/compliance.py` + `/api/compliance`, proven by `webui/test_compliance.py`.
 
+## Operate & troubleshoot
+- **DONE — Root-cause analysis engine.** `🔧 Troubleshoot` gives the `troubleshooter` agent / `rca-playbook` a runnable engine: from a symptom + the read-only network state it walks a layered hypothesis tree and isolates a *proven* causal chain (e.g. an eBGP session Idle because its next-hop interface — whose subnet holds the neighbor — is down), with a House-Rule-6 fix + verify step. `webui/rca.py` + `/api/rca`, proven by `webui/test_rca.py` (incl. no-false-correlation + honest no-fault cases).
+
 ## Plugged into the real estate (the big differentiators)
 - **P2 — Read-only Network-state MCP → live.** Point it at pyATS/gNMI/NetBox so RCA & validation use
   *real* device state (server already exists; today it reads JSON snapshots).

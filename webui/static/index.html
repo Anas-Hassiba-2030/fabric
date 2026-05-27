@@ -344,6 +344,7 @@
         <button class="minibtn" id="blueprintBtn" title="Start from a ready-made engagement blueprint">⊞ Blueprints</button>
         <button class="minibtn" id="complianceBtn" title="Standalone NIST/CIS/PCI/HIPAA compliance pack">🛡 Compliance</button>
         <button class="minibtn" id="assuranceBtn" title="Telemetry/SLO catalog + drift check vs live read-only state">📡 Assurance</button>
+        <button class="minibtn" id="rcaBtn" title="Root-cause analysis: isolate a fault from the read-only network state">🔧 Troubleshoot</button>
         <button class="minibtn" id="analyticsBtn" title="Cross-run analytics dashboard">📊 Analytics</button>
         <button class="minibtn" id="inboxBtn" title="Saved-results inbox — bookmark runs with a note">📥 Inbox</button>
       </span>
@@ -638,6 +639,10 @@ async function openInbox(){let items=[];try{items=await(await fetch(withTok("/ap
     await fetch(withTok("/api/inbox"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"note",run_id:el.dataset.note,note})});openInbox();});
   document.querySelectorAll("[data-del]").forEach(el=>el.onclick=async()=>{
     await fetch(withTok("/api/inbox"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"delete",run_id:el.dataset.del})});openInbox();});}
+async function openTroubleshoot(){const sym=await askInput("Troubleshoot — describe the symptom","e.g. Customer A lost connectivity · BGP session down · link flapping");
+  if(!sym)return;openModal("🔧 Root-cause analysis",'<div class="placeholder">walking the hypothesis tree against read-only state…</div>');
+  try{const r=await(await fetch(withTok("/api/rca?symptom="+encodeURIComponent(sym)))).json();
+    $("#modalBody").innerHTML=`<div class="md">${md(r.markdown)}</div>`;}catch(e){$("#modalBody").innerHTML='<div class="placeholder">failed</div>';}}
 async function openCompliance(){const prob=currentProblem||$("#problem").value.trim();
   if(!prob){openModal("🛡 Compliance pack",'<div class="placeholder">State a problem (or run one) first — the pack maps the design to the relevant frameworks.</div>');return;}
   openModal("🛡 Compliance pack",'<div class="placeholder">building…</div>');
@@ -692,7 +697,7 @@ let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(draw
   $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;$("#exportBtn").onclick=exportRun;
   $("#history").onchange=e=>openSaved(e.target.value);
   $("#expDetail").onclick=expandDetail;$("#expLog").onclick=expandLog;$("#modalClose").onclick=closeModal;
-  $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;$("#patternBtn").onclick=savePattern;$("#analyticsBtn").onclick=openAnalytics;$("#inboxBtn").onclick=openInbox;$("#complianceBtn").onclick=openCompliance;$("#assuranceBtn").onclick=openAssurance;
+  $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;$("#patternBtn").onclick=savePattern;$("#analyticsBtn").onclick=openAnalytics;$("#inboxBtn").onclick=openInbox;$("#complianceBtn").onclick=openCompliance;$("#assuranceBtn").onclick=openAssurance;$("#rcaBtn").onclick=openTroubleshoot;
   $("#shareBtn").onclick=()=>{if(lastSavedId)window.open(withTok("/api/export.html?id="+lastSavedId),"_blank");};
   $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
