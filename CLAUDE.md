@@ -164,6 +164,10 @@ Agents load these on demand (three-level loading: metadata → body → referenc
 
 All five build phases now have their skills in place; depth grows with real engagements.
 
+**Slash commands** (`.claude/commands/`): `/wrath <problem>` boots this loop; `/wrath-review` runs the
+post-design-review gate (fresh Critic); `/wrath-verify` runs the full test suite + doctor; `/wrath-handoff`
+assembles the grounded, trust-reported handoff bundle.
+
 ---
 
 ## ⛔ HARD RULE — Plugin source allowlist (IT/CSIRT policy)

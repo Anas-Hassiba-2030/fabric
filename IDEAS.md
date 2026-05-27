@@ -57,6 +57,10 @@ Nothing here is built unless it says "DONE".
   `webui/test_distill.py`; loop verified end-to-end (save → recalled next run) via screenshots.
 
 ## Smarter orchestration
+- **DONE — Slash commands + pipeline-integrity guarantee.** Added Claude Code slash commands
+  (`/wrath`, `/wrath-review`, `/wrath-verify`, `/wrath-handoff`) and a `webui/test_agents.py` integrity
+  proof that EVERY pipeline stage stays wired to a real subagent + skill and that model routing matches
+  each agent's declared tier — so "a subagent per stage" can't silently drift.
 - **DONE — Multi-model routing.** Each Live call goes to the model the charter assigns: Opus for heavy reasoning (HLD, Critic, Migration, RCA), Sonnet for routine stages, Haiku for the Librarian — better cost/speed without losing quality on the hard stages. `ANTHROPIC_MODEL` forces single-model. The LIVE provenance badge shows the actual model per stage. `webui/routing.py`, proven by `webui/test_routing.py`.
 - **DONE — What-if / compare designs.** `⤳ What-if` re-runs with one changed constraint and
   auto-opens a side-by-side **diff** of the two stacks; `⇄ Compare` picks any two saved runs.

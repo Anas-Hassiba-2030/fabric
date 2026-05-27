@@ -84,6 +84,9 @@ if "$PY" webui/test_distill.py >/tmp/_dst.out 2>&1; then ok "accepted runs disti
 step "Live-mode wiring proof (mocked Claude, no API key)"
 if "$PY" webui/test_live.py >/tmp/_live.out 2>&1; then ok "live wiring chains, gates bite, hallucination caught"; else bad "live wiring"; cat /tmp/_live.out; fi
 
+step "Pipeline integrity proof (stage -> subagent -> skill, no API key)"
+if "$PY" webui/test_agents.py >/tmp/_ag.out 2>&1; then ok "every stage wired to a real subagent+skill; routing matches; slash commands present"; else bad "pipeline integrity"; cat /tmp/_ag.out; fi
+
 step "MCP servers (stdio JSON-RPC)"
 if bash wrath/mcp/test_servers.sh >/tmp/_mcp.out 2>&1; then ok "wrath-standards + wrath-netstate ($(grep -c PASS /tmp/_mcp.out) checks)"; else bad "mcp servers"; cat /tmp/_mcp.out; fi
 
