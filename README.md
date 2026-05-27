@@ -23,13 +23,22 @@ The Orchestrator restates the goal, plans the graph, routes to specialists (via 
 runs the gate rules (Critic on every design, Validator on every config), and returns a stack of
 deliverables with every open question flagged for you.
 
+Slash commands: `/wrath <problem>` (boot the loop), `/wrath-review` (fresh-Critic gate),
+`/wrath-verify` (run the suite + doctor), `/wrath-handoff` (grounded handoff bundle).
+
 ### …or use the visual console
-Prefer a UI? There's a local web console that shows the pipeline running stage-by-stage:
+Prefer a UI? There's a local web console that shows the pipeline running stage-by-stage and lets you
+work the result:
 ```bash
 python3 webui/app.py      # open http://localhost:8765
 ```
 Demo mode needs zero config (and the Validator + Standards gates still run for real); set
-`ANTHROPIC_API_KEY` for Live mode. See `webui/README.md`.
+`ANTHROPIC_API_KEY` for Live mode. Every deliverable is badged **REAL / LIVE / DEMO** so nothing looks
+faked. Beyond watching the run, the console adds **Blueprints**, a **Critic-intensity dial**,
+**What-if / Compare** (diff two designs), **Save pattern** (distil + git-commit a reusable pattern),
+**Analytics**, **Inbox**, **Compliance** and **Assurance** packs, **audience re-voicing**
+(Board/CFO/CISO/NOC), and **Share / Export** (HTML report, Markdown bundle, topology SVG). There's also
+a **headless CLI** — `python webui/cli.py "<problem>"` — for CI/scripts. See `webui/README.md`.
 
 ---
 
@@ -45,13 +54,17 @@ README.md            ← this file
                        config-generator, config-audit, bom-builder, sow-writer, exec-deck,
                        migration-runbook, telemetry-design, rca-playbook, adoption-plan, standards-checker
   hooks/             ← destructive_action_guard.py, session_start.py, csirt_guard.py
+  commands/          ← slash commands: /wrath, /wrath-review, /wrath-verify, /wrath-handoff
 wrath/
   ORCHESTRATOR.md    ← pointer: where the orchestrator lives (→ CLAUDE.md)
   PROTOCOL.md        ← the charter, verbatim (source of truth — do not edit)
   memory/            ← episodic (customers/) + semantic (patterns/)
   mcp/               ← read-only MCP servers: wrath-standards + wrath-netstate (registered in .mcp.json)
 deliverables/        ← run outputs land here
+webui/               ← the WRATH Console (stdlib web app) + headless CLI + the deterministic engine
+                       modules and their tests (grounding, clarify, trust, routing, assurance, …)
 .mcp.json            ← registers the WRATH MCP servers for Claude Code
+run_tests.sh         ← one command: runs every deterministic check (ALL GREEN = working)
 ```
 
 ---
@@ -84,11 +97,16 @@ real engagements. The system never pretends a component is more than it is (Hous
 ## Verify it
 
 ```
-bash run_tests.sh
+bash run_tests.sh        # every deterministic check; ALL GREEN = working
+python webui/doctor.py   # system self-check; with ANTHROPIC_API_KEY also makes a real Opus 4.7 call
 ```
-Runs every deterministic check in the repo (JSON validity, the CSIRT guard battery, the `config_lint`
-self-test, the MCP stdio servers, and the audit gate on the worked-example configs). `ALL GREEN` = the
-hooks, skills helpers, and MCP servers are working. Safe to wire into a SessionStart hook or CI.
+`run_tests.sh` runs the full battery with no API key: JSON validity, the CSIRT + destructive-action
+guard hooks, the `config_lint` self-test, the MCP stdio servers, the audit gate on worked-example
+configs, **and the engine proofs** — anti-hallucination grounding (a fabricated RFC is blocked), the
+clarify-gate, trust report, cost/risk honesty, memory recall, what-if, blueprints, pattern distil +
+git-persist, analytics, inbox, audience reframing, compliance, **continuous-assurance drift**, model
+routing, provenance, the headless CLI, and a **pipeline-integrity proof** (every stage stays wired to a
+real subagent + skill, routing matches each agent's tier). Safe to wire into a SessionStart hook or CI.
 
 ---
 
