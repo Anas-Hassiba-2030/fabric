@@ -38,6 +38,7 @@ import distill  # noqa: E402
 import export_run  # noqa: E402
 import grounding  # noqa: E402
 import inbox  # noqa: E402
+import persist  # noqa: E402
 import recall  # noqa: E402
 import tco  # noqa: E402
 import topology  # noqa: E402
@@ -674,6 +675,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(404, "application/json", b'{"error":"run not found"}')
             d = distill.distil(rec)
             saved = False
+            rel = os.path.join("wrath", "memory", "patterns", d["slug"] + ".md")
             try:
                 os.makedirs(PATTERNS, exist_ok=True)
                 with open(os.path.join(PATTERNS, d["slug"] + ".md"), "w", encoding="utf-8") as fh:
@@ -681,8 +683,18 @@ class Handler(BaseHTTPRequestHandler):
                 saved = True
             except Exception as e:
                 sys.stderr.write(f"distill save failed: {e}\n")
+            # Phase 3 — persist the learned pattern to git so it survives restarts (path-scoped, safe).
+            persisted = None
+            if saved and os.environ.get("WRATH_PERSIST_PATTERNS", "1") != "0":
+                try:
+                    persisted = persist.commit_paths(
+                        REPO, [rel], f"WRATH: learn pattern {d['slug']}",
+                        push=os.environ.get("WRATH_AUTO_PUSH") == "1")
+                except Exception as e:
+                    sys.stderr.write(f"distill persist failed: {e}\n")
             return self._send(200, "application/json", json.dumps(
-                {"ok": saved, "slug": d["slug"], "title": d["title"], "markdown": d["markdown"]}).encode())
+                {"ok": saved, "slug": d["slug"], "title": d["title"], "markdown": d["markdown"],
+                 "persist": persisted}).encode())
         self._send(404, "text/plain", b"not found")
 
     def _stream(self, run_id):

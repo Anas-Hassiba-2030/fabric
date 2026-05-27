@@ -54,6 +54,9 @@ if "$PY" webui/test_inbox.py >/tmp/_ib.out 2>&1; then ok "inbox saves/edits/remo
 step "Cross-run analytics proof (no API key)"
 if "$PY" webui/test_analytics.py >/tmp/_an.out 2>&1; then ok "analytics aggregate faithfully (runs, trust, grounding, tags)"; else bad "analytics"; cat /tmp/_an.out; fi
 
+step "Pattern git-persist proof (no API key, throwaway repo)"
+if "$PY" webui/test_persist.py >/tmp/_ps.out 2>&1; then ok "patterns persist to git (path-scoped, safe no-op)"; else bad "git persist"; cat /tmp/_ps.out; fi
+
 step "Self-improving pattern distil proof (no API key)"
 if "$PY" webui/test_distill.py >/tmp/_dst.out 2>&1; then ok "accepted runs distil into reusable, RAG-discoverable patterns"; else bad "pattern distil"; cat /tmp/_dst.out; fi
 

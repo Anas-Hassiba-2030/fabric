@@ -597,8 +597,10 @@ async function openBlueprints(){let list=[];try{list=await(await fetch("/api/blu
 async function savePattern(){if(!lastSavedId)return;let r;
   try{r=await(await fetch(withTok("/api/distill?id="+lastSavedId),{method:"POST"})).json();}catch(e){logLine("pattern save failed: "+e,"_");return;}
   if(!r||!r.ok){logLine("pattern save failed","_");return;}
-  logLine("★ distilled to memory → wrath/memory/patterns/"+r.slug+".md (will be recalled next time)","_");
-  openModal("★ Pattern distilled — saved to memory",`<p style="color:var(--muted);font-size:12px;margin:0 0 12px">Saved to <code>wrath/memory/patterns/${r.slug}.md</code>. WRATH will recall this on the next similar problem (House Rule 8 — compounding memory).</p><div class="md">${md(r.markdown)}</div>`,true);}
+  const p=r.persist||{};const git=p.committed?` · committed to git (${p.sha})`:(p.ok===false?" · git commit skipped (not a repo)":"");
+  logLine("★ distilled to memory → wrath/memory/patterns/"+r.slug+".md"+git+" — will be recalled next time","_");
+  const gitNote=p.committed?`<span style="color:var(--ok)"> · committed to git (<code>${p.sha}</code>) so it survives restarts</span>`:"";
+  openModal("★ Pattern distilled — saved to memory",`<p style="color:var(--muted);font-size:12px;margin:0 0 12px">Saved to <code>wrath/memory/patterns/${r.slug}.md</code>${gitNote}. WRATH will recall this on the next similar problem (House Rule 8 — compounding memory).</p><div class="md">${md(r.markdown)}</div>`,true);}
 function forkWhatIf(){if(!lastSavedId)return;const tweak=prompt("Re-run with one changed constraint (e.g. 'use SRv6 instead of SR-MPLS', '4 route reflectors', 'add HIPAA'):");
   if(!tweak)return;pendingFork={base:lastSavedId};const cur=$("#problem").value.replace(/\s*—\s*what-if:.*$/,"");$("#problem").value=cur+" — what-if: "+tweak;run();}
 let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(drawEdges,120);});
