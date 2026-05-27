@@ -167,6 +167,12 @@
   .pv-demo{background:rgba(138,150,180,.14);color:var(--muted);border-color:rgba(138,150,180,.35)}
   .pvlegend{display:flex;gap:10px;font-size:9.5px;color:var(--muted);text-transform:none;letter-spacing:.2px;flex-wrap:wrap}
   .pvlegend b{font-weight:700}
+  .aud{display:flex;gap:7px;margin:0 0 13px;flex-wrap:wrap}
+  .aud .lbl{font-size:10px;color:var(--muted);align-self:center;text-transform:uppercase;letter-spacing:.6px;margin-right:2px}
+  .audb{background:rgba(255,255,255,.04);border:1px solid var(--brd);color:var(--muted);border-radius:9px;
+    padding:6px 13px;font:inherit;font-size:12px;font-weight:650;cursor:pointer;transition:.15s}
+  .audb:hover{color:var(--ink);border-color:var(--brd2)}
+  .audb.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#06121f;border-color:transparent}
   .detail .md{animation:fade .35s ease}@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   .md{font-size:13px;color:#d7dfee}.md h2,.md h3{color:var(--ink);margin:.7em 0 .35em;font-size:14px}
   .md p{margin:.5em 0}
@@ -506,9 +512,19 @@ function groundHtml(g){if(!g)return"";const lbl={grounded:"✓ Grounded — ever
 function showDetail(id,isRun){selected=id;document.querySelectorAll(".node").forEach(n=>n.classList.remove("sel"));$("#n-"+id)?.classList.add("sel");
   const d=$("#detail"),o=outputs[id];
   if(o){const icHtml=stageMeta[id]?`<span class="ico">${ico(id)}</span>`:"";
-    d.innerHTML=`<div class="dt">${icHtml}${o.title}<span style="margin-left:auto">${pvBadge(id)}</span></div>${groundHtml(grounds[id])}<div class="md">${md(o.content)}</div>`;
-    renderMermaid(d);}
+    const tabs=id==="exec"?`<div class="aud" id="audTabs"><span class="lbl">Re-voice for</span>`+
+      [["exec","Board"],["cfo","CFO"],["ciso","CISO"],["noc","NOC"]].map((x,i)=>`<button class="audb${i===0?" on":""}" data-aud="${x[0]}">${x[1]}</button>`).join("")+`</div>`:"";
+    d.innerHTML=`<div class="dt">${icHtml}${o.title}<span style="margin-left:auto">${pvBadge(id)}</span></div>${tabs}${groundHtml(grounds[id])}<div class="md" id="dmd">${md(o.content)}</div>`;
+    renderMermaid(d);
+    if(id==="exec")bindAudience(o.content);}
   else if(isRun)d.innerHTML='<div class="placeholder">⏳ Stage running… output appears here.</div>';}
+function bindAudience(execContent){const tabs=document.querySelectorAll("#audTabs .audb");if(!tabs.length)return;
+  tabs.forEach(b=>b.onclick=async()=>{tabs.forEach(x=>x.classList.remove("on"));b.classList.add("on");
+    const mdEl=$("#dmd");const aud=b.dataset.aud;
+    if(aud==="exec"){mdEl.innerHTML=md(execContent);return;}
+    mdEl.innerHTML='<p style="color:var(--muted)">re-voicing…</p>';
+    try{const r=await(await fetch("/api/reframe?audience="+aud+"&problem="+encodeURIComponent(currentProblem))).json();
+      mdEl.innerHTML=md(r.markdown);}catch(e){mdEl.innerHTML='<p style="color:var(--bad)">reframe failed</p>';}});}
 function storeOutput(o){outputs[o.stage]={title:o.title,content:o.content};if(autoFollow||selected===o.stage)showDetail(o.stage);}
 function onReject(m){const g=$("#n-"+m.gate);if(g){g.classList.add("reject");setTimeout(()=>g.classList.remove("reject"),1500);}
   rejectArcs.push({gate:m.gate,producer:m.producer});drawEdges();
@@ -520,7 +536,7 @@ async function run(){if(running)return;const problem=$("#problem").value.trim();
   if(res.status===401){const t=await askInput("This console requires an access token","paste your token");if(t){localStorage.setItem("wrathTok",t);}running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";if(t)return run();return finish();}
   const {run_id}=await res.json();const es=new EventSource(withTok("/api/stream?run_id="+run_id));
   es.onmessage=ev=>{const m=JSON.parse(ev.data);
-    if(m.type==="meta"){runMode=m.mode;buildPipeline(m.stages);logLine("orchestrator booted — mode: "+m.mode,"_");}
+    if(m.type==="meta"){runMode=m.mode;currentProblem=m.problem||"";buildPipeline(m.stages);logLine("orchestrator booted — mode: "+m.mode,"_");}
     else if(m.type==="stage")setStage(m.id,m.status);
     else if(m.type==="log")logLine(m.text,m.stage);
     else if(m.type==="output")storeOutput(m);
@@ -541,7 +557,7 @@ function exportRun(){if(!order.length)return;let md_="# WRATH run\n\n**Problem:*
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([md_],{type:"text/markdown"}));a.download="wrath-run.md";a.click();URL.revokeObjectURL(a.href);}
 async function loadHistory(){try{const runs=await(await fetch(withTok("/api/runs"))).json();const h=$("#history");h.innerHTML='<option value="">↺ Recent runs ('+runs.length+')…</option>'+runs.map(r=>`<option value="${r.id}">${(r.problem||"").slice(0,40)} · ${r.mode}</option>`).join("");}catch(e){}}
 async function openSaved(id){if(!id)return;let rec;try{rec=await(await fetch(withTok("/api/run?id="+id))).json();}catch(e){return;}if(!rec||!rec.stages)return;
-  runMode=rec.mode||"demo";buildPipeline(rec.stages);autoFollow=false;lastSavedId=id;$("#whatifBtn").disabled=false;$("#patternBtn").disabled=false;
+  runMode=rec.mode||"demo";currentProblem=rec.problem||"";buildPipeline(rec.stages);autoFollow=false;lastSavedId=id;$("#whatifBtn").disabled=false;$("#patternBtn").disabled=false;
   setTimeout(()=>{order.forEach((sid,i)=>{const n=$("#n-"+sid);if(n){n.classList.remove("idle","run");n.classList.add("done");const b=n.querySelector(".b");if(b)b.textContent=n.classList.contains("gate")?"⚑":"✓";}if(i>0)setEdge(i-1,"done");});
     Object.entries(rec.deliverables||{}).forEach(([sid,o])=>{outputs[sid]=o;});
     Object.entries(rec.grounding||{}).forEach(([sid,g])=>showGround({stage:sid,status:g.status,checks:g.checks}));
@@ -555,7 +571,7 @@ function expandDetail(){const o=selected&&outputs[selected];
   openModal(`${icHtml}${o.title} ${pvBadge(selected)}`,`${groundHtml(grounds[selected])}<div class="md">${md(o.content)}</div>`,true);}
 function expandLog(){openModal("🛰 Live activity",`<div class="logfull">${$("#log").innerHTML||'<span style="color:var(--muted)">No activity yet.</span>'}</div>`);}
 
-let lastSavedId=null,pendingFork=null,runMode="demo";
+let lastSavedId=null,pendingFork=null,runMode="demo",currentProblem="";
 function provenance(id){const k=(stageMeta[id]||{}).kind||"";
   if(["tool-validate","tool-standards","tool-cost","report"].includes(k))return{t:"REAL",c:"pv-real",tip:"Deterministic gate — real code ran (config_lint / citation-guard / computed)"};
   if(runMode==="live")return{t:"LIVE · Opus 4.7",c:"pv-live",tip:"Generated by Claude Opus 4.7"};

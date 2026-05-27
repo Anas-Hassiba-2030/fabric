@@ -80,7 +80,7 @@ Nothing here is built unless it says "DONE".
   (each naming its figure source: BoM/SoW/quote/customer) and a design-adaptive risk register
   (likelihood/impact/mitigation/owner) — with **no invented currency** (House Rule 4). `webui/tco.py`,
   proven by `webui/test_tco.py` (asserts no fabricated `$`).
-- **P2 — Audience reframing.** One toggle to re-voice the exec summary for CFO / CISO / NOC.
+- **DONE (Phase 4) — Audience reframing.** The Exec one-pager has Board / CFO / CISO / NOC re-voice tabs — each emphasizes that audience's concerns (money/risk, security/compliance, operability/SLA) with no invented currency. `webui/audience.py` + `/api/reframe`, proven by `webui/test_audience.py`.
 - **P2 — Compliance pack.** NIST/CIS/PCI matrix as a standalone signed report.
 
 ## Plugged into the real estate (the big differentiators)
