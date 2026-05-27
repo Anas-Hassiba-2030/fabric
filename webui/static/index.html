@@ -68,9 +68,11 @@
   .chip{font-size:11px;color:var(--muted);border:1px solid var(--brd);border-radius:999px;padding:5px 12px;cursor:pointer;
     white-space:nowrap;transition:.15s;background:rgba(255,255,255,.02)}
   .chip:hover{color:var(--ink);border-color:var(--accent);background:rgba(110,168,255,.10)}
-  .hist{background:rgba(0,0,0,.30);color:var(--muted);border:1px solid var(--brd);border-radius:999px;padding:6px 12px;
+  .hist{background:#0e1626;color:var(--ink);border:1px solid var(--brd);border-radius:999px;padding:6px 12px;
     font:inherit;font-size:11px;cursor:pointer;max-width:210px}
   .hist:focus{outline:none;border-color:var(--accent)}
+  select,select option{background:#0e1626;color:var(--ink)}
+  select option{padding:6px}
 
   /* cards */
   .card{background:var(--panel);border:1px solid var(--brd);border-radius:18px;padding:15px 16px;
@@ -115,8 +117,8 @@
   .gnodes{display:flex;flex-direction:column;gap:9px}
 
   .node{position:relative;width:172px;border:1px solid var(--brd);border-radius:13px;padding:9px 11px;cursor:pointer;
-    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
-    transition:transform .2s,border-color .2s,box-shadow .25s,opacity .3s;overflow:hidden;
+    background:linear-gradient(180deg,#16213a,#0f1727);
+    transition:transform .2s,border-color .2s,box-shadow .25s,filter .3s;overflow:hidden;
     animation:pop .4s ease backwards;display:flex;flex-direction:column;gap:7px}
   @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
   .node:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 12px 30px rgba(0,0,0,.3)}
@@ -135,7 +137,7 @@
     padding:2px 6px;width:fit-content;text-transform:uppercase;align-self:flex-start}
   .node .g.show{display:inline-block;animation:pop .3s ease}
   .g.grounded{color:#06121f;background:var(--ok)}.g.flagged{color:#06121f;background:var(--warn)}.g.blocked{color:#fff;background:var(--bad)}
-  .node.idle{opacity:.45}
+  .node.idle{filter:saturate(.55) brightness(.72)}
   .node.run{border-color:transparent;box-shadow:0 12px 38px rgba(110,168,255,.28)}
   .node.run::before{content:"";position:absolute;inset:-1.5px;border-radius:14px;padding:1.5px;
     background:conic-gradient(from 0deg,var(--accent),var(--accent2),var(--gate),var(--accent));
