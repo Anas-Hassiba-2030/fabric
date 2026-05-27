@@ -13,6 +13,9 @@ import json
 import os
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import provenance  # noqa: E402
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 MEM = os.path.join(REPO, "wrath", "memory", "runs")
@@ -31,13 +34,17 @@ def to_markdown(rec):
                      f"(`{m.get('ref', '')}`) — {m.get('why', '')}")
 
     deliverables = rec.get("deliverables", {})
-    order = [s["id"] for s in rec.get("stages", [])] or list(deliverables.keys())
+    stages = rec.get("stages", [])
+    kind_of = {s["id"]: s.get("kind", "") for s in stages}
+    mode = rec.get("mode", "demo")
+    order = [s["id"] for s in stages] or list(deliverables.keys())
     grounding = rec.get("grounding", {})
     for sid in order:
         d = deliverables.get(sid)
         if not d:
             continue
         L += ["", "---", "", f"## {d['title']}"]
+        L.append(f"> source: **{provenance.label(provenance.classify(kind_of.get(sid, ''), mode))}**")
         g = grounding.get(sid)
         if g:
             L.append(f"> grounding: **{g.get('status', '')}**")

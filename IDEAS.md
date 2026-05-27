@@ -4,6 +4,12 @@ A living catalog of capabilities that make the result better, more trustworthy, 
 Priority: **P0** = do next, **P1** = high value soon, **P2** = later, **★** = signature / astonishing.
 Nothing here is built unless it says "DONE".
 
+## Trust & transparency
+- **DONE (Phase 2) — Provenance labelling (no ambiguity).** Every deliverable is badged **REAL**
+  (deterministic gate actually ran — Validator/Standards/Cost/Trust, in any mode), **LIVE · Opus 4.7**
+  (model reasoning), or **DEMO** (representative). A legend sits on the pipeline; the export bundle
+  tags each section's source. `webui/provenance.py`, proven by `webui/test_provenance.py`.
+
 ## Workspace
 - **DONE (Phase: Inbox) — Saved-results inbox.** `📥 Inbox` bookmarks any run with a free-text note so
   you can test many things and keep the good ones; each item shows problem + note + trust badge +

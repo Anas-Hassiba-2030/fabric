@@ -159,6 +159,12 @@
   .detail .dt .ico{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:var(--accent2);
     background:rgba(54,224,200,.12);border:1px solid rgba(54,224,200,.3)}
   .detail .dt .ico svg{width:15px;height:15px}
+  .pv{font-size:9px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:3px 8px;border-radius:7px;border:1px solid transparent}
+  .pv-real{background:rgba(61,220,151,.14);color:var(--ok);border-color:rgba(61,220,151,.4)}
+  .pv-live{background:rgba(54,224,200,.14);color:var(--accent2);border-color:rgba(54,224,200,.4)}
+  .pv-demo{background:rgba(138,150,180,.14);color:var(--muted);border-color:rgba(138,150,180,.35)}
+  .pvlegend{display:flex;gap:10px;font-size:9.5px;color:var(--muted);text-transform:none;letter-spacing:.2px;flex-wrap:wrap}
+  .pvlegend b{font-weight:700}
   .detail .md{animation:fade .35s ease}@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   .md{font-size:13px;color:#d7dfee}.md h2,.md h3{color:var(--ink);margin:.7em 0 .35em;font-size:14px}
   .md p{margin:.5em 0}
@@ -311,7 +317,8 @@
 
   <div class="app-main" style="display:grid;grid-template-rows:auto minmax(0,1fr);gap:13px;min-height:0">
     <div class="card railwrap">
-      <p class="ct"><span class="k">Orchestration pipeline</span></p>
+      <p class="ct"><span class="k">Orchestration pipeline</span>
+        <span class="pvlegend"><span class="pv pv-real">REAL</span><b>deterministic gate ran</b> · <span class="pv pv-live">LIVE</span><b>Opus 4.7</b> · <span class="pv pv-demo">DEMO</span><b>representative</b></span></p>
       <div class="orch" id="orch" style="display:none">
         <span class="orchpill"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><circle cx="8" cy="2" r="1.2"/><circle cx="2.5" cy="12.5" r="1.2"/><circle cx="13.5" cy="12.5" r="1.2"/><path d="M8 6V3.2M6.6 9.2l-3 2.6M9.4 9.2l3 2.6"/></svg>
           <b>ORCHESTRATOR</b><span class="live" id="orchLive">routing live</span></span>
@@ -472,7 +479,7 @@ function groundHtml(g){if(!g)return"";const lbl={grounded:"✓ Grounded — ever
 function showDetail(id,isRun){selected=id;document.querySelectorAll(".node").forEach(n=>n.classList.remove("sel"));$("#n-"+id)?.classList.add("sel");
   const d=$("#detail"),o=outputs[id];
   if(o){const icHtml=stageMeta[id]?`<span class="ico">${ico(id)}</span>`:"";
-    d.innerHTML=`<div class="dt">${icHtml}${o.title}</div>${groundHtml(grounds[id])}<div class="md">${md(o.content)}</div>`;
+    d.innerHTML=`<div class="dt">${icHtml}${o.title}<span style="margin-left:auto">${pvBadge(id)}</span></div>${groundHtml(grounds[id])}<div class="md">${md(o.content)}</div>`;
     renderMermaid(d);}
   else if(isRun)d.innerHTML='<div class="placeholder">⏳ Stage running… output appears here.</div>';}
 function storeOutput(o){outputs[o.stage]={title:o.title,content:o.content};if(autoFollow||selected===o.stage)showDetail(o.stage);}
@@ -486,7 +493,7 @@ async function run(){if(running)return;const problem=$("#problem").value.trim();
   if(res.status===401){const t=prompt("This console requires an access token:");if(t){localStorage.setItem("wrathTok",t);}running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";return run();}
   const {run_id}=await res.json();const es=new EventSource(withTok("/api/stream?run_id="+run_id));
   es.onmessage=ev=>{const m=JSON.parse(ev.data);
-    if(m.type==="meta"){buildPipeline(m.stages);logLine("orchestrator booted — mode: "+m.mode,"_");}
+    if(m.type==="meta"){runMode=m.mode;buildPipeline(m.stages);logLine("orchestrator booted — mode: "+m.mode,"_");}
     else if(m.type==="stage")setStage(m.id,m.status);
     else if(m.type==="log")logLine(m.text,m.stage);
     else if(m.type==="output")storeOutput(m);
@@ -507,7 +514,7 @@ function exportRun(){if(!order.length)return;let md_="# WRATH run\n\n**Problem:*
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([md_],{type:"text/markdown"}));a.download="wrath-run.md";a.click();URL.revokeObjectURL(a.href);}
 async function loadHistory(){try{const runs=await(await fetch(withTok("/api/runs"))).json();const h=$("#history");h.innerHTML='<option value="">↺ Recent runs ('+runs.length+')…</option>'+runs.map(r=>`<option value="${r.id}">${(r.problem||"").slice(0,40)} · ${r.mode}</option>`).join("");}catch(e){}}
 async function openSaved(id){if(!id)return;let rec;try{rec=await(await fetch(withTok("/api/run?id="+id))).json();}catch(e){return;}if(!rec||!rec.stages)return;
-  buildPipeline(rec.stages);autoFollow=false;lastSavedId=id;$("#whatifBtn").disabled=false;$("#patternBtn").disabled=false;
+  runMode=rec.mode||"demo";buildPipeline(rec.stages);autoFollow=false;lastSavedId=id;$("#whatifBtn").disabled=false;$("#patternBtn").disabled=false;
   setTimeout(()=>{order.forEach((sid,i)=>{const n=$("#n-"+sid);if(n){n.classList.remove("idle","run");n.classList.add("done");const b=n.querySelector(".b");if(b)b.textContent=n.classList.contains("gate")?"⚑":"✓";}if(i>0)setEdge(i-1,"done");});
     Object.entries(rec.deliverables||{}).forEach(([sid,o])=>{outputs[sid]=o;});
     Object.entries(rec.grounding||{}).forEach(([sid,g])=>showGround({stage:sid,status:g.status,checks:g.checks}));
@@ -518,10 +525,15 @@ function closeModal(){$("#modal").classList.remove("show");}
 function expandDetail(){const o=selected&&outputs[selected];
   if(!o){openModal("Deliverable",'<div class="placeholder">No deliverable selected yet — run WRATH or click a completed stage.</div>');return;}
   const icHtml=stageMeta[selected]?`<span class="ico">${ico(selected)}</span>`:"";
-  openModal(`${icHtml}${o.title}`,`${groundHtml(grounds[selected])}<div class="md">${md(o.content)}</div>`,true);}
+  openModal(`${icHtml}${o.title} ${pvBadge(selected)}`,`${groundHtml(grounds[selected])}<div class="md">${md(o.content)}</div>`,true);}
 function expandLog(){openModal("🛰 Live activity",`<div class="logfull">${$("#log").innerHTML||'<span style="color:var(--muted)">No activity yet.</span>'}</div>`);}
 
-let lastSavedId=null,pendingFork=null;
+let lastSavedId=null,pendingFork=null,runMode="demo";
+function provenance(id){const k=(stageMeta[id]||{}).kind||"";
+  if(["tool-validate","tool-standards","tool-cost","report"].includes(k))return{t:"REAL",c:"pv-real",tip:"Deterministic gate — real code ran (config_lint / citation-guard / computed)"};
+  if(runMode==="live")return{t:"LIVE · Opus 4.7",c:"pv-live",tip:"Generated by Claude Opus 4.7"};
+  return{t:"DEMO",c:"pv-demo",tip:"Representative content (set ANTHROPIC_API_KEY for live Opus reasoning)"};}
+function pvBadge(id){const p=provenance(id);return `<span class="pv ${p.c}" title="${p.tip}">${p.t}</span>`;}
 function runOptions(list,sel){return list.map(r=>`<option value="${r.id}" ${r.id===sel?"selected":""}>${(r.problem||"").slice(0,46)} · ${r.mode}</option>`).join("");}
 async function openCompareUI(presetA,presetB){let list=[];try{list=await(await fetch(withTok("/api/runs"))).json();}catch(e){}
   if(list.length<2){openModal("⇄ Compare runs",'<div class="placeholder">Run WRATH at least twice (or use ⤳ What-if) to have two runs to compare.</div>');return;}

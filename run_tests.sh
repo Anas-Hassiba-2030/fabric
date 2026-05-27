@@ -39,6 +39,9 @@ if "$PY" webui/test_tco.py >/tmp/_tco.out 2>&1; then ok "cost/TCO honest (driver
 step "Trust report fidelity proof (no API key)"
 if "$PY" webui/test_trust.py >/tmp/_trust.out 2>&1; then ok "trust report faithful (grounded/flagged/blocked, ledger, confidence)"; else bad "trust report"; cat /tmp/_trust.out; fi
 
+step "Provenance labelling proof (no API key)"
+if "$PY" webui/test_provenance.py >/tmp/_pv.out 2>&1; then ok "provenance honest (real gates stay REAL in any mode)"; else bad "provenance"; cat /tmp/_pv.out; fi
+
 step "Run export proof (no API key)"
 if "$PY" webui/test_export.py >/tmp/_exp.out 2>&1; then ok "run export bundles the stack (order, deliverables, grounding, trust)"; else bad "run export"; cat /tmp/_exp.out; fi
 
