@@ -92,8 +92,7 @@ Nothing here is built unless it says "DONE".
   *real* device state (server already exists; today it reads JSON snapshots).
 - **P2 — Docs/Standards MCP → live fetch** with caching when egress allows (today: curated index).
 - **P2 — Ticketing/Git integration.** Pull RFCs/incidents (ServiceNow/Jira), version every deliverable in Git.
-- **★ Continuous assurance.** After a design, auto-generate the telemetry/SLO config + a watcher that
-  re-validates the live network against the design and alerts on drift.
+- **DONE (★) — Continuous assurance.** `📡 Assurance` generates the telemetry/SLO catalog from the design (KPI→gNMI/OpenConfig sensor→threshold→action) **and** runs a drift check that re-validates the read-only network state against design intent (catches Idle BGP, down core links, sub-jumbo MTU). Closed-loop is alert/ticket only — never an auto device-push (House Rule 6). `webui/assurance.py` + `/api/assurance`, proven by `webui/test_assurance.py`.
 
 ## Workflow & reach
 - **DONE — Shareable read-only report.** `🔗 Share` opens a self-contained, styled HTML page of the whole run (renders markdown→HTML, topology via mermaid CDN with source fallback) — openable/sendable anywhere, print-to-PDF in the browser. `webui/share.py` + `GET /api/export.html?id=`, proven by `webui/test_share.py`.

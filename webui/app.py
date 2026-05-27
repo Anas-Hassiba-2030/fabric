@@ -32,6 +32,7 @@ from urllib.parse import urlparse, parse_qs
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import analytics  # noqa: E402
+import assurance  # noqa: E402
 import audience  # noqa: E402
 import blueprints  # noqa: E402
 import clarify  # noqa: E402
@@ -643,6 +644,17 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/topology.svg":
             svg = topology.svg_for(parse_qs(u.query).get("problem", [""])[0])
             return self._send(200, "image/svg+xml; charset=utf-8", svg.encode())
+        if u.path == "/api/assurance":
+            problem = parse_qs(u.query).get("problem", [""])[0]
+            state, sd = {"devices": {}}, os.environ.get("WRATH_NETSTATE_DIR", os.path.join(REPO, "wrath", "mcp", "state"))
+            try:
+                for fn in sorted(os.listdir(sd)):
+                    if fn.endswith(".json"):
+                        for k, v in (json.load(open(os.path.join(sd, fn))).get("devices", {}) or {}).items():
+                            state["devices"][k] = v
+            except Exception:
+                state = None
+            return self._send(200, "application/json", json.dumps({"markdown": assurance.render(problem, state)}).encode())
         if u.path in ("/api/stream", "/api/runs", "/api/run", "/api/export", "/api/export.html", "/api/compare", "/api/analytics", "/api/inbox") and not self._authed(u):
             return self._send(401, "application/json", b'{"error":"unauthorized"}')
         if u.path == "/api/inbox":

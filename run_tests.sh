@@ -84,6 +84,9 @@ if "$PY" webui/test_distill.py >/tmp/_dst.out 2>&1; then ok "accepted runs disti
 step "Live-mode wiring proof (mocked Claude, no API key)"
 if "$PY" webui/test_live.py >/tmp/_live.out 2>&1; then ok "live wiring chains, gates bite, hallucination caught"; else bad "live wiring"; cat /tmp/_live.out; fi
 
+step "Continuous assurance proof (no API key)"
+if "$PY" webui/test_assurance.py >/tmp/_as.out 2>&1; then ok "assurance: SLO catalog + honest drift (alert-only, House Rule 6)"; else bad "assurance"; cat /tmp/_as.out; fi
+
 step "Pipeline integrity proof (stage -> subagent -> skill, no API key)"
 if "$PY" webui/test_agents.py >/tmp/_ag.out 2>&1; then ok "every stage wired to a real subagent+skill; routing matches; slash commands present"; else bad "pipeline integrity"; cat /tmp/_ag.out; fi
 

@@ -343,6 +343,7 @@
       <span class="tbgroup" title="Reports & library">
         <button class="minibtn" id="blueprintBtn" title="Start from a ready-made engagement blueprint">⊞ Blueprints</button>
         <button class="minibtn" id="complianceBtn" title="Standalone NIST/CIS/PCI/HIPAA compliance pack">🛡 Compliance</button>
+        <button class="minibtn" id="assuranceBtn" title="Telemetry/SLO catalog + drift check vs live read-only state">📡 Assurance</button>
         <button class="minibtn" id="analyticsBtn" title="Cross-run analytics dashboard">📊 Analytics</button>
         <button class="minibtn" id="inboxBtn" title="Saved-results inbox — bookmark runs with a note">📥 Inbox</button>
       </span>
@@ -642,6 +643,11 @@ async function openCompliance(){const prob=currentProblem||$("#problem").value.t
   openModal("🛡 Compliance pack",'<div class="placeholder">building…</div>');
   try{const r=await(await fetch("/api/compliance?problem="+encodeURIComponent(prob))).json();
     $("#modalBody").innerHTML=`<div class="md">${md(r.markdown)}</div>`;}catch(e){$("#modalBody").innerHTML='<div class="placeholder">failed</div>';}}
+async function openAssurance(){const prob=currentProblem||$("#problem").value.trim();
+  if(!prob){openModal("📡 Service assurance",'<div class="placeholder">State a problem (or run one) first — assurance is generated from the design.</div>');return;}
+  openModal("📡 Service assurance",'<div class="placeholder">building telemetry/SLO catalog + drift check…</div>');
+  try{const r=await(await fetch("/api/assurance?problem="+encodeURIComponent(prob))).json();
+    $("#modalBody").innerHTML=`<div class="md">${md(r.markdown)}</div>`;}catch(e){$("#modalBody").innerHTML='<div class="placeholder">failed</div>';}}
 function bar(nm,val,max,color){const pct=max>0?Math.round(val/max*100):0;
   return `<div class="anbar"><span class="nm">${nm}</span><span class="tk"><span class="fl" style="width:${pct}%;background:${color}"></span></span><span class="ct">${val}</span></div>`;}
 async function openAnalytics(){let s;try{s=await(await fetch(withTok("/api/analytics"))).json();}catch(e){openModal("📊 Analytics",'<div class="placeholder">analytics unavailable</div>');return;}
@@ -686,7 +692,7 @@ let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(draw
   $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;$("#exportBtn").onclick=exportRun;
   $("#history").onchange=e=>openSaved(e.target.value);
   $("#expDetail").onclick=expandDetail;$("#expLog").onclick=expandLog;$("#modalClose").onclick=closeModal;
-  $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;$("#patternBtn").onclick=savePattern;$("#analyticsBtn").onclick=openAnalytics;$("#inboxBtn").onclick=openInbox;$("#complianceBtn").onclick=openCompliance;
+  $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;$("#patternBtn").onclick=savePattern;$("#analyticsBtn").onclick=openAnalytics;$("#inboxBtn").onclick=openInbox;$("#complianceBtn").onclick=openCompliance;$("#assuranceBtn").onclick=openAssurance;
   $("#shareBtn").onclick=()=>{if(lastSavedId)window.open(withTok("/api/export.html?id="+lastSavedId),"_blank");};
   $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
