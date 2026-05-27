@@ -25,6 +25,7 @@ Nothing here is built unless it says "DONE".
   technologies. `webui/analytics.py` + `/api/analytics`, proven by `webui/test_analytics.py`.
 
 ## Console / interface
+- **DONE — Copy + remembered session.** Each deliverable has a **⧉ Copy** button (Markdown to clipboard, with a ✓ confirmation); the last problem, mode, and Critic-intensity persist across reloads (localStorage). Verified via headless Chromium (clipboard + restore-after-reload).
 - **DONE — Toolbar declutter.** Secondary actions grouped (This run | Reports & library) with a divider, chips on their own row, history right-aligned — no wrapping/overflow at 1536 or 1920.
 - **DONE — Console redesign (modern, animated).** The orchestration pipeline is a compact **horizontal
   rail** (Orchestrator on top, phases left→right, icon cards, animated flowing connectors + red
@@ -98,6 +99,7 @@ Nothing here is built unless it says "DONE".
 
 ## Workflow & reach
 - **DONE — Shareable read-only report.** `🔗 Share` opens a self-contained, styled HTML page of the whole run (renders markdown→HTML, topology via mermaid CDN with source fallback) — openable/sendable anywhere, print-to-PDF in the browser. `webui/share.py` + `GET /api/export.html?id=`, proven by `webui/test_share.py`.
+- **DONE — CLI trust gate.** `webui/cli.py --require-confidence high|medium|guarded` exits non-zero if a run's trust confidence is below the bar — WRATH as a CI quality gate. Proven by `webui/test_cli.py`.
 - **DONE — Headless CLI / API mode.** `python webui/cli.py "<problem>" [--mode live] [--intensity max] [--format json] [--out file]` runs the full pipeline with no browser and emits the deliverable bundle (reuses the engine + exporter). Honors mode + Critic dial. `webui/cli.py`, proven by `webui/test_cli.py`.
 - **DONE — Engagement blueprints.** `⊞ Blueprints` opens a gallery of ready-to-run starters (SP core,
   DC fabric, DCI, campus, secure edge, SD-WAN); clicking one loads + runs it. Each is complete enough

@@ -530,7 +530,8 @@ function showDetail(id,isRun){selected=id;document.querySelectorAll(".node").for
     const tabs=id==="exec"?`<div class="aud" id="audTabs"><span class="lbl">Re-voice for</span>`+
       [["exec","Board"],["cfo","CFO"],["ciso","CISO"],["noc","NOC"]].map((x,i)=>`<button class="audb${i===0?" on":""}" data-aud="${x[0]}">${x[1]}</button>`).join("")+`</div>`:"";
     const dl=id==="hld"?`<div style="margin:0 0 12px;display:flex;gap:8px"><a class="minibtn" style="text-decoration:none" href="/api/topology.svg?problem=${encodeURIComponent(currentProblem)}" target="_blank" download="wrath-topology.svg">⬇ Topology SVG</a><button class="minibtn" onclick="downloadTopologyPng()">⬇ Topology PNG</button></div>`:"";
-    d.innerHTML=`<div class="dt">${icHtml}${o.title}<span style="margin-left:auto">${pvBadge(id)}</span></div>${tabs}${groundHtml(grounds[id])}${dl}<div class="md" id="dmd">${md(o.content)}</div>`;
+    d.innerHTML=`<div class="dt">${icHtml}${o.title}<span style="margin-left:auto;display:flex;gap:7px;align-items:center">${pvBadge(id)}<button class="exp" id="copyDel" title="Copy this deliverable as Markdown">⧉ <span class="lab">COPY</span></button></span></div>${tabs}${groundHtml(grounds[id])}${dl}<div class="md" id="dmd">${md(o.content)}</div>`;
+    const cb=$("#copyDel");if(cb)cb.onclick=()=>{navigator.clipboard.writeText(o.content).then(()=>{cb.innerHTML="✓ COPIED";setTimeout(()=>cb.innerHTML='⧉ <span class="lab">COPY</span>',1200);}).catch(()=>{});};
     renderMermaid(d);
     if(id==="exec")bindAudience(o.content);}
   else if(isRun)d.innerHTML='<div class="placeholder">⏳ Stage running… output appears here.</div>';}
@@ -546,7 +547,8 @@ function onReject(m){const g=$("#n-"+m.gate);if(g){g.classList.add("reject");set
   rejectArcs.push({gate:m.gate,producer:m.producer});drawEdges();
   setTimeout(()=>{rejectArcs=rejectArcs.filter(a=>!(a.gate===m.gate&&a.producer===m.producer));drawEdges();},3200);
   logLine("↩ "+m.reason,m.gate);}
-async function run(){if(running)return;const problem=$("#problem").value.trim();if(!problem){$("#problem").focus();return;}
+function savePrefs(){try{localStorage.setItem("wrathPrefs",JSON.stringify({problem:$("#problem").value,live:LIVE,intensity:$("#critic").value}));}catch(e){}}
+async function run(){if(running)return;const problem=$("#problem").value.trim();if(!problem){$("#problem").focus();return;}savePrefs();
   running=true;$("#runBtn").disabled=true;$("#runBtn").textContent="● Running…";$("#log").innerHTML="";$("#detail").innerHTML='<div class="placeholder">Booting orchestrator…</div>';
   let res;try{res=await fetch(withTok("/api/run"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({problem,mode:LIVE?"live":"demo",intensity:$("#critic").value})});}catch(e){logLine("connection failed: "+e);return finish();}
   if(res.status===401){const t=await askInput("This console requires an access token","paste your token");if(t){localStorage.setItem("wrathTok",t);}running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";if(t)return run();return finish();}
@@ -708,6 +710,7 @@ let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(draw
 (async function(){initChips();initMermaid();try{const c=await(await fetch("/api/config")).json();hasKey=c.hasKey;MODELNAME=c.model||MODELNAME;
     if(c.auth&&!localStorage.getItem("wrathTok")){const t=await askInput("This console requires an access token","paste your token");if(t)localStorage.setItem("wrathTok",t);}}catch(e){}
   if(!hasKey)$("#livePill").textContent="set ANTHROPIC_API_KEY";setMode(false);
+  try{const pf=JSON.parse(localStorage.getItem("wrathPrefs")||"{}");if(pf.problem&&!$("#problem").value)$("#problem").value=pf.problem;if(pf.intensity)$("#critic").value=pf.intensity;if(pf.live)setMode(true);}catch(e){}
   $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;$("#exportBtn").onclick=exportRun;
   $("#history").onchange=e=>openSaved(e.target.value);
   $("#expDetail").onclick=expandDetail;$("#expLog").onclick=expandLog;$("#modalClose").onclick=closeModal;

@@ -36,6 +36,8 @@ def main(argv=None):
                     help="Critic red-team intensity")
     ap.add_argument("--format", default="md", choices=["md", "json"])
     ap.add_argument("--out", help="write to this file instead of stdout")
+    ap.add_argument("--require-confidence", choices=["guarded", "medium", "high"],
+                    help="CI gate: exit non-zero if the run's trust confidence is below this")
     a = ap.parse_args(argv)
     problem = " ".join(a.problem).strip()
     if not problem:
@@ -52,6 +54,13 @@ def main(argv=None):
         print(f"wrote {a.out} — trust: {t.get('confidence', '?')} ({t.get('headline', '')})", file=sys.stderr)
     else:
         print(out)
+    if a.require_confidence:
+        rank = {"Guarded": 1, "Medium": 2, "High": 3}
+        need = a.require_confidence.capitalize()
+        got = (rec.get("trust") or {}).get("confidence", "Guarded")
+        if rank.get(got, 0) < rank.get(need, 0):
+            print(f"TRUST GATE FAILED: confidence {got} < required {need}", file=sys.stderr)
+            return 1
     return 0
 
 
