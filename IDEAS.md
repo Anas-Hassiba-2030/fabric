@@ -81,7 +81,7 @@ Nothing here is built unless it says "DONE".
   (likelihood/impact/mitigation/owner) — with **no invented currency** (House Rule 4). `webui/tco.py`,
   proven by `webui/test_tco.py` (asserts no fabricated `$`).
 - **DONE (Phase 4) — Audience reframing.** The Exec one-pager has Board / CFO / CISO / NOC re-voice tabs — each emphasizes that audience's concerns (money/risk, security/compliance, operability/SLA) with no invented currency. `webui/audience.py` + `/api/reframe`, proven by `webui/test_audience.py`.
-- **P2 — Compliance pack.** NIST/CIS/PCI matrix as a standalone signed report.
+- **DONE (Phase 4) — Compliance pack.** `🛡 Compliance` builds a standalone PCI/HIPAA/NIST/CIS matrix mapping each control area to the design measure that addresses it — honest (Design-addressed, audit-confirmed; never claims 'certified'). `webui/compliance.py` + `/api/compliance`, proven by `webui/test_compliance.py`.
 
 ## Plugged into the real estate (the big differentiators)
 - **P2 — Read-only Network-state MCP → live.** Point it at pyATS/gNMI/NetBox so RCA & validation use

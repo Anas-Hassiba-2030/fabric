@@ -35,6 +35,7 @@ import analytics  # noqa: E402
 import audience  # noqa: E402
 import blueprints  # noqa: E402
 import clarify  # noqa: E402
+import compliance  # noqa: E402
 import distill  # noqa: E402
 import export_run  # noqa: E402
 import grounding  # noqa: E402
@@ -592,6 +593,9 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/reframe":
             qs = parse_qs(u.query)
             md = audience.reframe(qs.get("problem", [""])[0], qs.get("audience", ["exec"])[0])
+            return self._send(200, "application/json", json.dumps({"markdown": md}).encode())
+        if u.path == "/api/compliance":
+            md = compliance.report(parse_qs(u.query).get("problem", [""])[0])
             return self._send(200, "application/json", json.dumps({"markdown": md}).encode())
         if u.path in ("/api/stream", "/api/runs", "/api/run", "/api/export", "/api/compare", "/api/analytics", "/api/inbox") and not self._authed(u):
             return self._send(401, "application/json", b'{"error":"unauthorized"}')

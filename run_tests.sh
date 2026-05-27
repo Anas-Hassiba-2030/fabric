@@ -39,6 +39,9 @@ if "$PY" webui/test_tco.py >/tmp/_tco.out 2>&1; then ok "cost/TCO honest (driver
 step "Trust report fidelity proof (no API key)"
 if "$PY" webui/test_trust.py >/tmp/_trust.out 2>&1; then ok "trust report faithful (grounded/flagged/blocked, ledger, confidence)"; else bad "trust report"; cat /tmp/_trust.out; fi
 
+step "Compliance pack proof (no API key)"
+if "$PY" webui/test_compliance.py >/tmp/_cmp.out 2>&1; then ok "compliance pack maps frameworks honestly (design-addressed, audit-confirmed)"; else bad "compliance"; cat /tmp/_cmp.out; fi
+
 step "Audience reframing proof (no API key)"
 if "$PY" webui/test_audience.py >/tmp/_aud.out 2>&1; then ok "audience reframing honest (CFO/CISO/NOC voices, no invented $)"; else bad "audience"; cat /tmp/_aud.out; fi
 
