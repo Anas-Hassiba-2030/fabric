@@ -68,6 +68,10 @@
   .chip{font-size:11px;color:var(--muted);border:1px solid var(--brd);border-radius:999px;padding:5px 12px;cursor:pointer;
     white-space:nowrap;transition:.15s;background:rgba(255,255,255,.02)}
   .chip:hover{color:var(--ink);border-color:var(--accent);background:rgba(110,168,255,.10)}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}
+  .tbgroup{display:flex;gap:7px;flex-wrap:wrap}
+  .tbsep{width:1px;height:20px;background:var(--brd);margin:0 2px}
+  .toolbar .hist{margin-left:auto}
   .hist{background:#0e1626;color:var(--ink);border:1px solid var(--brd);border-radius:999px;padding:6px 12px;
     font:inherit;font-size:11px;cursor:pointer;max-width:210px}
   .hist:focus{outline:none;border-color:var(--accent)}
@@ -327,15 +331,20 @@
       <button class="run" id="runBtn">▶ Run WRATH</button>
       <button class="run2" id="exportBtn" disabled title="Download the deliverable stack as Markdown">⬇ Export</button>
     </div>
-    <div style="display:flex;gap:9px;align-items:center;margin-top:10px">
-      <div class="chips" id="chips" style="flex:1"></div>
-      <button class="minibtn" id="complianceBtn" title="Standalone NIST/CIS/PCI/HIPAA compliance pack">🛡 Compliance</button>
-      <button class="minibtn" id="inboxBtn" title="Saved-results inbox — bookmark runs with a note">📥 Inbox</button>
-      <button class="minibtn" id="analyticsBtn" title="Cross-run analytics dashboard">📊 Analytics</button>
-      <button class="minibtn" id="blueprintBtn" title="Start from a ready-made engagement blueprint">⊞ Blueprints</button>
-      <button class="minibtn" id="whatifBtn" disabled title="Re-run with one changed constraint, then compare">⤳ What-if</button>
-      <button class="minibtn" id="patternBtn" disabled title="Accept this run and distil it into a reusable pattern in memory">★ Save pattern</button>
-      <button class="minibtn" id="compareBtn" title="Compare two saved runs side by side">⇄ Compare</button>
+    <div class="chips" id="chips" style="margin-top:10px"></div>
+    <div class="toolbar">
+      <span class="tbgroup" title="This run">
+        <button class="minibtn" id="whatifBtn" disabled title="Re-run with one changed constraint, then compare">⤳ What-if</button>
+        <button class="minibtn" id="patternBtn" disabled title="Accept this run and distil it into a reusable pattern in memory">★ Save pattern</button>
+        <button class="minibtn" id="compareBtn" title="Compare two saved runs side by side">⇄ Compare</button>
+      </span>
+      <span class="tbsep"></span>
+      <span class="tbgroup" title="Reports & library">
+        <button class="minibtn" id="blueprintBtn" title="Start from a ready-made engagement blueprint">⊞ Blueprints</button>
+        <button class="minibtn" id="complianceBtn" title="Standalone NIST/CIS/PCI/HIPAA compliance pack">🛡 Compliance</button>
+        <button class="minibtn" id="analyticsBtn" title="Cross-run analytics dashboard">📊 Analytics</button>
+        <button class="minibtn" id="inboxBtn" title="Saved-results inbox — bookmark runs with a note">📥 Inbox</button>
+      </span>
       <select id="history" class="hist" title="Reload a saved run"><option value="">↺ Recent runs…</option></select>
     </div>
   </div>
@@ -517,7 +526,8 @@ function showDetail(id,isRun){selected=id;document.querySelectorAll(".node").for
   if(o){const icHtml=stageMeta[id]?`<span class="ico">${ico(id)}</span>`:"";
     const tabs=id==="exec"?`<div class="aud" id="audTabs"><span class="lbl">Re-voice for</span>`+
       [["exec","Board"],["cfo","CFO"],["ciso","CISO"],["noc","NOC"]].map((x,i)=>`<button class="audb${i===0?" on":""}" data-aud="${x[0]}">${x[1]}</button>`).join("")+`</div>`:"";
-    d.innerHTML=`<div class="dt">${icHtml}${o.title}<span style="margin-left:auto">${pvBadge(id)}</span></div>${tabs}${groundHtml(grounds[id])}<div class="md" id="dmd">${md(o.content)}</div>`;
+    const dl=id==="hld"?`<a class="minibtn" style="text-decoration:none;margin:0 0 12px;display:inline-block" href="/api/topology.svg?problem=${encodeURIComponent(currentProblem)}" target="_blank" download="wrath-topology.svg">⬇ Topology SVG</a>`:"";
+    d.innerHTML=`<div class="dt">${icHtml}${o.title}<span style="margin-left:auto">${pvBadge(id)}</span></div>${tabs}${groundHtml(grounds[id])}${dl}<div class="md" id="dmd">${md(o.content)}</div>`;
     renderMermaid(d);
     if(id==="exec")bindAudience(o.content);}
   else if(isRun)d.innerHTML='<div class="placeholder">⏳ Stage running… output appears here.</div>';}

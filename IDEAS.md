@@ -25,6 +25,7 @@ Nothing here is built unless it says "DONE".
   technologies. `webui/analytics.py` + `/api/analytics`, proven by `webui/test_analytics.py`.
 
 ## Console / interface
+- **DONE — Toolbar declutter.** Secondary actions grouped (This run | Reports & library) with a divider, chips on their own row, history right-aligned — no wrapping/overflow at 1536 or 1920.
 - **DONE — Console redesign (modern, animated).** The orchestration pipeline is a compact **horizontal
   rail** (Orchestrator on top, phases left→right, icon cards, animated flowing connectors + red
   revise-arcs on gate bounces) instead of tall stacked card columns; the **deliverable** now owns the

@@ -54,8 +54,19 @@ subgraph_ids = re.findall(r"subgraph (\S+) \[", block)
 check("subgraph ids are bare tokens (no spaces/parens — Mermaid-valid)",
       all(re.fullmatch(r"[0-9A-Za-z_]+", s) for s in subgraph_ids) and subgraph_ids)
 
-print("=== 4. Deterministic ===")
+print("=== 4. Standalone SVG export (dependency-free, offline) ===")
+svg = topology.svg_for("SR-MPLS L3VPN core")
+check("is an <svg> document", svg.startswith("<svg") and svg.rstrip().endswith("</svg>"))
+check("contains node rects", "<rect" in svg)
+check("contains edges", "<line" in svg)
+check("labels the redundant core", "P1 / RR" in svg)
+check("labels a PE device", "PE1" in svg)
+dcsvg = topology.svg_for("EVPN-VXLAN data center fabric")
+check("DC svg shows a spine", "Spine1" in dcsvg)
+
+print("=== 5. Deterministic ===")
 check("same problem -> identical diagram", topology.mermaid_block("x core") == topology.mermaid_block("x core"))
+check("same problem -> identical svg", topology.svg_for("x core") == topology.svg_for("x core"))
 
 print()
 print("RESULT:", "ALL GREEN — auto topology renders a valid, sensible diagram." if not fails

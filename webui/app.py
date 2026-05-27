@@ -639,6 +639,9 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/compliance":
             md = compliance.report(parse_qs(u.query).get("problem", [""])[0])
             return self._send(200, "application/json", json.dumps({"markdown": md}).encode())
+        if u.path == "/api/topology.svg":
+            svg = topology.svg_for(parse_qs(u.query).get("problem", [""])[0])
+            return self._send(200, "image/svg+xml; charset=utf-8", svg.encode())
         if u.path in ("/api/stream", "/api/runs", "/api/run", "/api/export", "/api/compare", "/api/analytics", "/api/inbox") and not self._authed(u):
             return self._send(401, "application/json", b'{"error":"unauthorized"}')
         if u.path == "/api/inbox":
