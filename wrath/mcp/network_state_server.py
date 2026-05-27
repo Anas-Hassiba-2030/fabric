@@ -19,28 +19,23 @@ Tools:
   get_route(device, prefix)            -> route lookup for a prefix
   get_inventory(device)                -> hardware/serial/redundancy
 """
-import glob
-import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_REPO = os.path.dirname(os.path.dirname(_HERE))
+sys.path.insert(0, _HERE)
+sys.path.insert(0, os.path.join(_REPO, "webui"))
 from _mcpserver import MCPServer, log  # noqa: E402
+import netstate  # noqa: E402  (shared read-only loader: WRATH_NETSTATE_URL or snapshot dir, normalized)
 
-STATE_DIR = os.environ.get("WRATH_NETSTATE_DIR") or os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "state")
+STATE_DIR = os.environ.get("WRATH_NETSTATE_DIR") or os.path.join(_HERE, "state")
 
 
 def _load_state():
-    devices = {}
-    for path in sorted(glob.glob(os.path.join(STATE_DIR, "*.json"))):
-        try:
-            with open(path, encoding="utf-8") as fh:
-                data = json.load(fh)
-            devices.update(data.get("devices", {}))
-        except Exception as e:
-            log(f"skip {path}: {e}")
-    return devices
+    # One read-only source for the web app AND this MCP: a WRATH_NETSTATE_URL feed (read-only GET) or
+    # the snapshot dir, foreign formats normalized. Never writes to a device or source.
+    return (netstate.load() or {}).get("devices", {})
 
 
 def _device(name):

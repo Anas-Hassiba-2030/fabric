@@ -49,11 +49,14 @@ def _nb(n):
 
 
 def _device(d):
-    return {"role": d.get("role", ""), "platform": d.get("platform", ""), "version": d.get("version", ""),
-            "site": d.get("site", ""),
-            "interfaces": [_itf(i) for i in (d.get("interfaces") or [])],
-            "bgp_neighbors": [_nb(n) for n in (d.get("bgp_neighbors") or d.get("bgp") or [])],
-            "routes": d.get("routes", {})}
+    # Preserve every original field (inventory, routes, extras) so the adapter is non-lossy; only
+    # overlay the normalized interface + BGP tables.
+    out = dict(d)
+    out.setdefault("role", d.get("role", ""))
+    out["interfaces"] = [_itf(i) for i in (d.get("interfaces") or [])]
+    out["bgp_neighbors"] = [_nb(n) for n in (d.get("bgp_neighbors") or d.get("bgp") or [])]
+    out["routes"] = d.get("routes", {})
+    return out
 
 
 def normalize(raw):
