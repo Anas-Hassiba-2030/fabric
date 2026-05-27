@@ -44,6 +44,7 @@ import distill  # noqa: E402
 import export_run  # noqa: E402
 import grounding  # noqa: E402
 import inbox  # noqa: E402
+import netstate  # noqa: E402
 import persist  # noqa: E402
 import rca  # noqa: E402
 import recall  # noqa: E402
@@ -109,18 +110,9 @@ def load_run(rid):
 
 
 def load_netstate():
-    """Merge the read-only network-state snapshots (WRATH_NETSTATE_DIR or wrath/mcp/state). The MCP
-    and these readers NEVER write to devices. Returns {"devices": {...}} or None if unreadable."""
-    sd = os.environ.get("WRATH_NETSTATE_DIR", os.path.join(REPO, "wrath", "mcp", "state"))
-    state = {"devices": {}}
-    try:
-        for fn in sorted(os.listdir(sd)):
-            if fn.endswith(".json"):
-                for k, v in (json.load(open(os.path.join(sd, fn))).get("devices", {}) or {}).items():
-                    state["devices"][k] = v
-        return state
-    except Exception:
-        return None
+    """Read-only network state via the pluggable loader (WRATH_NETSTATE_URL → live GET, else snapshot
+    dir; foreign formats normalized). Strictly read-only — never writes to a device or source."""
+    return netstate.load()
 
 # --- the WRATH pipeline definition (maps to phases/agents) ---------------------------------
 STAGES = [

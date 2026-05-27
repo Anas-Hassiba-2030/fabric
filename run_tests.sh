@@ -84,6 +84,9 @@ if "$PY" webui/test_distill.py >/tmp/_dst.out 2>&1; then ok "accepted runs disti
 step "Live-mode wiring proof (mocked Claude, no API key)"
 if "$PY" webui/test_live.py >/tmp/_live.out 2>&1; then ok "live wiring chains, gates bite, hallucination caught"; else bad "live wiring"; cat /tmp/_live.out; fi
 
+step "Read-only network-state loader proof (no live source)"
+if "$PY" webui/test_netstate.py >/tmp/_ns.out 2>&1; then ok "state loader normalizes native+foreign formats, read-only GET, graceful fallback"; else bad "netstate"; cat /tmp/_ns.out; fi
+
 step "Root-cause analysis proof (no API key)"
 if "$PY" webui/test_rca.py >/tmp/_rca.out 2>&1; then ok "RCA isolates a fault chain from read-only state (honest, no false correlation)"; else bad "rca"; cat /tmp/_rca.out; fi
 

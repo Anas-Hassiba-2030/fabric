@@ -57,6 +57,8 @@ The server already binds `0.0.0.0`, so it's reachable on your LAN at `http://<yo
 WRATH_UI_PORT=9000          # change the port
 WRATH_UI_TOKEN=some-secret  # require a token: the console + API are gated (open if unset)
 WRATH_UI_MAX_ACTIVE=8       # cap concurrent runs
+WRATH_NETSTATE_URL=https://… # read-only state feed (NetBox/gNMI/pyATS JSON) for Assurance + Troubleshoot;
+                            # else WRATH_NETSTATE_DIR / wrath/mcp/state snapshots. Read-only GET, never writes.
 ```
 With a token set, the page prompts for it once (stored in the browser) and every API call must carry it.
 - **Health check:** `GET /api/health` → `{status, version, active_runs, hasKey, auth}` (for uptime monitors).
