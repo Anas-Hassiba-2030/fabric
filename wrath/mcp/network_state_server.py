@@ -18,6 +18,9 @@ Tools:
   get_bgp_neighbors(device)            -> BGP sessions (neighbor/as/afi/state/prefixes)
   get_route(device, prefix)            -> route lookup for a prefix
   get_inventory(device)                -> hardware/serial/redundancy
+  check_drift()                        -> live state vs design intent (Idle BGP, down links, MTU)
+  diagnose(symptom)                    -> root-cause analysis (layered hypothesis tree, proven chain)
+All read-only: check_drift/diagnose reason over the snapshot and recommend; they never change a device.
 """
 import os
 import sys
@@ -27,7 +30,9 @@ _REPO = os.path.dirname(os.path.dirname(_HERE))
 sys.path.insert(0, _HERE)
 sys.path.insert(0, os.path.join(_REPO, "webui"))
 from _mcpserver import MCPServer, log  # noqa: E402
+import assurance  # noqa: E402  (shared SLO/drift engine — read-only reasoning over state)
 import netstate  # noqa: E402  (shared read-only loader: WRATH_NETSTATE_URL or snapshot dir, normalized)
+import rca  # noqa: E402  (shared root-cause engine — read-only reasoning over state)
 
 STATE_DIR = os.environ.get("WRATH_NETSTATE_DIR") or os.path.join(_HERE, "state")
 
@@ -115,6 +120,41 @@ def get_inventory(args):
     if not inv:
         return "(no inventory in snapshot)"
     return "\n".join(f"{k}: {v}" for k, v in inv.items())
+
+
+@server.tool(
+    "check_drift",
+    "Re-validate current read-only state against design intent: flag non-Established BGP sessions, "
+    "down (non-loopback) interfaces, and sub-jumbo core MTU. Read-only — reports drift, never fixes.",
+    {"type": "object", "properties": {}},
+)
+def check_drift(_args):
+    dr = assurance.drift_check({"devices": _load_state()})
+    if not dr["checks"]:
+        return "no state available, or nothing to check"
+    head = f"{dr['ok']} healthy / {dr['drift']} drift"
+    rows = [f"[{'DRIFT' if c['status'] == 'drift' else 'ok'}] {c['check']} — expected {c['expected']}, observed {c['observed']}"
+            for c in dr["checks"]]
+    return head + "\n" + "\n".join(rows)
+
+
+@server.tool(
+    "diagnose",
+    "Root-cause analysis from the read-only state for a symptom: walks a layered hypothesis tree and "
+    "isolates a proven causal chain (e.g. eBGP Idle because its next-hop link is down). Read-only; the "
+    "fix is a recommendation a human executes.",
+    {"type": "object", "properties": {"symptom": {"type": "string"}}, "required": ["symptom"]},
+)
+def diagnose(args):
+    a = rca.analyze(str(args.get("symptom", "")), {"devices": _load_state()})
+    out = [f"Symptom: {a['symptom']}", "", "Hypotheses:"]
+    out += [f"  [{h['verdict']}] {h['layer']}: {h['hypothesis']} — {h['evidence']}" for h in a["hypotheses"]]
+    out += ["", "Root cause: " + a["root_cause"]]
+    if a["fix"]:
+        out.append("Fix (needs human/Kamal — read-only MCP never pushes): " + a["fix"])
+    if a["verify"]:
+        out.append("Verify: " + a["verify"])
+    return "\n".join(out)
 
 
 if __name__ == "__main__":
