@@ -25,6 +25,7 @@ Nothing here is built unless it says "DONE".
   technologies. `webui/analytics.py` + `/api/analytics`, proven by `webui/test_analytics.py`.
 
 ## Console / interface
+- **DONE — Clarity / onboarding.** A **Welcome / Getting-started** empty state with the three ways to begin (Run a problem · ⊞ Blueprints · 📚 Examples), a **❔ How it works** modal (the idea, the run lifecycle, the REAL/LIVE/DEMO badges, the toolbar, the House Rules), and visible toolbar group labels (This run · Library & reports). Verified via headless Chromium; no overflow at 1536/1920.
 - **DONE — Copy + remembered session.** Each deliverable has a **⧉ Copy** button (Markdown to clipboard, with a ✓ confirmation); the last problem, mode, and Critic-intensity persist across reloads (localStorage). Verified via headless Chromium (clipboard + restore-after-reload).
 - **DONE — Toolbar declutter.** Secondary actions grouped (This run | Reports & library) with a divider, chips on their own row, history right-aligned — no wrapping/overflow at 1536 or 1920.
 - **DONE — Console redesign (modern, animated).** The orchestration pipeline is a compact **horizontal
