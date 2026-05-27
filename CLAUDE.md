@@ -62,9 +62,11 @@ Invoke with the Task tool by `subagent_type` (the agent's `name`). Route on need
 | `multivendor-translator` | A heterogeneous estate is in play. Translate config between vendors + flag lossy bits. | Sonnet |
 | `librarian` | Session start (retrieve customer context) and project close (archive). Memory keeper. | Haiku |
 
-**Build status:** `discovery`, `designer-hld`, `critic` are **deep / Phase-1 operational**. The other
-13 are **real and invocable** but written to charter depth — flesh them further as their phase lands
-(see `README.md` for the phase map). Never pretend a scaffolded agent is more than it is (House Rule 7).
+**Build status:** `discovery`, `designer-hld`, `critic`, plus `troubleshooter`, `assurance-architect`,
+`adoption-success`, and `multivendor-translator` are written to **deep / charter depth** (real method,
+domain substance, House-Rule discipline). The rest are **real and invocable** at solid depth — flesh
+them further as their phase lands (see `README.md`). Never pretend a scaffolded agent is more than it
+is (House Rule 7).
 
 ---
 
