@@ -56,8 +56,7 @@ Nothing here is built unless it says "DONE".
   `webui/test_distill.py`; loop verified end-to-end (save → recalled next run) via screenshots.
 
 ## Smarter orchestration
-- **P1 — Multi-model routing.** Opus 4.7 for heavy reasoning (HLD, Critic, RCA); Sonnet/Haiku for cheap
-  stages (formatting, BoM tables) — better cost/speed without losing quality. (Engine default already Opus 4.7.)
+- **DONE — Multi-model routing.** Each Live call goes to the model the charter assigns: Opus for heavy reasoning (HLD, Critic, Migration, RCA), Sonnet for routine stages, Haiku for the Librarian — better cost/speed without losing quality on the hard stages. `ANTHROPIC_MODEL` forces single-model. The LIVE provenance badge shows the actual model per stage. `webui/routing.py`, proven by `webui/test_routing.py`.
 - **DONE — What-if / compare designs.** `⤳ What-if` re-runs with one changed constraint and
   auto-opens a side-by-side **diff** of the two stacks; `⇄ Compare` picks any two saved runs.
   Per-stage changed/same/only badges + line deltas + trust/grounding metric comparison.

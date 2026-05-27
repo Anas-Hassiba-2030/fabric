@@ -37,6 +37,7 @@ import blueprints  # noqa: E402
 import clarify  # noqa: E402
 import compliance  # noqa: E402
 import criticism  # noqa: E402
+import routing  # noqa: E402
 import distill  # noqa: E402
 import export_run  # noqa: E402
 import grounding  # noqa: E402
@@ -54,6 +55,7 @@ STATIC = os.path.join(HERE, "static")
 LINT = os.path.join(REPO, ".claude", "skills", "config-audit", "scripts", "config_lint.py")
 STANDARDS = os.path.join(REPO, "wrath", "mcp", "data", "standards.json")
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-7")  # Claude Opus 4.7 is the default engine
+MODEL_OVERRIDE = os.environ.get("ANTHROPIC_MODEL")  # if set, force one model (else route per agent tier)
 PORT = int(os.environ.get("WRATH_UI_PORT", "8765"))
 TOKEN = os.environ.get("WRATH_UI_TOKEN", "")  # if set, the console + API require this token
 MAX_ACTIVE = int(os.environ.get("WRATH_UI_MAX_ACTIVE", "8"))
@@ -128,13 +130,13 @@ class ClaudeError(Exception):
     pass
 
 
-def call_claude(system, prompt, max_tokens=1600, retries=3):
+def call_claude(system, prompt, max_tokens=1600, retries=3, model=None):
     """Call the Anthropic API with retry/backoff. Raises ClaudeError on a hard failure so the caller
     can surface it honestly (never silently pass an error string off as a deliverable)."""
     key = os.environ.get("ANTHROPIC_API_KEY")
     if not key:
         raise ClaudeError("ANTHROPIC_API_KEY not set")
-    body = json.dumps({"model": MODEL, "max_tokens": max_tokens, "system": system,
+    body = json.dumps({"model": model or MODEL, "max_tokens": max_tokens, "system": system,
                        "messages": [{"role": "user", "content": prompt}]}).encode()
     last = ""
     for attempt in range(retries):
@@ -345,9 +347,10 @@ def gen(stage, problem, ctx, live, extra=""):
         system = real_system_prompt(stage["agent"])
         prior = "\n".join(f"- {k}: {v[:240]}" for k, v in ctx.items() if not k.startswith("__"))
         prompt = f"Network problem:\n{problem}\n\nPrior stage outputs:\n{prior}\n{extra}\n\nProduce your stage's deliverable."
-        emit(q_global.get(), {"type": "log", "stage": stage["id"], "text": f"calling Claude ({MODEL}) as {stage['agent']}…"})
+        model = routing.model_for(stage["agent"], MODEL_OVERRIDE)
+        emit(q_global.get(), {"type": "log", "stage": stage["id"], "text": f"calling Claude ({model}) as {stage['agent']}…"})
         try:
-            return call_claude(system, prompt)
+            return call_claude(system, prompt, model=model)
         except ClaudeError as e:
             emit(q_global.get(), {"type": "log", "stage": stage["id"], "text": f"⚠ live call failed ({e}) — showing demo content for this stage"})
             return demo_content(stage["id"], problem, ctx) + "\n\n_(Live call failed — demo content shown.)_"
@@ -386,7 +389,8 @@ def critic_eval(q, problem, ctx, live, attempt, hint=""):
         try:
             verdict = call_claude(sys_p, f"Problem:\n{problem}\n\nHLD to review:\n{ctx.get('hld','')}\n\n"
                                   f"Red-team intensity: {hint}\n"
-                                  "Return VERDICT: ACCEPT or ACCEPT-WITH-FIXES, then a short severity-tagged defect list.")
+                                  "Return VERDICT: ACCEPT or ACCEPT-WITH-FIXES, then a short severity-tagged defect list.",
+                                  model=routing.model_for("critic", MODEL_OVERRIDE))
         except ClaudeError as e:
             emit(q, {"type": "log", "stage": "critic", "text": f"⚠ live critic failed ({e}) — accepting without gate"})
             return True, f"_(Critic live call failed: {e}.)_"
@@ -407,7 +411,9 @@ def run_pipeline(run_id, problem, mode, intensity="standard"):
     live = (mode == "live")
     by_id = {s["id"]: s for s in STAGES}
     emit(q, {"type": "meta", "mode": ("live" if live and has_key() else "demo"),
-             "problem": problem, "stages": [{k: s[k] for k in ("id", "label", "agent", "phase", "kind")} for s in STAGES]})
+             "problem": problem,
+             "stages": [{**{k: s[k] for k in ("id", "label", "agent", "phase", "kind")},
+                         "tier": routing.tier_for(s["agent"])} for s in STAGES]})
     ctx = {}
 
     def start(sid): emit(q, {"type": "stage", "id": sid, "status": "running"}); time.sleep(0.2)
