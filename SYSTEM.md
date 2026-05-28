@@ -690,7 +690,7 @@ key and no Docker.
 | `test_evaluator.py` | Benchmark harness, all 5 metrics, per-category | ALL GREEN |
 | `test_llm_synthesizer.py` | BM25 primitives, SUT contract, parser, fallback | 42 checks |
 | `test_grammar_gate.py` | 26 OK / 12 REJECT / warns; all 10 faults pass gate | 64 checks |
-| `test_feedback.py` | Execution-gated coherence 1.0 > user-gated 0.146 | 53 checks |
+| `test_feedback.py` | Execution-gated coherence 1.0 > user-gated 0.144 | 53 checks |
 | `test_phase6.py` | Tables 2-4, Welch t-test, OpsRAG exec > naive | 53 checks |
 | `test_graph_sut.py` | Graph SUT AR > naive AR, 52 concept paragraphs | 42 checks |
 | `test_grounding.py` | Fabricated RFC blocked, bad config failed, numbers flagged | ALL GREEN |

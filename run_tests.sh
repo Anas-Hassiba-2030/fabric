@@ -112,7 +112,7 @@ step "Phase 4 CLI grammar gate proof (rejects config cmds, all seeded faults pas
 if "$PY" webui/test_grammar_gate.py >/tmp/_gg.out 2>&1; then ok "grammar gate: 26 ok patterns, 12 config-reject, warns, seeded faults 100% pass (64 checks)"; else bad "grammar gate"; cat /tmp/_gg.out; fi
 
 step "Phase 5 dual-signal feedback loop proof (execution-gated vs user-gated ablation)"
-if "$PY" webui/test_feedback.py >/tmp/_fb.out 2>&1; then ok "exec-gated coherence 1.0 vs user-gated 0.146 under popularity bias (53 checks)"; else bad "feedback loop"; cat /tmp/_fb.out; fi
+if "$PY" webui/test_feedback.py >/tmp/_fb.out 2>&1; then ok "exec-gated coherence 1.0 vs user-gated 0.144 under popularity bias (53 checks)"; else bad "feedback loop"; cat /tmp/_fb.out; fi
 
 step "Phase 6 comparative evaluation report (Welch t-test, Cohen d, Tables 2-4)"
 if "$PY" webui/test_phase6.py >/tmp/_p6.out 2>&1; then ok "Tables 2-4 generated; OpsRAG exec>naive p<0.001 (53 checks)"; else bad "phase 6 report"; cat /tmp/_p6.out; fi

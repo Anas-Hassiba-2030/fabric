@@ -6,6 +6,10 @@ the thesis becomes the *formalisation + executable sandbox + benchmark + evaluat
 a running, open-source artefact. That is a stronger design-science thesis than building all of it
 from scratch in 12 months — and it de-risks Kamal's biggest threats up front.
 
+> **Status note (all 8 phases complete):** Numbers below are proposal-era estimates. Final figures:
+> 10 faults, 300 questions, 52 categories, 20 oracle-linked questions, 47 test batteries ALL GREEN.
+> See `SYSTEM.md` (system map) and `thesis/THESIS.md` (the complete thesis).
+
 ---
 
 ## 1. The reframe — one paragraph Kamal can paste

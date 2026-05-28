@@ -1,7 +1,9 @@
 # OpsRAG (on WRATH) — brief for Kamal
 
-> A paste-ready introduction for the proposal review. Pairs with the abstract in `OPSRAG.md` §1 and
-> the phased plan in `ROADMAP.md`.
+> Originally a paste-ready proposal introduction. **Current status: all 8 phases complete.**
+> For the current system state, see `SYSTEM.md` (system map) and `thesis/THESIS.md` (the thesis).
+> Numbers below reflect the proposal-era snapshot (3 faults, ~200-question estimate); the final
+> figures are 10 faults, 300 questions, 52 categories, 20 oracle-linked questions (see THESIS.md).
 
 ## In one paragraph
 OpsRAG is realised in **WRATH**, an open-source, end-to-end network solution-architecture system that
