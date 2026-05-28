@@ -650,7 +650,7 @@ Two oracle key conventions exist in the benchmark (both supported by all code):
   "difficulty": "diagnose",
   "question": "...",
   "ground_truth": "AS_PATH loop detection...",
-  "linked_fault": "f-bgp-as-path-loop-detection",
+  "linked_fault": "f-bgp-as-path-loop",
   "expected_commands": [{"device": "R2", "cmd": "show ip bgp neighbors ..."}]
 }
 
@@ -680,7 +680,7 @@ Two oracle key conventions exist in the benchmark (both supported by all code):
 
 ## 6. Test Coverage Map
 
-Every `test_*.py` file proves a specific system property. All 42+ batteries pass with no API
+Every `test_*.py` file proves a specific system property. All 47 batteries pass with no API
 key and no Docker.
 
 | Test file | What it proves | Key checks |

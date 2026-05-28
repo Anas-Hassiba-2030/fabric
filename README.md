@@ -53,7 +53,7 @@ SYSTEM.md            ← START HERE: full system map (11 sections, cold-readable
 CLAUDE.md            ← THE ORCHESTRATOR (operative): house rules, routing, gate rules, defenses
 README.md            ← this file
 .claude/
-  settings.json      ← hooks: destructive-action-guard + session-start
+  settings.json      ← hooks: destructive-action-guard + csirt-guard + session-start
   agents/            ← 16 specialist subagents (Task-invocable)
   skills/            ← wrath, requirements-intake, hld-generator, topology-diagram, lld-generator,
                        config-generator, config-audit, bom-builder, sow-writer, exec-deck,

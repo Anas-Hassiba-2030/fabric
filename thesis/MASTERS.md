@@ -45,7 +45,7 @@ contribution and methodology are unchanged.
 
 ## What's already done (and counts toward the thesis)
 
-- The artefact under evaluation exists, is tested, and clears **all 42+ deterministic test
+- The artefact under evaluation exists, is tested, and clears **all 47 deterministic test
   batteries** (run `bash run_tests.sh` → ALL GREEN). No API key, no Docker required.
 - All 8 phases complete. The thesis (THESIS.md) is fully written — 8 chapters, 3 appendices,
   references, no [TODO] blocks. A complete system map lives at `SYSTEM.md` (Phase 8).
