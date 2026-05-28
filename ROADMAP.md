@@ -52,6 +52,35 @@ deploy/expose docs (tunnel + TLS + token). Multi-user beyond a shared token is a
 
 ---
 
+---
+
+## Phase 6 — OpsRAG kernel + typed graph SUT  ✅ DONE
+**Goal:** build and prove the deterministic OpsRAG layer that the thesis (O1-O4) rests on.
+**Built:**
+- **Schema** (`webui/opsrag/schema.py`): 6 node types + 5 edge types + Provenance, validated.
+- **Bootstrap** (`webui/opsrag/bootstrap.py`): lifts repo memory into typed graph nodes.
+- **Simulator** (`webui/opsrag/sim.py`): 10 seeded BGP faults, pure stdlib, no Docker.
+- **Synthesiser** (`webui/opsrag/synthesizer.py`): deterministic signal-match → canonical root-cause.
+- **Oracle** (`webui/opsrag/oracle.py`): scores runbooks (executable + evidence_hit + diagnosis_correct).
+- **Graph SUT** (`webui/opsrag/graph_sut.py`): BM25 over typed graph fixes answer_relevance for all 214 Qs.
+- **Fault library**: 10 seeded BGP faults (`thesis/lab/faults/`), all sim+synthesiser+oracle-green.
+- **Benchmark**: 214 oracle-linked questions (`thesis/benchmark/`), covering all 10 faults.
+- **Phase 6 report** (`webui/opsrag/phase6_report.py`): Table 2/3/4 with Welch t + Cohen's d.
+**Key numbers:** Graph SUT ans_rel=0.173 vs naive 0.118 (Δ+46.6% ***) vs Dense-RAG 0.066 (Δ+162.1% ***).
+**Done when:** `python webui/test_opsrag.py` → ALL GREEN (10 faults × 5 checks).
+
+## Phase 7 — Thesis scaffold + replication package  🟡 IN PROGRESS
+**Goal:** full thesis document with real numbers + exact reproduction steps.
+**Built so far:**
+- `thesis/THESIS.md` — full 8-chapter scaffold with embedded metrics (Tables 2-5).
+- `thesis/REPLICATION.md` — step-by-step replication guide (Python ≥3.8, stdlib only, <5 min).
+**Next (needs API key):**
+- Live LLM sweep: replace baseline-signal-match synthesiser with LLM-grounded retrieval over typed graph.
+- RAGAs judge swap-in: LLM-as-judge for answer_relevance + faithfulness (currently heuristic).
+- Extended benchmark: grow to 300 questions, deeper coverage of policy/telemetry/operations categories.
+
+---
+
 ## How we work
 - I build one phase at a time, commit to the PR; you `git pull` + test on your machine.
 - **Live-mode testing needs your `ANTHROPIC_API_KEY`.** I can build the logic here but can't fully test Live

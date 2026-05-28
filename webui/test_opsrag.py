@@ -93,6 +93,7 @@ _FAULT_SIGNALS = (
     "unreachable", "route-map for incoming", "maximum prefix reached",
     "ttl = 1, multihop", "hold timer expired", "notification sent", "not in table",
     "deny", "prefixes received and rejected",
+    "as_path loop", "own as 65001 in received path", "local-preference", "set local-preference",
 )
 
 def has_fault_signal(state, fault):

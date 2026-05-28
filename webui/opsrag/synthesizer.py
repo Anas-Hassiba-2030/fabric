@@ -35,6 +35,10 @@ _CANONICAL = {
         "hold-timer too aggressive (10s) on R2 toward 192.0.2.2 — session resets on transient delay; increase hold-time to 90 or 180 seconds",
     "ebgp-multihop":
         "eBGP neighbor 10.10.10.2 is not directly connected — ebgp-multihop not configured, TCP SYN dropped by TTL exhaustion after first hop",
+    "as-path-loop":
+        "AS_PATH loop detected: own AS 65001 appears in AS_PATH of UPDATE from R3 (192.0.2.2) — prefix discarded by eBGP loop prevention",
+    "local-pref-override":
+        "inbound route-map SET-LOW-LOCPREF on iBGP session to R1 (10.255.0.1) reduces local-preference to 50 — routes via RR appear worse than direct eBGP path (local-pref 100); intended policy was applied to the wrong session",
 }
 
 
@@ -106,6 +110,14 @@ def _infer_category(outputs: List[Dict]) -> Optional[str]:
     # Fault 3: MTU — small MTU detected + session not up
     if "mtu 1500" in joined and ("active" in joined or "reset" in joined):
         return "mtu-mismatch"
+
+    # Fault 9: AS_PATH loop — own AS in path, prefix silently discarded
+    if "as_path loop" in joined or "own as in path" in joined or "as-path loop" in joined:
+        return "as-path-loop"
+
+    # Fault 10: local-preference override — route-map set local-pref + wrong session
+    if "set local-preference" in joined and "route-map for incoming" in joined:
+        return "local-pref-override"
 
     return None
 

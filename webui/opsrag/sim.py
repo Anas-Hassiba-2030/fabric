@@ -102,7 +102,25 @@ def apply_fault(state: Dict, fault: Dict) -> Dict:
                 nb["prefixes"] = 0
         return state
 
-    # --- Fault 4: route-policy deny (route-map DENY-ALL in) ---
+    # --- Fault 10 (check before Fault 4): local-pref override via route-map on iBGP session ---
+    if re.search(r"set\s+local-preference\s+\d+", text, re.I):
+        m_nb = re.search(r"neighbor\s+(\S+)\s+route-map\s+(\S+)\s+in", text, re.I)
+        if m_nb:
+            ip, rm_name = m_nb.group(1), m_nb.group(2)
+        else:
+            ip, rm_name = "10.255.0.1", "SET-LOW-LOCPREF"
+        m_lp = re.search(r"set\s+local-preference\s+(\d+)", text, re.I)
+        lp = int(m_lp.group(1)) if m_lp else 50
+        for nb in d["bgp_neighbors"]:
+            if nb["neighbor"] == ip:
+                nb["route_map_deny"] = False
+                nb["route_map_name"] = rm_name
+                nb["local_pref_override"] = lp
+                nb["local_pref_note"] = f"Set local-preference {lp} for all routes from this iBGP peer"
+        d.setdefault("route_maps", {})[rm_name] = f"permit 10 / set local-preference {lp}"
+        return state
+
+    # --- Fault 4: route-policy deny (route-map DENY-ALL inbound on eBGP session) ---
     if re.search(r"route-map\s+\S+\s+deny", text, re.I) or re.search(r"route-map\s+\S+\s+in", text, re.I):
         # Find the neighbor this route-map is applied to
         m_nb = re.search(r"neighbor\s+(\S+)\s+route-map\s+(\S+)\s+in", text, re.I)
@@ -176,6 +194,16 @@ def apply_fault(state: Dict, fault: Dict) -> Dict:
             d["bgp_neighbors"].append(nb_new)
         return state
 
+    # --- Fault 9: AS_PATH loop (own AS in received path) ---
+    if re.search(r"as-path-loop-inject\s+65001", text, re.I):
+        for nb in d["bgp_neighbors"]:
+            if nb.get("remote_as", 0) != d["as"]:
+                nb["as_path_loop"] = True
+                nb["prefixes"] = 0
+                # Session stays established; UPDATE is silently discarded by loop guard
+                nb["state"] = "Established"
+        return state
+
     return state
 
 
@@ -225,6 +253,14 @@ def exec_cmd(state: Dict, device: str, command: str) -> Dict:
             out.append("  TTL = 1, multihop not configured")
         if not nb.get("next_hop_in_rib", True):
             out.append("  Next-hop: 192.0.2.2 (UNREACHABLE — not in RIB)")
+        if nb.get("as_path_loop"):
+            out.append("  Prefixes received: 1 (discarded by AS_PATH loop detection)")
+            out.append("  AS_PATH loop detected: own AS 65001 in received path — UPDATE discarded")
+        if nb.get("local_pref_override") is not None:
+            rm = nb.get("route_map_name", "SET-LOW-LOCPREF")
+            lp = nb.get("local_pref_override", 50)
+            out.append(f"  Route-map for incoming advertisements is {rm}")
+            out.append(f"  Set local-preference {lp} (overrides default 100)")
         return {"rc": 0, "stdout": "\n".join(out), "device": device, "cmd": command}
 
     # --- show interface <name> ---
@@ -266,10 +302,18 @@ def exec_cmd(state: Dict, device: str, command: str) -> Dict:
         out = []
         for name, content in rms.items():
             if rm_name is None or name == rm_name:
-                out.append(f"route-map {name}, deny, sequence 10")
-                out.append("  Match clauses:")
-                out.append("  Set clauses:")
-                out.append(f"route-map {name}, permit, sequence 20")
+                if "deny" in content:
+                    out.append(f"route-map {name}, deny, sequence 10")
+                    out.append("  Match clauses:")
+                    out.append("  Set clauses:")
+                    out.append(f"route-map {name}, permit, sequence 20")
+                elif "local-preference" in content:
+                    lp = re.search(r"local-preference\s+(\d+)", content)
+                    out.append(f"route-map {name}, permit, sequence 10")
+                    out.append("  Match clauses:")
+                    out.append(f"  set local-preference {lp.group(1) if lp else '50'}")
+                else:
+                    out.append(f"route-map {name}, permit, sequence 10")
         return {"rc": 0, "stdout": "\n".join(out) or "% No route-maps matched", "device": device, "cmd": command}
 
     # --- show ip bgp <prefix> ---

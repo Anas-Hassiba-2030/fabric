@@ -1,0 +1,38 @@
+[
+  {
+    "id": "q-211",
+    "category": "as-path-loop",
+    "question": "R2 has an eBGP session to R3 (192.0.2.2) in Established state and keepalives are flowing, but prefix 10.1.0.0/24 advertised by R3 does not appear in R2's BGP table. No NOTIFICATION has been sent. What is the most likely cause and how do you confirm it?",
+    "linked_fault": "f-bgp-as-path-loop",
+    "expected_commands": ["show ip bgp neighbors 192.0.2.2", "show bgp summary"],
+    "ground_truth": "AS_PATH loop detected: own AS 65001 appears in AS_PATH of UPDATE from R3 (192.0.2.2) — prefix discarded by eBGP loop prevention",
+    "provenance": {"source": "thesis/benchmark/q211-q214.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-212",
+    "category": "as-path-loop",
+    "question": "BGP loop-prevention on R2 (AS 65001) is silently discarding a prefix received from R3. Show the command output that confirms own-AS detection and state the corrective action on R3.",
+    "linked_fault": "f-bgp-as-path-loop",
+    "expected_commands": ["show ip bgp neighbors 192.0.2.2"],
+    "ground_truth": "AS_PATH loop detected: own AS 65001 appears in AS_PATH of UPDATE from R3 (192.0.2.2) — prefix discarded by eBGP loop prevention",
+    "provenance": {"source": "thesis/benchmark/q211-q214.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-213",
+    "category": "local-preference",
+    "question": "Both BGP paths to prefix 10.1.0.0/24 are Established on R2 but traffic flows via R1 (10.255.0.1, the route reflector) instead of the direct R2→R3 eBGP path. What route-policy misconfiguration typically causes this and what command confirms it?",
+    "linked_fault": "f-bgp-local-pref-override",
+    "expected_commands": ["show ip bgp neighbors 10.255.0.1", "show route-map"],
+    "ground_truth": "inbound route-map SET-LOW-LOCPREF on iBGP session to R1 (10.255.0.1) reduces local-preference to 50 — routes via RR appear worse than direct eBGP path (local-pref 100); intended policy was applied to the wrong session",
+    "provenance": {"source": "thesis/benchmark/q211-q214.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-214",
+    "category": "local-preference",
+    "question": "An inbound route-map on R2's iBGP session to the route reflector R1 (10.255.0.1) sets local-preference to 50 for all received routes. How does this affect BGP path selection toward prefix 10.1.0.0/24 and what is the corrective action?",
+    "linked_fault": "f-bgp-local-pref-override",
+    "expected_commands": ["show ip bgp neighbors 10.255.0.1", "show route-map"],
+    "ground_truth": "inbound route-map SET-LOW-LOCPREF on iBGP session to R1 (10.255.0.1) reduces local-preference to 50 — routes via RR appear worse than direct eBGP path (local-pref 100); intended policy was applied to the wrong session",
+    "provenance": {"source": "thesis/benchmark/q211-q214.json", "authored": true, "confidence": 1.0}
+  }
+]

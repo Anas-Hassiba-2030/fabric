@@ -1,0 +1,29 @@
+{
+  "id": "f-bgp-local-pref-override",
+  "title": "Traffic takes unexpected path — local-preference override misroutes flows",
+  "scope": ["bgp", "ibgp", "local-preference", "policy", "route-policy"],
+  "symptom": "Traffic to CustA prefix 10.1.0.0/24 is routing through R1 (10.255.0.1, the route reflector) instead of the direct R2→R3 path. Both paths are Established and available. BGP shows the same prefix with two next-hops but R1 is selected as the best path.",
+  "inject": {
+    "device": "R2",
+    "kind": "frr-config-patch",
+    "patch": [
+      "router bgp 65001",
+      " neighbor 10.255.0.1 route-map SET-LOW-LOCPREF in",
+      "route-map SET-LOW-LOCPREF permit 10",
+      " set local-preference 50"
+    ],
+    "note": "An inbound route-map on the iBGP session to R1 (RR) sets local-pref to 50 for all received routes. Routes received directly from R3 (eBGP, default local-pref 100) are now preferred over the RR path, but the SET-LOW-LOCPREF is applied to the wrong session — it should be on the eBGP session to reduce the eBGP-learned prefix, not on the iBGP session."
+  },
+  "expected_evidence": [
+    "show ip bgp neighbors 10.255.0.1",
+    "show route-map",
+    "show ip bgp 10.1.0.0/24"
+  ],
+  "ground_truth": {
+    "root_cause": "inbound route-map SET-LOW-LOCPREF on iBGP session to R1 (10.255.0.1) reduces local-preference to 50 — routes via RR appear worse than direct eBGP path (local-pref 100); intended policy was applied to the wrong session",
+    "layer": "policy",
+    "fix": "Remove route-map from iBGP session: no neighbor 10.255.0.1 route-map SET-LOW-LOCPREF in",
+    "verify": "show ip bgp 10.1.0.0/24 shows correct best-path selection with local-pref 100 via the intended path"
+  },
+  "provenance": {"source": "thesis/lab/faults/f-bgp-local-pref-override.json", "authored": true, "confidence": 1.0}
+}
