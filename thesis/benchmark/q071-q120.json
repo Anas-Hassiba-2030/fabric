@@ -1,0 +1,852 @@
+[
+  {
+    "id": "q-071",
+    "category": "sr-mpls",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What BGP capability number is used to negotiate BGP Labeled Unicast (BGP-LU) for IPv4 prefixes, and which RFC defines it?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGP Labeled Unicast for IPv4 is carried in the AFI/SAFI pair AFI=1 (IPv4), SAFI=4 (Labeled Unicast), negotiated via the Multiprotocol Extensions capability (capability code 1) defined in RFC 2858/RFC 4760. RFC 8277 obsoletes RFC 3107 and specifies the label encoding: a 3-byte MPLS label stack entry is prepended to each NLRI, with the bottom-of-stack bit set for a single label. The capability is advertised in the BGP OPEN message.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 labeled-unicast summary", "show bgp neighbors <addr> | inc SAFI"],
+      "executable": true,
+      "grounded_in": ["RFC8277 S3", "RFC4760 S2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8277", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-072",
+    "category": "sr-mpls",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "In a BGP-LU (RFC 8277) deployment, a PE router allocates a label per-prefix for its loopback. The label appears in the RIB but downstream LSRs are not forwarding traffic correctly. What is the label allocation model used by BGP-LU and how does the label get distributed?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGP-LU uses per-prefix label allocation: each originating PE independently assigns a local MPLS label to each prefix it advertises. The label is encoded in the NLRI (3-byte label stack entry with S=1) of the BGP UPDATE. Downstream routers install the received label as an incoming label and swap/pop it accordingly. Unlike LDP (which uses downstream-unsolicited), BGP-LU distributes labels in the UPDATE itself — there is no separate label distribution protocol. Verify with 'show bgp ipv4 labeled-unicast <prefix>' to see the label value, and 'show mpls forwarding-table' on transit routers to confirm the label swap entry.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 labeled-unicast <prefix>", "show mpls forwarding-table", "show bgp neighbors <addr> advertised-routes"],
+      "executable": true,
+      "grounded_in": ["RFC8277 S3", "RFC8277 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8277", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-073",
+    "category": "sr-mpls",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the BGP Prefix-SID attribute, which RFC defines it, and what is its primary purpose in an SR-MPLS network?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The BGP Prefix-SID attribute (type code 40) is defined in RFC 8669. It is an optional transitive BGP path attribute used to advertise a Segment Routing Global Block (SRGB)-relative or absolute MPLS label (Prefix-SID) along with a BGP prefix. Its purpose is to allow SR-MPLS networks to signal SIDs for BGP prefixes — enabling seamless interworking between IS-IS/OSPF SR-MPLS and BGP-based domains without LDP. The attribute carries a Label-Index sub-TLV so every router can independently compute the absolute label from its own SRGB.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 labeled-unicast <prefix>", "show segment-routing mpls connected-prefix-sid-map"],
+      "executable": true,
+      "grounded_in": ["RFC8669 S3", "RFC8669 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8669", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-074",
+    "category": "sr-mpls",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "You are deploying SR-MPLS BGP Egress Peer Engineering (EPE) between two ASes. What BGP attribute carries the Peer-SID, and what does an EPE headend router do with that SID when forwarding traffic?",
+    "context": null,
+    "ground_truth": {
+      "answer": "SR-MPLS EPE (defined in RFC 8669 and the SR architecture RFC 8402) uses the BGP Peer-SID, which is signalled via the BGP Link-State AFI/SAFI (7/71) or the BGP-LS EPE extension carrying Peer-Node SID and Peer-Adjacency SID TLVs. An EPE controller collects this via BGP-LS and programs the headend router with an SR policy. The headend imposes a label stack containing the Peer-Adjacency SID of the chosen egress link, enabling explicit per-link or per-peer traffic engineering at the eBGP boundary without RSVP-TE. Verify: 'show segment-routing traffic-eng policy' and 'show bgp link-state link-state'.",
+      "layer": "bgp",
+      "commands": ["show segment-routing traffic-eng policy", "show bgp link-state link-state", "show mpls forwarding-table"],
+      "executable": true,
+      "grounded_in": ["RFC8669 S5", "RFC8402 S8"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8669", "authored": true, "confidence": 0.92}
+  },
+  {
+    "id": "q-075",
+    "category": "sr-mpls",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A binding SID for an SR policy is not resolving. The SR policy shows 'state: down' and the binding SID label is in the SRLB but no forwarding entry exists. What are the most likely causes and how do you investigate?",
+    "context": null,
+    "ground_truth": {
+      "answer": "A binding SID (BSID) that does not resolve typically indicates one or more of: (1) all candidate paths for the SR policy are down (e.g., one or more SIDs in the segment list is not reachable), (2) the BSID label value conflicts with another label allocation (SRLB range misconfiguration), (3) the SR policy headend is missing the color or endpoint config. Investigate: check 'show segment-routing traffic-eng policy detail' for the failure reason on each candidate path, 'show segment-routing traffic-eng forwarding policy' for the installed forwarding state, and 'show mpls forwarding-table labels <bsid>' to see if the BSID label has an NHLFE entry.",
+      "layer": "bgp",
+      "commands": ["show segment-routing traffic-eng policy detail", "show segment-routing traffic-eng forwarding policy", "show mpls forwarding-table labels <bsid>"],
+      "executable": true,
+      "grounded_in": ["RFC8402 S6", "RFC8669 S5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8402", "authored": true, "confidence": 0.91}
+  },
+  {
+    "id": "q-076",
+    "category": "route-policy",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the semantics of a route-map `continue` clause in Cisco IOS, and how does it differ from the normal route-map processing flow?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Normally, a route-map sequence that matches a prefix applies its set clauses and stops — subsequent sequences are not evaluated. The `continue` clause changes this: after matching and executing the set clauses of the current sequence, processing continues to the next (or a specified) sequence number instead of terminating. This allows cumulative attribute manipulation — e.g., sequence 10 sets LOCAL_PREF and continues to sequence 20 which also sets a community. The final permit/deny decision is made by the last matching sequence. If a sequence with `continue` hits a deny, the route is denied immediately and processing stops.",
+      "layer": "policy",
+      "commands": ["show route-map <name>"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S5.1.5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-077",
+    "category": "route-policy",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "You need to match prefixes in a BGP route-map where the prefix length is between /20 and /24 within the supernet 10.0.0.0/8. Should you use a standard prefix-list or an extended access-list, and what is the correct syntax?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Use an IP prefix-list, not an extended access-list. Extended ACLs match on source/destination packet fields and do not natively express prefix-length ranges in routing policy. The correct prefix-list syntax is: 'ip prefix-list MATCH_RANGE seq 5 permit 10.0.0.0/8 ge 20 le 24'. The 'ge' (greater-than-or-equal) and 'le' (less-than-or-equal) qualifiers constrain the prefix length. In FRR/vtysh the syntax is identical. Reference the route-map with: 'match ip address prefix-list MATCH_RANGE'.",
+      "layer": "policy",
+      "commands": ["show ip prefix-list MATCH_RANGE", "show route-map", "show ip bgp neighbors <addr> advertised-routes"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S5.1.5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.92}
+  },
+  {
+    "id": "q-078",
+    "category": "route-policy",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "How do you match on a BGP community in a route-map and then set a new community while preserving the existing ones on the prefix?",
+    "context": null,
+    "ground_truth": {
+      "answer": "To match a community, create a community-list and reference it: 'ip community-list standard MATCH_COMM permit 65000:100' then in the route-map use 'match community MATCH_COMM'. To add a community without overwriting existing ones, use 'set community 65000:200 additive'. The 'additive' keyword appends the new community to the existing community attribute rather than replacing it. Without 'additive', the set statement overwrites the entire COMMUNITY attribute.",
+      "layer": "policy",
+      "commands": ["show ip bgp community 65000:100", "show route-map", "show ip community-list"],
+      "executable": true,
+      "grounded_in": ["RFC1997 S4", "RFC4271 S5.1.5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc1997", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-079",
+    "category": "route-policy",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "Write the AS-path regular expression that matches any route that has passed through AS 65001 at any position in the AS_PATH, and explain each element.",
+    "context": null,
+    "ground_truth": {
+      "answer": "The regexp is: '_.65001_' (underscore-dot-65001-dot-underscore — but on most IOS variants an underscore '_' is a meta-character matching a delimiter: space, comma, {, }, ^, $, or start/end of string). More precisely: '^(.* )?65001( .*)?$' matches 65001 anywhere. The canonical IOS shorthand is '_65001_' which uses the underscore as a word-boundary. In FRR 'match as-path' uses POSIX extended regex. To configure: 'ip as-path access-list 10 permit _65001_' then in route-map 'match as-path 10'.",
+      "layer": "policy",
+      "commands": ["show ip bgp regexp _65001_", "show ip as-path-access-list"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S5.1.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.91}
+  },
+  {
+    "id": "q-080",
+    "category": "route-policy",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A route-map applied inbound to an eBGP neighbor has sequence 10 (permit, match prefix-list A, set local-pref 200) and sequence 20 (permit, no match, set local-pref 100). Prefixes not in prefix-list A are receiving local-pref 200 instead of 100. What is wrong?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Sequence 10 has no 'match' clause apart from the prefix-list, but a route-map sequence with only 'set' clauses and no 'match' clauses would permit everything. However if sequence 10 has 'match ip address prefix-list A' and a prefix is NOT in list A, it should fall through to sequence 20. The likely issue is that prefix-list A is too broad and is actually matching the prefixes you think it should not, OR the route-map sequence 10 has no match condition at all (acting as a catch-all permit). Check with 'show route-map' to see exact match clauses and 'show ip prefix-list A' to verify the entries. Also check if 'continue' is inadvertently configured.",
+      "layer": "policy",
+      "commands": ["show route-map", "show ip prefix-list A", "show ip bgp neighbors <addr> received-routes"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S5.1.5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.91}
+  },
+  {
+    "id": "q-081",
+    "category": "vpnv4-l3vpn",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the purpose of a BGP VPN Route Distinguisher (RD) in an MPLS L3VPN architecture, and how does it differ from a Route Target (RT)?",
+    "context": null,
+    "ground_truth": {
+      "answer": "A Route Distinguisher (RD) is an 8-byte value prepended to an IPv4 prefix to create a globally unique VPN-IPv4 (VPNv4) address — this allows the same IPv4 prefix (e.g., 10.0.0.0/8) to exist in multiple VRFs without ambiguity in the BGP table. An RD does NOT control import/export — it only makes the prefix unique. A Route Target (RT) is a BGP extended community (RFC 4360) attached to VPN routes that controls which VRFs import and export the route: a VRF imports routes carrying an RT that matches its import RT list, and tags exported routes with its export RT list. RD uniquifies; RT distributes. Both are defined in RFC 4364.",
+      "layer": "bgp",
+      "commands": ["show bgp vpnv4 unicast all", "show vrf detail", "show ip bgp vpnv4 all <prefix>"],
+      "executable": true,
+      "grounded_in": ["RFC4364 S4.1", "RFC4364 S4.3", "RFC4360 S2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4364", "authored": true, "confidence": 0.97}
+  },
+  {
+    "id": "q-082",
+    "category": "vpnv4-l3vpn",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A CE router in VRF 'CUST-A' is not receiving routes from a remote CE in the same VPN. The local PE has the VPNv4 prefixes in its BGP table. The remote PE's export RT is 65000:100 and the local PE's VRF import RT is 65000:200. What is the problem?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The RT import/export mismatch is the root cause. The remote PE tags exported VPN routes with RT 65000:100, but the local PE's VRF only imports routes carrying RT 65000:200. Since no route carries 65000:200, nothing is imported into the local VRF. Fix: align the RT values so the local PE's import RT list includes 65000:100 (or change the remote PE's export RT to 65000:200). Verify with 'show bgp vpnv4 unicast all <prefix>' to confirm which RTs are attached to the VPNv4 route, and 'show vrf detail' to see the configured import/export RT on the local VRF.",
+      "layer": "bgp",
+      "commands": ["show bgp vpnv4 unicast all <prefix>", "show vrf detail", "show ip bgp vpnv4 unicast vrf CUST-A"],
+      "executable": true,
+      "grounded_in": ["RFC4364 S4.3", "RFC4360 S2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4364", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-083",
+    "category": "vpnv4-l3vpn",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What PE-CE routing protocol options are available in an MPLS L3VPN (RFC 4364), and what are the trade-offs between eBGP and OSPF as the PE-CE protocol?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 4364 supports multiple PE-CE protocols: eBGP, OSPF, RIPv2, IS-IS, and static routes. eBGP PE-CE is the preferred option for service providers: it natively carries all BGP attributes across the VPN, supports easy policy application at the PE, and requires no additional redistribution. The CE uses a private or public ASN. OSPF PE-CE requires redistribution between OSPF and BGP at the PE — the PE runs OSPF in the VRF per-customer and redistributes into/from BGP. This adds complexity: OSPF domain ID, sham-links for backdoor link handling, and LSA type translation. OSPF is chosen when the customer already runs OSPF and does not want to change. Both are fully supported per RFC 4364 S4.4.",
+      "layer": "bgp",
+      "commands": ["show ip ospf neighbor vrf CUST-A", "show bgp vpnv4 unicast vrf CUST-A summary", "show ip route vrf CUST-A"],
+      "executable": true,
+      "grounded_in": ["RFC4364 S4.4", "RFC4577 S1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4364", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-084",
+    "category": "vpnv4-l3vpn",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "Describe the MPLS label stack that is imposed on a packet entering an MPLS L3VPN at the ingress PE, and explain what happens to each label as the packet traverses the network to the egress PE.",
+    "context": null,
+    "ground_truth": {
+      "answer": "In a standard L3VPN (RFC 4364) the ingress PE imposes a two-label stack: (1) outer/transport label (bottom = 0) — the LDP or SR label corresponding to the path to the egress PE's loopback; (2) inner/VPN label (bottom = 1, S=1) — the label distributed by the egress PE via BGP VPNv4 UPDATE to identify the destination VRF. As the packet traverses P routers, the outer label is swapped at each LSR. One hop before the egress PE, PHP (Penultimate Hop Popping) removes the outer label (if using LDP PHP or SR PHP). The egress PE receives the packet with only the inner VPN label, looks up the label, identifies the VRF, pops the VPN label, and forwards into the VRF toward the CE.",
+      "layer": "bgp",
+      "commands": ["show mpls forwarding-table", "show bgp vpnv4 unicast all <prefix>", "show ip cef vrf CUST-A <prefix>"],
+      "executable": true,
+      "grounded_in": ["RFC4364 S3", "RFC4364 S9"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4364", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-085",
+    "category": "vpnv4-l3vpn",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is Carrier-Supporting-Carrier (CSC) in the context of MPLS L3VPN, and which section of RFC 4364 describes it?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Carrier-Supporting-Carrier (CSC) is an MPLS VPN architecture (RFC 4364 S9) where one service provider (the backbone carrier) provides MPLS VPN service to another service provider (the customer carrier) that itself offers VPN services to end customers. The backbone carrier's PEs treat the customer carrier's PE routers as CE devices. BGP-LU (labeled unicast) is used on the PE-CE link between backbone PE and customer CE-PE so that the customer carrier's MPLS labels can be transported end-to-end over the backbone. This enables a nested VPN hierarchy where the customer carrier maintains its own VPN routing without the backbone carrier seeing customer-customer routes.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 labeled-unicast summary", "show mpls forwarding-table", "show bgp vpnv4 unicast all"],
+      "executable": true,
+      "grounded_in": ["RFC4364 S9"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4364", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-086",
+    "category": "ospf-underlay",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "How does OSPF serve as the BGP next-hop carrier in an iBGP network, and what must be true about the BGP NEXT_HOP for this to work?",
+    "context": null,
+    "ground_truth": {
+      "answer": "In a typical SP or enterprise iBGP design, BGP updates carry a NEXT_HOP that is a PE loopback address. OSPF (or another IGP) must install a route to that loopback in the RIB so that the BGP next-hop is resolvable — BGP only installs a route as best when its NEXT_HOP is reachable. OSPF redistributes the loopback /32 prefixes of all PEs, making them reachable across the core. If the OSPF underlay loses the route to a BGP NEXT_HOP, all BGP routes pointing to that next-hop become invalid and are withdrawn from the RIB. This is why IGP stability directly impacts BGP reachability.",
+      "layer": "igp",
+      "commands": ["show ip route ospf", "show ip ospf neighbor", "show bgp ipv4 unicast <prefix>"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1.2.1", "RFC2328 S1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-087",
+    "category": "ospf-underlay",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "An OSPF area is configured as a stub area. What types of LSAs are blocked, and what implication does this have for BGP next-hop resolution in that area?",
+    "context": null,
+    "ground_truth": {
+      "answer": "In an OSPF stub area (RFC 2328 S3.6), Type-5 AS External LSAs are not flooded into the area. This means external routes redistributed into OSPF (e.g., from BGP or static) are not visible inside the stub area. Instead, the ABR injects a default route (Type-3 summary LSA with destination 0.0.0.0/0) into the stub area. If BGP next-hops are learned from outside the OSPF domain and redistributed as Type-5 LSAs, routers in the stub area cannot resolve those next-hops individually — they rely on the default. Totally stubby areas additionally block Type-3 LSAs. For BGP next-hop resolution, ensure PE loopbacks are Type-1/Type-2 LSAs (intra-area) or are summarized correctly at the ABR.",
+      "layer": "igp",
+      "commands": ["show ip ospf database", "show ip ospf border-routers", "show ip route ospf"],
+      "executable": true,
+      "grounded_in": ["RFC2328 S3.6", "RFC4271 S9.1.2.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc2328", "authored": true, "confidence": 0.92}
+  },
+  {
+    "id": "q-088",
+    "category": "ospf-underlay",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "Under what conditions does an OSPF NSSA ABR translate a Type-7 LSA to a Type-5 LSA, and how is the translator elected?",
+    "context": null,
+    "ground_truth": {
+      "answer": "In an OSPF Not-So-Stubby Area (NSSA, RFC 3101), ASBRs inside the NSSA generate Type-7 LSAs for external routes (instead of Type-5). The NSSA ABR translates Type-7 LSAs to Type-5 LSAs so that they are flooded to the rest of the OSPF domain. Translation is performed only by the NSSA ABR with the highest Router-ID among all NSSA ABRs — this is the elected translator. Only one ABR translates at a time to prevent duplicate Type-5s. If there are multiple ABRs (for redundancy), only the highest-RID one translates; others suppress translation. The P-bit in the Type-7 LSA must be set for translation to occur.",
+      "layer": "igp",
+      "commands": ["show ip ospf database nssa-external", "show ip ospf border-routers", "show ip ospf"],
+      "executable": true,
+      "grounded_in": ["RFC3101 S3.1", "RFC3101 S3.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc3101", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-089",
+    "category": "ospf-underlay",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "On a multi-access Ethernet segment, the OSPF DR has changed unexpectedly and several BGP sessions using loopbacks sourced through this segment have dropped. What is the relationship between DR/BDR changes and BGP next-hop resolution?",
+    "context": null,
+    "ground_truth": {
+      "answer": "An OSPF DR election change on a broadcast segment causes a brief LSA retransmission storm and a temporary SPF recalculation. During this period, routes to PE loopbacks may be transiently removed from the RIB if the OSPF LSDBs are being rebuilt. If the BGP NEXT_HOP (a PE loopback) disappears from the routing table even briefly, BGP may withdraw the route from the RIB — though this depends on the BGP bestpath next-hop check interval ('bgp nexthop trigger delay'). Mitigation: set OSPF priority to make the DR election deterministic ('ip ospf priority'), configure 'bgp nexthop trigger delay 5' to dampen transient next-hop flaps, and use BFD on the OSPF adjacency for faster failure detection rather than relying on DR election timeouts.",
+      "layer": "igp",
+      "commands": ["show ip ospf neighbor", "show ip ospf interface", "show bgp ipv4 unicast <prefix>"],
+      "executable": true,
+      "grounded_in": ["RFC2328 S9.4", "RFC4271 S9.1.2.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc2328", "authored": true, "confidence": 0.90}
+  },
+  {
+    "id": "q-090",
+    "category": "ospf-underlay",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "In a multi-area OSPF design with iBGP on top, a route-reflector client in area 1 has an iBGP-learned route with a NEXT_HOP in area 2. What must the route-reflector and client do to ensure the next-hop is reachable?",
+    "context": null,
+    "ground_truth": {
+      "answer": "OSPF summarizes inter-area routes using Type-3 Summary LSAs generated by ABRs. The ABR for area 1 must be generating a Type-3 LSA advertising the prefix containing the BGP NEXT_HOP (typically a PE loopback /32) from area 2 into area 1. If the ABR is filtering or summarizing away that specific /32, the client in area 1 cannot resolve the NEXT_HOP and the BGP route is not installed. Verify: 'show ip ospf database summary' in area 1 for the next-hop prefix; if missing, check ABR summary/filter config. Additionally, if NEXT_HOP is not changed by the RR (iBGP default: preserve NEXT_HOP), the RR client must have a route to the originating PE's loopback via OSPF.",
+      "layer": "igp",
+      "commands": ["show ip ospf database summary", "show ip route <next-hop>", "show bgp ipv4 unicast <prefix>"],
+      "executable": true,
+      "grounded_in": ["RFC2328 S11", "RFC4271 S9.1.2.1", "RFC4456 S6"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc2328", "authored": true, "confidence": 0.91}
+  },
+  {
+    "id": "q-091",
+    "category": "multivendor",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "Compare the BGP address-family activation syntax between Cisco IOS-XE and Cisco IOS-XR for enabling VPNv4 unicast on an iBGP neighbor.",
+    "context": null,
+    "ground_truth": {
+      "answer": "IOS-XE: neighbor activation is done under 'router bgp <asn>' > 'address-family vpnv4 unicast' > 'neighbor <addr> activate'. IOS-XR: neighbors are defined under 'router bgp <asn>' > 'neighbor <addr>' and the address-family is activated with 'address-family vpnv4 unicast' directly under the neighbor stanza — there is no separate global address-family activation step for the neighbor. IOS-XR also requires 'address-family vpnv4 unicast' to be present at the global BGP level. IOS-XR syntax is neighbor-centric; IOS-XE syntax is address-family-centric. Verify on IOS-XE: 'show bgp vpnv4 unicast all summary'. On IOS-XR: 'show bgp vpnv4 unicast summary'.",
+      "layer": "bgp",
+      "commands": ["show bgp vpnv4 unicast all summary", "show bgp vpnv4 unicast summary"],
+      "executable": true,
+      "grounded_in": ["RFC4760 S3", "RFC4364 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4760", "authored": true, "confidence": 0.92}
+  },
+  {
+    "id": "q-092",
+    "category": "multivendor",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "In Junos, how are BGP neighbor groups used to share configuration, and how does this differ from Cisco IOS peer-group or peer-template concepts?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Junos uses 'group' stanzas under 'protocols bgp' to define a template of common attributes (type iBGP/eBGP, local-address, authentication, import/export policies, etc.); individual neighbors inherit the group's properties but can override them. Changes to the group apply dynamically to all members. Cisco IOS peer-groups (legacy) were static — changes required clearing sessions. Cisco IOS peer-templates (modern) use 'neighbor <name> peer-session' and 'neighbor <name> peer-policy' templates and support dynamic inheritance without requiring session resets for most attributes. The key difference: Junos groups are a single unified construct; IOS separates session-level (TCP/transport) from policy-level (attribute) templates.",
+      "layer": "bgp",
+      "commands": ["show bgp summary", "show bgp group"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S3", "RFC4760 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.90}
+  },
+  {
+    "id": "q-093",
+    "category": "multivendor",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "In FRRouting (FRR), how is BGP configuration split between daemons, and what is the role of vtysh versus editing daemon config files directly?",
+    "context": null,
+    "ground_truth": {
+      "answer": "FRR runs as a collection of individual daemons: bgpd, ospfd, isisd, zebra, etc. Each daemon has its own config file (e.g., /etc/frr/bgpd.conf). The vtysh shell provides a unified CLI that multiplexes commands to the appropriate daemon via Unix sockets — it presents a single IOS-like interface. When you type 'router bgp' in vtysh, the command is routed to bgpd. 'write memory' in vtysh writes each daemon's config back to its respective config file. Direct config file editing is possible (and used in automation) but requires a daemon reload ('systemctl reload frr' or 'vtysh -c \"clear bgp ...\"') to take effect. The integrated config mode ('service integrated-vtysh-config') can write all config to a single /etc/frr/frr.conf.",
+      "layer": "bgp",
+      "commands": ["vtysh -c 'show bgp summary'", "show bgp neighbors", "show running-config"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.90}
+  },
+  {
+    "id": "q-094",
+    "category": "multivendor",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "On Cisco NX-OS, how is a route-map applied to a BGP neighbor for inbound and outbound filtering, and what is the correct configuration hierarchy?",
+    "context": null,
+    "ground_truth": {
+      "answer": "On NX-OS, BGP route-maps are applied under the address-family stanza of the neighbor: 'router bgp <asn>' > 'neighbor <addr>' > 'address-family ipv4 unicast' > 'route-map <name> in' and/or 'route-map <name> out'. The direction (in/out) specifies inbound (applied to received UPDATEs before installing into BGP RIB) or outbound (applied to routes before advertising). On NX-OS, unlike IOS, you must explicitly enter the address-family under the neighbor — there is no shortcut. After applying, use 'clear bgp ipv4 unicast <neighbor> soft' to re-evaluate without dropping the session. Verify: 'show bgp ipv4 unicast neighbors <addr> policy'.",
+      "layer": "policy",
+      "commands": ["show bgp ipv4 unicast neighbors <addr> policy", "show route-map <name>", "show bgp ipv4 unicast neighbors <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S5.1.5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.91}
+  },
+  {
+    "id": "q-095",
+    "category": "multivendor",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A BGP session between a Cisco IOS-XE router and a Juniper MX is being terminated with NOTIFICATION code 2, subcode 4. What does this mean and what is the first thing to check?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGP NOTIFICATION error code 2 is OPEN Message Error; subcode 4 is 'Unsupported Optional Parameter'. This means the receiving router (Juniper MX in this case) received a BGP OPEN with an optional parameter (capability) it does not recognize or support, and it rejected the session. First check: capabilities negotiated by both sides — run 'show bgp neighbors <addr>' (IOS-XE) or 'show bgp neighbor <addr>' (Junos) and compare the list of advertised and received capabilities. Common culprits: a capability advertised by IOS-XE that the Juniper does not support (or vice versa), such as ADD-PATH, Long-lived Graceful Restart, or a newer AFI/SAFI. Workaround: disable the specific capability on the IOS-XE side with 'neighbor <addr> dont-capability-negotiate' (disables capability negotiation entirely) or selectively disable the offending capability.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "debug bgp <addr> events"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S6.2", "RFC5492 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5492", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-096",
+    "category": "srv6",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is an SRv6 SID format and how is it structured according to RFC 8986?",
+    "context": null,
+    "ground_truth": {
+      "answer": "An SRv6 SID (Segment Identifier) is a 128-bit IPv6 address structured as: Locator (variable length, typically 64 bits) | Function (variable length, typically 16 bits) | Arguments (optional, remaining bits). The Locator is a routable IPv6 prefix that identifies the node owning the SID — it is advertised in the IGP so all nodes can forward packets toward it. The Function encodes the behavior (e.g., End, End.X, End.DT4, End.DT6). Arguments carry per-packet metadata (e.g., flow context). RFC 8986 defines the canonical SID format as LOC:FUNCT:ARGS and the set of defined endpoint behaviors. The locator prefix length is configurable per deployment.",
+      "layer": "bgp",
+      "commands": ["show segment-routing srv6 locator", "show segment-routing srv6 sid"],
+      "executable": true,
+      "grounded_in": ["RFC8986 S3", "RFC8986 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8986", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-097",
+    "category": "srv6",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the difference between the SRv6 End.DT4 and End.DT6 functions, and in which context are they used in BGP VPN deployments?",
+    "context": null,
+    "ground_truth": {
+      "answer": "End.DT4 (Endpoint with decapsulation and IPv4 table lookup) and End.DT6 (Endpoint with decapsulation and IPv6 table lookup) are SRv6 endpoint behaviors defined in RFC 8986. End.DT4 is used as the VPN SID for an IPv4 L3VPN service: when the egress PE receives an IPv6 packet whose destination is an End.DT4 SID, it decapsulates the SRv6 header (removes the outer IPv6+SRH) and performs an IPv4 lookup in the associated VRF table. End.DT6 does the same for IPv6 VPN prefixes. In BGP VPNv4 over SRv6, the egress PE allocates an End.DT4 SID per VRF and advertises it in the BGP VPNv4 UPDATE as the SRv6 VPN SID — replacing the MPLS VPN label with an IPv6 SID.",
+      "layer": "bgp",
+      "commands": ["show segment-routing srv6 sid", "show bgp vpnv4 unicast all"],
+      "executable": true,
+      "grounded_in": ["RFC8986 S5.1", "RFC8986 S5.3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8986", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-098",
+    "category": "srv6",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "Describe the SRv6 headend behavior when a router receives a packet destined for an SRv6 policy and must encapsulate it with a Segment Routing Header.",
+    "context": null,
+    "ground_truth": {
+      "answer": "The SRv6 headend (H.Encaps behavior, RFC 8986 S5.4) performs the following: (1) constructs a new outer IPv6 header with the source address set to the headend's IPv6 address and the destination set to the first SID in the segment list; (2) inserts a Segment Routing Header (SRH, type 4) containing the ordered list of SIDs, with Segments Left set to the number of SIDs minus 1; (3) encapsulates the original packet (IPv4 or IPv6) as the payload. Each transit node that is an SRv6-aware endpoint processes the SRH: it decrements Segments Left, copies the next SID to the IPv6 DA, and forwards. Nodes that are not SRv6-aware forward on the outer IPv6 DA as a regular IPv6 packet (leveraging the locator routing).",
+      "layer": "bgp",
+      "commands": ["show segment-routing srv6 policy", "show ipv6 route", "show segment-routing srv6 forwarding"],
+      "executable": true,
+      "grounded_in": ["RFC8986 S5.4", "RFC8754 S2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8986", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-099",
+    "category": "srv6",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What are the SRv6 uSID (micro-SID) types uN, uA, and uDT, and how do they reduce SRH overhead compared to standard SIDs?",
+    "context": null,
+    "ground_truth": {
+      "answer": "SRv6 uSIDs (micro-SIDs) are a compression mechanism where multiple node/function identifiers are packed into a single 128-bit SID slot. uN (micro-Node SID) identifies a node endpoint with decapsulation at the end node. uA (micro-Adjacency SID) identifies a specific link/adjacency, used for traffic engineering. uDT (micro-End.DT) is a uSID version of End.DT4/DT6 for VPN table lookup. In standard SRv6 each SID is a full 128-bit IPv6 address, so a segment list of N hops adds N*128 bits of overhead. With uSIDs, multiple 16-bit or 32-bit micro-identifiers are packed into a single 128-bit SID using a carrier format (e.g., multiple 16-bit uSIDs in one IPv6 address), dramatically reducing SRH size. uSIDs require all nodes in the domain to understand the uSID format.",
+      "layer": "bgp",
+      "commands": ["show segment-routing srv6 sid", "show segment-routing srv6 locator detail"],
+      "executable": true,
+      "grounded_in": ["RFC8986 S3", "RFC9252 S1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8986", "authored": true, "confidence": 0.91}
+  },
+  {
+    "id": "q-100",
+    "category": "srv6",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "How does the BGP color extended community interact with SRv6 policies, and how does a headend router select the correct SRv6 policy for a given BGP route?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The BGP Color extended community (type 0x030b) is attached to a BGP route to signal that traffic to that prefix should follow a specific SR policy. The color value (a 32-bit number) combined with the BGP NEXT_HOP (the endpoint) forms the (color, endpoint) tuple that uniquely identifies an SR policy. When the headend receives a BGP route with a color extended community, it looks up the SR policy database for a policy matching (color=<value>, endpoint=<BGP NEXT_HOP>). If a matching SRv6 policy exists and is operationally up, the headend uses that policy's SID list to encapsulate traffic. This enables per-VPN or per-service traffic steering without IP-level routing changes. RFC 9252 defines SRv6 services with BGP.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix>", "show segment-routing srv6 policy", "show bgp extcommunity-list"],
+      "executable": true,
+      "grounded_in": ["RFC9252 S4", "RFC8986 S8"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc9252", "authored": true, "confidence": 0.92}
+  },
+  {
+    "id": "q-101",
+    "category": "bmp",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the purpose of the BGP Monitoring Protocol (BMP), and which RFC defines it?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BMP (BGP Monitoring Protocol) is defined in RFC 7854. Its purpose is to provide a real-time stream of BGP routing information — specifically the BGP Adj-RIB-In (both pre-policy and post-policy) — from a monitored BGP router to a BMP station (collector). Unlike SNMP or periodic polling, BMP pushes BGP UPDATE messages (as Route Monitoring messages) as they are received, enabling near-real-time visibility into BGP table changes, peer state transitions, and routing policy effects. BMP is a one-way protocol: the monitored router sends to the station but the station does not send BGP messages back. It is widely used for route analytics, security monitoring (e.g., detecting BGP hijacks), and capacity planning.",
+      "layer": "bgp",
+      "commands": ["show bgp bmp", "show bgp bmp server"],
+      "executable": true,
+      "grounded_in": ["RFC7854 S1", "RFC7854 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7854", "authored": true, "confidence": 0.97}
+  },
+  {
+    "id": "q-102",
+    "category": "bmp",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What information is carried in BMP Initiation and Termination messages, and when are they sent?",
+    "context": null,
+    "ground_truth": {
+      "answer": "A BMP Initiation message (RFC 7854 S4.3) is the first message sent by the monitored router after establishing a TCP connection to the BMP station. It carries TLVs describing the monitored router: sysDescr (system description string), sysName (hostname), and optionally additional information. It allows the BMP station to identify the source of the session. A BMP Termination message (RFC 7854 S4.5) is sent by the monitored router before closing the BMP TCP session — it contains a Reason TLV explaining why the session is being closed (e.g., administratively closed, session max reached, out of resources). Both messages use the common BMP message header with version field.",
+      "layer": "bgp",
+      "commands": ["show bgp bmp server", "show bgp bmp"],
+      "executable": true,
+      "grounded_in": ["RFC7854 S4.3", "RFC7854 S4.5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7854", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-103",
+    "category": "bmp",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the difference between pre-policy and post-policy Adj-RIB-In in BMP, and why is the distinction important for network operations?",
+    "context": null,
+    "ground_truth": {
+      "answer": "In BMP (RFC 7854 S2), the pre-policy Adj-RIB-In contains BGP routes exactly as received from a peer — before any inbound policy (route-maps, prefix-lists, AS-path filters) has been applied. The post-policy Adj-RIB-In contains routes after inbound policy processing — i.e., only routes that were accepted and potentially attribute-modified by the policy. The distinction is critical for: (1) detecting policy errors — if a route is in the pre-policy RIB but not in the post-policy RIB, an inbound policy is filtering or rejecting it; (2) security analysis — the pre-policy RIB shows all BGP announcements from the peer including hijacks that may have been filtered locally; (3) auditing — compliance requires knowing what was advertised vs. what was accepted.",
+      "layer": "bgp",
+      "commands": ["show bgp bmp", "show bgp neighbors <addr> received-routes", "show bgp neighbors <addr> routes"],
+      "executable": true,
+      "grounded_in": ["RFC7854 S2", "RFC7854 S5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7854", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-104",
+    "category": "bmp",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What statistics are reported in a BMP Statistics Report message, and how often are they sent?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BMP Statistics Report messages (RFC 7854 S4.8) carry counters from the monitored router's BGP process. Defined stat types include: number of prefixes rejected by inbound policy, number of duplicate prefix advertisements, number of implicit withdraws, number of updates invalidated due to CLUSTER_LIST loop, number of routes in Adj-RIB-In (pre-policy and post-policy), number of routes in Loc-RIB, and more. Each stat is a TLV with a 16-bit stat type and a 32- or 64-bit counter. The monitored router sends Statistics Reports periodically — the interval is locally configured (there is no protocol-level negotiation of the interval in RFC 7854). Operators typically set intervals of 30-300 seconds depending on the analytics platform requirements.",
+      "layer": "bgp",
+      "commands": ["show bgp bmp", "show bgp bmp server"],
+      "executable": true,
+      "grounded_in": ["RFC7854 S4.8"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7854", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-105",
+    "category": "bmp",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What do BMP Peer Up and Peer Down notification messages contain, and what triggers each?",
+    "context": null,
+    "ground_truth": {
+      "answer": "A BMP Peer Up notification (RFC 7854 S4.10) is sent when a BGP peer transitions to the Established state. It contains: the per-peer header (peer type, peer flags, peer distinguisher, peer address, peer AS, peer BGP ID, timestamp), the sent OPEN message, and the received OPEN message — allowing the BMP station to record the negotiated capabilities of the session. A BMP Peer Down notification (RFC 7854 S4.9) is sent when a BGP peer transitions out of Established state (i.e., session drops). It contains: the per-peer header and a Reason field indicating whether the session was locally or remotely closed, and optionally the BGP NOTIFICATION message that caused the teardown. Together, these messages allow BMP stations to maintain accurate peer state and session history.",
+      "layer": "bgp",
+      "commands": ["show bgp bmp", "show bgp neighbors <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC7854 S4.9", "RFC7854 S4.10"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7854", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-106",
+    "category": "confederation",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "When a BGP route leaves a confederation and is advertised to an external (non-confederation) AS, what happens to the AS_CONFED_SEQUENCE segments in the AS_PATH?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Per RFC 5065 S4.2, when a BGP speaker at the edge of a confederation advertises a route to an external AS (outside the confederation), it MUST strip all AS_CONFED_SEQUENCE and AS_CONFED_SET path segments from the AS_PATH attribute. This ensures that internal confederation structure (the private sub-AS numbers used within the confederation) is not leaked to external peers. The external peer sees only the confederation's public AS number prepended to the remaining AS_PATH, which reflects only the inter-AS topology from the external perspective.",
+      "layer": "bgp",
+      "commands": ["show ip bgp <prefix>", "show bgp neighbors <addr> advertised-routes"],
+      "executable": true,
+      "grounded_in": ["RFC5065 S4.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5065", "authored": true, "confidence": 0.97}
+  },
+  {
+    "id": "q-107",
+    "category": "confederation",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "Can BGP route reflectors and confederations be used together in the same AS, and if so, what is a common deployment pattern?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Yes. RFC 5065 explicitly permits the combination of confederations and route reflectors. A common pattern is to use confederations to partition the overall iBGP mesh at the macro level (dividing a large AS into sub-ASes, each with a private ASN) and then use route reflectors within each sub-AS to further reduce the iBGP full-mesh requirement inside the sub-AS. For example, a backbone AS 65000 might be divided into confederation sub-ASes 64512, 64513, and 64514. Within 64512, RRs are deployed to serve clusters of PE routers. This approach scales the control plane in two dimensions: confederations reduce inter-cluster iBGP sessions, and RRs reduce intra-cluster iBGP sessions.",
+      "layer": "bgp",
+      "commands": ["show bgp summary", "show ip bgp <prefix>", "show bgp neighbors <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC5065 S5", "RFC4456 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5065", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-108",
+    "category": "confederation",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "How does BGP NEXT_HOP handling differ for routes traversing confederation sub-AS boundaries versus regular iBGP?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 5065 S4.3 specifies that sessions between confederation member sub-ASes are treated similarly to eBGP for NEXT_HOP handling. When a route is advertised from one confederation sub-AS to another, the advertising router sets the NEXT_HOP to its own interface/peering address — the same behavior as eBGP (NEXT_HOP is changed). This is distinct from pure iBGP where NEXT_HOP is preserved (not changed) by the advertising iBGP speaker (unless 'next-hop-self' is configured). As a result, routers in a confederation sub-AS must have IP reachability to the next-hop addresses advertised by neighboring sub-ASes, typically via the IGP shared across all sub-ASes.",
+      "layer": "bgp",
+      "commands": ["show ip bgp <prefix>", "show bgp neighbors <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC5065 S4.3", "RFC4271 S5.1.3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5065", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-109",
+    "category": "confederation",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "How are private sub-AS numbers assigned to confederation members, and what range is reserved for this purpose?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Confederation sub-AS numbers are private ASNs used only within the confederation — they are never advertised to external peers (stripped at the confederation boundary per RFC 5065). For 2-byte ASNs, the private range is 64512-65534 (RFC 6996). For 4-byte ASNs, the private range is 4200000000-4294967294 (RFC 6996 S5). In practice, operators pick sub-AS values from the private range, assign one per confederation member (PoP, region, or functional group), and configure all routers with 'bgp confederation identifier <public-AS>' and 'bgp confederation peers <sub-AS-1> <sub-AS-2> ...'. Sub-AS numbers must be consistent across all routers in the confederation.",
+      "layer": "bgp",
+      "commands": ["show bgp summary", "show ip bgp <prefix>"],
+      "executable": true,
+      "grounded_in": ["RFC5065 S2", "RFC6996 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5065", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-110",
+    "category": "confederation",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "Compare the loop prevention mechanisms used by BGP route reflectors (RRs) and confederations. What attributes does each use?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Route reflectors (RFC 4456) use two attributes for loop prevention: ORIGINATOR_ID (the BGP Router-ID of the route originator, added by the first RR that reflects the route) and CLUSTER_LIST (an ordered list of cluster IDs representing each RR cluster the route has passed through). An RR discards a route if it sees its own cluster ID in the CLUSTER_LIST. Confederations (RFC 5065) use AS_CONFED_SEQUENCE and AS_CONFED_SET path segments in the AS_PATH. A confederation sub-AS speaker performs the same AS_PATH loop detection as standard BGP — if its own sub-AS number appears in the AS_CONFED_SEQUENCE, it discards the route. The confederation mechanism thus leverages the existing AS_PATH loop detection without requiring new attributes, whereas RRs require the additional ORIGINATOR_ID and CLUSTER_LIST attributes.",
+      "layer": "bgp",
+      "commands": ["show ip bgp <prefix>", "show bgp neighbors <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC4456 S8", "RFC5065 S4.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5065", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-111",
+    "category": "bgpsec",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "Describe the RPKI framework layers as defined in RFC 6480. What does each layer do?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 6480 defines the RPKI (Resource Public Key Infrastructure) framework with three main layers: (1) Certificate Authorities (CAs) — organized hierarchically mirroring the IP address allocation hierarchy (IANA > RIRs > LIRs > end-users). Each CA holds a resource certificate attesting to its IP address and ASN holdings. (2) Route Origin Authorizations (ROAs) — signed objects (RFC 6482) issued by an address holder authorizing a specific AS to originate specific IP prefixes (with optional max-length constraint). (3) Relying Parties (RPs) — routers or route servers that fetch and validate the RPKI repository (using rsync or RRDP) and derive a validated payload for the routing system. The RTR protocol (RFC 8210) delivers the validated ROA data to routers.",
+      "layer": "bgp",
+      "commands": ["show ip bgp <prefix>", "show bgp rpki servers", "show bgp rpki table"],
+      "executable": true,
+      "grounded_in": ["RFC6480 S2", "RFC6482 S1", "RFC8210 S1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc6480", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-112",
+    "category": "bgpsec",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the RPKI-to-Router (RTR) protocol, which RFC defines it, and what data does it deliver to a router?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The RPKI-to-Router (RTR) protocol is defined in RFC 8210 (obsoleting RFC 6810). It is a lightweight protocol by which a router (the RTR client) maintains a synchronized, validated copy of the RPKI prefix-origin data from an RPKI Relying Party cache (the RTR server). The data delivered is the set of Validated ROA Payloads (VRPs): tuples of (IP prefix, max-length, origin AS). The router uses VRPs to perform Route Origin Validation (ROV) on BGP UPDATEs — checking whether the origin AS of a received prefix matches an authorized VRP. RTR uses incremental updates (Serial Notify, Cache Response, Serial Query) to efficiently synchronize changes. It runs over TCP (optionally TLS or SSH).",
+      "layer": "bgp",
+      "commands": ["show bgp rpki servers", "show bgp rpki table", "show ip bgp <prefix>"],
+      "executable": true,
+      "grounded_in": ["RFC8210 S2", "RFC8210 S5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8210", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-113",
+    "category": "bgpsec",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What does BGPsec path validation protect against, and how does it work according to RFC 8205?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGPsec (RFC 8205) extends RPKI to protect the entire AS_PATH — not just the origin AS. It prevents route hijacking via forged AS_PATH manipulation (e.g., a malicious AS inserting itself into a path or stripping legitimate ASes). BGPsec works as follows: each BGPsec-capable router that sends a BGP UPDATE signs the AS_PATH with its private key (the key is certified by the RPKI CA). The signature covers the upstream AS's signature, the current AS number, and the NLRI — creating a chain of cryptographic attestations. A receiving router validates the chain from the origin AS outward; any break in the chain indicates AS_PATH tampering. BGPsec replaces the AS_PATH attribute with a new BGPsec_Path attribute and requires all ASes in the path to be BGPsec-capable for full validation.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix>", "show bgp rpki servers"],
+      "executable": true,
+      "grounded_in": ["RFC8205 S1", "RFC8205 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8205", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-114",
+    "category": "bgpsec",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "A BGP prefix 192.0.2.0/24 has an RPKI ROA authorizing AS 65001 to originate it with max-length /24. A router receives three BGP announcements for this prefix: (1) origin AS 65001, prefix /24; (2) origin AS 65002, prefix /24; (3) origin AS 65001, prefix /25. What is the ROV validation state of each?",
+    "context": null,
+    "ground_truth": {
+      "answer": "ROV validation states (RFC 6811): (1) AS 65001, /24 — VALID: the origin AS matches the ROA and the prefix length (/24) is within the authorized range (max-length /24). (2) AS 65002, /24 — INVALID: a ROA exists for this prefix but the origin AS (65002) does not match any authorized AS. This is the BGP hijack detection case. (3) AS 65001, /25 — INVALID: the origin AS matches (65001) but the prefix length /25 exceeds the max-length of /24 defined in the ROA. A router with ROV enforcement configured should prefer VALID routes, use INVALID routes only as a last resort (or drop them per local policy), and treat NOT FOUND (no covering ROA) as normal.",
+      "layer": "bgp",
+      "commands": ["show ip bgp <prefix>", "show bgp rpki table", "show bgp ipv4 unicast 192.0.2.0/24"],
+      "executable": true,
+      "grounded_in": ["RFC6811 S2", "RFC6811 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc6811", "authored": true, "confidence": 0.97}
+  },
+  {
+    "id": "q-115",
+    "category": "bgpsec",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is ASPA (Autonomous System Provider Authorization), and how does it complement ROV in defending against route leaks?",
+    "context": null,
+    "ground_truth": {
+      "answer": "ASPA (Autonomous System Provider Authorization) is an RPKI-based mechanism where an AS signs an object listing its upstream provider ASes. An ASPA object attests: 'AS X is a customer of AS Y' (i.e., AS Y is a provider of AS X). During BGP route validation, a receiver can verify that the AS_PATH reflects a valid customer-provider or peering relationship at each hop — detecting route leaks where a customer AS illegitimately re-advertises a route received from one provider to another provider (valley routing). ROV (RFC 6811) only validates the origin AS; ASPA validates the entire path topology. ASPA catches route leaks that bypass ROV — for example, a legitimate origin with a valid ROA but whose route is leaked through a misconfigured or compromised transit AS. ASPA is defined in draft-ietf-sidrops-aspa-verification.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix>", "show bgp rpki table"],
+      "executable": true,
+      "grounded_in": ["RFC6480 S1", "RFC6811 S1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc6480", "authored": true, "confidence": 0.90}
+  },
+  {
+    "id": "q-116",
+    "category": "flowspec",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is BGP Flowspec, which RFC defines the original specification, and what operational problem does it solve?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGP Flowspec is defined originally in RFC 5575 (now obsoleted and updated by RFC 8955 for IPv4 and RFC 8956 for IPv6). It extends BGP to distribute traffic flow specifications — essentially distributed ACL rules — across the network using the BGP control plane. Each Flowspec rule (a BGP NLRI in AFI=1, SAFI=133) encodes match criteria (destination prefix, source prefix, IP protocol, port ranges, DSCP, TCP flags, etc.) and an associated action (traffic-rate, discard, redirect-to-VRF, DSCP mark) as a BGP extended community. It solves the problem of rapidly deploying DDoS mitigation or traffic steering rules across many routers simultaneously without logging into each device individually — the rules propagate via BGP UPDATE in seconds.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 flowspec", "show bgp ipv4 flowspec summary", "show ip bgp flowspec"],
+      "executable": true,
+      "grounded_in": ["RFC8955 S1", "RFC5575 S1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8955", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-117",
+    "category": "flowspec",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "List the match components available in a BGP Flowspec rule for IPv4 (RFC 8955) and describe how multi-component rules are evaluated.",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 8955 defines the following Flowspec match components (NLRI type codes): Type 1 = Destination Prefix, Type 2 = Source Prefix, Type 3 = IP Protocol (e.g., TCP=6, UDP=17), Type 4 = Port (source or destination), Type 5 = Destination Port, Type 6 = Source Port, Type 7 = ICMP type, Type 8 = ICMP code, Type 9 = TCP flags, Type 10 = Packet length, Type 11 = DSCP, Type 12 = Fragment (is-fragment, first-fragment, last-fragment, dont-fragment). Multi-component rules are evaluated as a logical AND — all specified components must match simultaneously for the rule to apply. The Flowspec NLRI is encoded as a sequence of type-value pairs in a canonical ordering; the canonical order determines the NLRI key for BGP path selection and deduplication.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 flowspec", "show bgp ipv4 flowspec detail"],
+      "executable": true,
+      "grounded_in": ["RFC8955 S4", "RFC8955 S7"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8955", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-118",
+    "category": "flowspec",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What action (extended community) types are defined for BGP Flowspec, and what does each do when a matching flow is detected?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 8955 (and RFC 5575) define Flowspec action extended communities: (1) traffic-rate (type 0x8006): rate-limits matching traffic; a value of 0 means discard (blackhole). (2) traffic-action (type 0x8007): bitmask actions — sample (mirror the traffic to a collector) and terminal (stop processing further Flowspec rules for this flow). (3) redirect-to-VRF (type 0x8008): redirects matching traffic into a specified VRF for further forwarding (e.g., a scrubbing VRF); the value is a Route Target identifying the target VRF. (4) traffic-marking/DSCP (type 0x8009): marks matching packets with a specified DSCP value for QoS treatment downstream. Multiple action communities can be combined on a single Flowspec NLRI.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 flowspec", "show ip bgp flowspec detail"],
+      "executable": true,
+      "grounded_in": ["RFC8955 S7", "RFC5575 S7"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8955", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-119",
+    "category": "flowspec",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "RFC 8955 defines a Flowspec validation procedure for routes received from eBGP peers. Describe the validation rule and why it exists.",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 8955 S9 defines a Flowspec route validation rule for routes received from eBGP peers (the rule does not apply to iBGP). The rule: a Flowspec rule with a destination prefix component is accepted ONLY IF there is a unicast BGP route to that destination prefix (the same or a covering prefix) that was learned from the same peer or from a peer in the same AS. The rationale: without this check, a malicious eBGP peer could inject Flowspec rules targeting any prefix (including prefixes owned by unrelated parties), causing traffic blackholing or redirection. By tying Flowspec acceptance to the legitimate BGP origin of the destination prefix, the validation prevents unauthorized traffic manipulation. Rules without a destination prefix component are accepted from eBGP peers without this check.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 flowspec", "show ip bgp <destination-prefix>"],
+      "executable": true,
+      "grounded_in": ["RFC8955 S9"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8955", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-120",
+    "category": "flowspec",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "Compare BGP Flowspec and traditional ACLs for DDoS mitigation. What are the key advantages and limitations of each?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGP Flowspec advantages over traditional ACLs: (1) Scale and speed of deployment — a single Flowspec UPDATE propagates to all BGP peers in seconds; adding an ACL entry to hundreds of routers manually takes hours. (2) Programmability — Flowspec rules can be generated by a DDoS detection system and injected via BGP dynamically. (3) Upstream mitigation — by advertising Flowspec to upstream ISPs, traffic can be dropped closer to the source. (4) Rich match criteria — source+destination prefix, protocol, port, TCP flags, DSCP, fragment in one rule. Flowspec limitations: (1) No stateful inspection — purely stateless match like ACLs. (2) NLRI size limit — complex rules consume NLRI space; very large rule sets may stress BGP. (3) Platform support — not all hardware platforms support Flowspec in the data plane. (4) Validation constraint (RFC 8955 S9) — eBGP Flowspec is subject to destination prefix validation, limiting what eBGP peers can inject. Traditional ACLs: more universally supported, can be applied to any interface, but require per-device management and do not propagate automatically.",
+      "layer": "policy",
+      "commands": ["show bgp ipv4 flowspec", "show ip bgp flowspec detail", "show access-lists"],
+      "executable": true,
+      "grounded_in": ["RFC8955 S1", "RFC8955 S9"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8955", "authored": true, "confidence": 0.93}
+  }
+]

@@ -670,11 +670,17 @@ class Handler(BaseHTTPRequestHandler):
             md = compliance.report(parse_qs(u.query).get("problem", [""])[0])
             return self._send(200, "application/json", json.dumps({"markdown": md}).encode())
         if u.path == "/api/opsrag/evaluate":
-            from opsrag import evaluator
+            from opsrag import evaluator, llm_synthesizer, dense_rag
             bm_dir = os.path.join(REPO, "thesis", "benchmark")
             sut_name = parse_qs(u.query).get("sut", ["opsrag"])[0]
-            sut_fn = evaluator.opsrag_sut if sut_name == "opsrag" else evaluator.naive_sut
+            sut_fn = {
+                "opsrag": evaluator.opsrag_sut,
+                "naive": evaluator.naive_sut,
+                "llm": llm_synthesizer.llm_sut,
+                "dense": dense_rag.dense_rag_sut,
+            }.get(sut_name, evaluator.opsrag_sut)
             report = evaluator.evaluate(sut_fn, bm_dir)
+            report["sut"] = sut_name
             # Trim per-question to keep payload light; client can request full breakdown separately.
             report["per_question"] = report["per_question"][:50]
             return self._send(200, "application/json", json.dumps(report).encode())

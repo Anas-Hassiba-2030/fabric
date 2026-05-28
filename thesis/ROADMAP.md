@@ -107,13 +107,31 @@ The academically novel evaluation methodology, built once and reused by every la
 
 ---
 
-## Phase 4 — Runbook synthesiser + CLI grammar gate ⬜
-- Promote `webui/rca.py` from a single-shot causal-chain emitter to a **typed runbook synthesiser**:
-  retrieves a subgraph, composes an ordered list of `Command` nodes, binds parameters, validates each
-  command against the platform's CLI grammar **before emission**.
-- Output is the structured runbook JSON the oracle consumes; the human-readable rendering is derived.
+## Phase 4 — LLM synthesiser + dense-RAG baseline 🟡 IN PROGRESS
 
-**Exit criterion:** synthesiser passes the executability gate on ≥90% of the seed fault library.
+**Built (this push):**
+- ✅ `webui/opsrag/llm_synthesizer.py` — LLM-driven SUT: typed-graph retrieval (BM25-ranked keyword
+  match, top-6 nodes) → structured prompt (system rules + grounded context) → Anthropic API call
+  → response parser (ANSWER + COMMANDS sections). Graceful fallback to deterministic synth when no
+  API key. Same `sut(question) → {answer, retrieved_context, commands}` contract.
+- ✅ `webui/opsrag/dense_rag.py` — Dense-RAG comparator: BM25 over flat 500-char overlapping chunks
+  from the same corpus (patterns + faults + typed graph nodes). Deterministic generation (top-chunk
+  text + extracted show commands). This is the ablation baseline that isolates the typed-graph
+  contribution from the LLM contribution.
+- ✅ `webui/test_llm_synthesizer.py` — **42 checks ALL GREEN** covering BM25 primitives, SUT
+  contract, response parser, fallback path, prompt builder, evaluator integration.
+- ✅ `app.py` `/api/opsrag/evaluate` now accepts `?sut=naive|opsrag|llm|dense` — all four SUTs
+  available from the Evaluation tab with one click.
+- ✅ UI: four evaluation buttons in the OpsRAG Lab → Evaluation tab (Naive floor / OpsRAG
+  deterministic / Dense-RAG BM25 / LLM Opus 4.7).
+
+**Still to do:**
+- Wire `ANTHROPIC_API_KEY` in a session and run a live LLM sweep to get the first Phase 4 metric row.
+- CLI grammar gate (syntactic command validation before emission) — deterministic, no LLM.
+- Retrieval upgrade: dense embedding retrieval (Phase 6 swap-in).
+
+**Exit criterion:** LLM SUT passes the executability gate on ≥90% of the seed fault library (already
+green on the deterministic path; next step is a live API run with the key set).
 
 ---
 
@@ -157,11 +175,28 @@ benchmark.
 | Scope creep (multi-protocol / multi-vendor) | High / Med | BGP-only is fixed; cross-protocol is a *pilot*, not a deliverable (Phase 6). |
 
 ## Where we are right now
-Phase 0 ✅. Phase 1 ✅. **Phase 2-A ✅** — the action-grounded loop is closed end-to-end on every
-seeded fault without any host requirements (`python webui/test_opsrag.py` proves it). The next
-concrete piece of work is **Phase 2-B**: stand up `topo-bgp.clab.yml` on a Docker (or Mininet, or
-netns) host and assert oracle-equivalence with the simulator — about a day's work, gated by
-host availability and not by anything in the thesis itself.
+Phase 0 ✅. Phase 1 ✅. Phase 2-A ✅. Phase 3 foundation ✅. Phase 3.5 ✅. **Phase 4 🟡** —
+LLM synthesiser + Dense-RAG baseline are built and tested (42 checks green). Benchmark is at **120
+grounded questions** across 24 categories. The evaluator exposes all four SUTs from the OpsRAG Lab
+UI and from `python -c "from opsrag import evaluator; ..."`.
+
+Phase 2-B (real Containerlab) is gated on host availability and is not blocking the thesis.
+
+**Running the evaluation:**
+```python
+from opsrag import evaluator, llm_synthesizer, dense_rag
+import os, json
+
+bm_dir = "thesis/benchmark"
+# Deterministic (no API key needed):
+r = evaluator.evaluate(evaluator.opsrag_sut, bm_dir)
+# Dense-RAG ablation baseline:
+r = evaluator.evaluate(dense_rag.dense_rag_sut, bm_dir)
+# LLM-driven (requires ANTHROPIC_API_KEY):
+os.environ["ANTHROPIC_API_KEY"] = "sk-ant-..."
+r = evaluator.evaluate(llm_synthesizer.llm_sut, bm_dir)
+print(r["headline"])
+```
 
 Master's-level scope + the trim list (vs PhD-shaped work) is documented in `thesis/MASTERS.md`.
 Three real-software paths to a Phase 2-B sandbox are in `thesis/lab/SETUP.md`.

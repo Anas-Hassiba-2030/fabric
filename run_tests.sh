@@ -105,6 +105,9 @@ if "$PY" webui/test_ingest.py >/tmp/_ing.out 2>&1; then ok "ingest extractors (C
 step "OpsRAG evaluator proof (RAGAs-shape + executability + diagnostic accuracy)"
 if "$PY" webui/test_evaluator.py >/tmp/_ev.out 2>&1; then ok "evaluator scores benchmark; opsrag beats naive floor"; else bad "opsrag evaluator"; cat /tmp/_ev.out; fi
 
+step "Phase 4 LLM synthesiser + Dense-RAG baseline proof (no API key)"
+if "$PY" webui/test_llm_synthesizer.py >/tmp/_llm.out 2>&1; then ok "llm_sut fallback + dense_rag BM25 retrieval + response parser (42 checks)"; else bad "llm synthesiser"; cat /tmp/_llm.out; fi
+
 step "Worked-example reader proof (path-jailed, no API key)"
 if "$PY" webui/test_examples.py >/tmp/_ex.out 2>&1; then ok "examples reader lists+serves, traversal refused"; else bad "examples reader"; cat /tmp/_ex.out; fi
 

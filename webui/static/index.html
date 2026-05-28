@@ -797,9 +797,11 @@ async function openOpsRAGLab(tab){
     </div></div>
     <div id="orPanelEval" style="display:${activeTab==="eval"?"block":"none"}">
       <p style="font-size:12px;color:var(--muted);margin:0 0 14px">Score a system-under-test against the full benchmark with RAGAs-shape metrics (answer_relevance, faithfulness, context_relevance) <b>+ action-grounded metrics (executability, diagnostic accuracy)</b> — the two metrics RAGAs does not provide.</p>
-      <div style="display:flex;gap:10px;margin-bottom:14px">
-        <button class="orfrunbtn" id="orEvalNaive">▶ Run naive baseline</button>
-        <button class="orfrunbtn" id="orEvalOpsrag">▶ Run OpsRAG baseline</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="orfrunbtn" id="orEvalNaive">▶ Naive floor</button>
+        <button class="orfrunbtn" id="orEvalOpsrag">▶ OpsRAG (deterministic)</button>
+        <button class="orfrunbtn" id="orEvalDense" style="background:rgba(147,112,219,.18);color:#b39ddb">▶ Dense-RAG (BM25)</button>
+        <button class="orfrunbtn" id="orEvalLLM" style="background:rgba(255,167,38,.18);color:#ffb74d">▶ LLM (Opus 4.7)</button>
       </div>
       <div id="orEvalResult"></div>
     </div></div>`);
@@ -816,8 +818,11 @@ async function openOpsRAGLab(tab){
   if(tb)tb.onclick=()=>showTab("bench");
   if(te)te.onclick=()=>showTab("eval");
   const en=document.getElementById("orEvalNaive"),eo=document.getElementById("orEvalOpsrag");
+  const ed=document.getElementById("orEvalDense"),el=document.getElementById("orEvalLLM");
   if(en)en.onclick=()=>runEvaluation("naive");
-  if(eo)eo.onclick=()=>runEvaluation("opsrag");}
+  if(eo)eo.onclick=()=>runEvaluation("opsrag");
+  if(ed)ed.onclick=()=>runEvaluation("dense");
+  if(el)el.onclick=()=>runEvaluation("llm");}
 async function runEvaluation(sutName){
   const r=document.getElementById("orEvalResult");
   r.innerHTML='<div class="placeholder">running benchmark sweep…</div>';
@@ -825,7 +830,8 @@ async function runEvaluation(sutName){
   catch(e){r.innerHTML='<div class="placeholder">eval failed</div>';return;}
   const hl=rep.headline||{};
   const mv=(m,k)=>(m&&m[k]!==null&&m[k]!==undefined)?(typeof m[k]==="number"?m[k].toFixed(3):m[k]):"—";
-  const cells=`<div class="orgraph" style="background:rgba(54,224,200,.06)"><span class="ogtitle">${sutName.toUpperCase()} headline · n=${rep.n}</span>
+  const sutLabel={"naive":"Naive floor","opsrag":"OpsRAG (deterministic)","dense":"Dense-RAG BM25","llm":"LLM Opus 4.7"}[rep.sut||sutName]||sutName.toUpperCase();
+  const cells=`<div class="orgraph" style="background:rgba(54,224,200,.06)"><span class="ogtitle">${sutLabel} · n=${rep.n}</span>
     <span class="ogtype">answer_relevance <b>${mv(hl.answer_relevance,"mean")}</b></span>
     <span class="ogtype">faithfulness <b>${mv(hl.faithfulness,"mean")}</b></span>
     <span class="ogtype">context_relevance <b>${mv(hl.context_relevance,"mean")}</b></span>
