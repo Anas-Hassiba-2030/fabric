@@ -131,9 +131,12 @@ def link_nodes(nodes: List[Node]) -> List[Edge]:
 
     for cmd in cmds:
         for cfg in cfgs:
-            cmd_tags = cmd.attrs.get("tags", [])
-            cfg_tags = cfg.attrs.get("tags", [])
-            if any(t in cmd_tags for t in cfg_tags if t not in ("bgp",)):
+            cmd_tags = set(cmd.attrs.get("tags", []))
+            cfg_tags = set(cfg.attrs.get("tags", []))
+            # A show command verifies a configuration when they share at least one protocol/category
+            # tag (e.g., both "bgp", or both "interface"). Authentic "depends_on" edges come from
+            # RFC concepts; verifies is for the command→config relationship.
+            if cmd_tags & cfg_tags:
                 src = cfg.provenance.source
                 edges.append(Edge(src=cmd.id, dst=cfg.id, rel="verifies",
                                   provenance=_make_provenance(src, 0.6)))
