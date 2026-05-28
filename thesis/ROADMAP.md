@@ -223,6 +223,57 @@ questions score correctly; benchmark validation 13/13 checks green.
 
 ---
 
+## Phase 8 — System map + onboarding protocol ✅ DONE
+
+**Motivation:** By Phase 7 the thesis is complete and the code is fully tested — but a new
+reader (supervisor, examiner, collaborator) who opens the repo faces 80+ files spread across
+`webui/`, `wrath/`, `.claude/`, `thesis/`, and `scripts/` with no single document that answers
+"what is this system, how does it work, and where do I start?"
+
+Phase 8 produces exactly that document: a permanent, self-contained system map that can be
+read cold, in order, and walked out of with a complete mental model of every layer.
+
+**Deliverable:** `SYSTEM.md` at the repo root.
+
+Contents (11 sections):
+1. **30-second overview** — two-layer architecture diagram (WRATH orchestration + OpsRAG
+   knowledge layer), what each layer does, and the one sentence that ties them.
+2. **WRATH Layer 1 (the orchestration brain)** — Orchestrator mandate, all 16 specialist
+   subagents with routing conditions and tiers, 15 skills, 4 slash commands, 3 hooks
+   (destructive-action-guard / csirt-guard / session-start) with exit-code semantics, 2 MCP
+   servers (wrath-standards / wrath-netstate), memory model (working / episodic / semantic).
+3. **OpsRAG Layer 2 (the typed knowledge layer)** — typed schema (6 node types, 5 edge types,
+   Provenance triple), bootstrap flow, typed-ingestion pipeline, BGP fault simulator, fault
+   library (8 faults, table), synthesiser pipeline, oracle contract + scoring thresholds,
+   CLI grammar gate (3 tiers: OK/WARN/REJECT, exact counts), dual-signal feedback loop with
+   execution-gated vs user-gated coherence numbers, evaluator (5 metrics definitions), all 5
+   SUTs with canonical results table, Graph SUT decision flow, phase6_report module.
+4. **Three complete data-flow scenarios** — (a) production design request through WRATH, (b)
+   BGP troubleshooting through the OpsRAG oracle, (c) benchmark evaluation sweep.
+5. **Benchmark structure** — file layout, two question format examples (fault-linked and
+   non-linked, showing both key conventions), statistics table.
+6. **Test coverage map** — every test file with what it proves and assertion count.
+7. **Web UI and API** — all 8 tabs, all `/api/opsrag/*` endpoints with parameters.
+8. **Navigation guide** — goal → where to start (10 reader journeys).
+9. **Configuration and secrets** — every knob, default value, where it's set, whether it's
+   required.
+10. **Complete file index** — every key file with its role in one line.
+11. **Ten system invariants** — properties that are always true and that the test suite enforces;
+    the one sentence that describes what could go wrong if each invariant broke.
+
+**Why this is a thesis phase, not a README:**
+- It is the *only* place that names the full 16-agent roster with routing semantics, the exact
+  grammar-gate counts (22 OK / 13 REJECT), the oracle scoring threshold (70% key-token overlap),
+  the feedback ablation canonical parameters, and the 10 invariants the test suite enforces.
+- A supervisor or examiner reading this file can verify the thesis claims without running any code.
+- It doubles as the replication entry point: §6 (test coverage) and §8 (navigation guide) tell
+  any reader exactly which file to open for any claim.
+
+**Exit criterion: MET** — `SYSTEM.md` exists at the repo root, is self-contained, and covers
+every public-facing component of both WRATH and OpsRAG. No external service required to read it.
+
+---
+
 ## Risk register (final, mapped from Kamal's proposal)
 | Risk | L / I | Status |
 |---|---|---|
@@ -234,7 +285,7 @@ questions score correctly; benchmark validation 13/13 checks green.
 
 ## Where we are right now
 
-**All 7 phases complete.** Phase 0 ✅ · Phase 1 ✅ · Phase 2-A ✅ · Phase 3 ✅ · Phase 3.5 ✅ · Phase 4 ✅ · Phase 5 ✅ · Phase 6 ✅ · **Phase 7 ✅**.
+**All 8 phases complete.** Phase 0 ✅ · Phase 1 ✅ · Phase 2-A ✅ · Phase 3 ✅ · Phase 3.5 ✅ · Phase 4 ✅ · Phase 5 ✅ · Phase 6 ✅ · Phase 7 ✅ · **Phase 8 ✅**.
 
 Benchmark: **300 questions**, 52 categories, 8 seeded faults, 5 SUTs, 20 oracle-linked questions all scoring correctly. `bash run_tests.sh` → **ALL GREEN**.
 
