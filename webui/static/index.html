@@ -578,33 +578,55 @@
   }
 
   /* ============================================================
-     WORKSPACE — deliverable + live activity
+     WORKSPACE — thin bottom status bar (in-flow, below pipeline)
+     Slides into view when a run starts; ✕ hides it.
+     #detail and #log stay hidden; Expand modal reads from them.
      ============================================================ */
   .workspace{
-    position:fixed;left:20px;right:20px;bottom:20px;
-    display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
-    z-index:60;pointer-events:none;
-    transform:translateY(calc(100% + 50px));opacity:0;
-    transition:transform .42s cubic-bezier(.22,.68,0,1.10),opacity .30s ease;
+    height:0;overflow:hidden;opacity:0;flex:none;
+    background:var(--ink);border-radius:3px;
+    border:1px solid transparent;
+    transition:height .38s cubic-bezier(.22,.68,0,1.10),opacity .28s ease,border-color .28s;
   }
-  .workspace.fp-show{transform:translateY(0);opacity:1;}
-  .workspace > .card{pointer-events:all;}
-  .workspace .detailcard{
-    width:min(460px,42vw);max-height:340px;display:flex;flex-direction:column;
-    box-shadow:0 14px 44px rgba(24,30,42,.20),0 2px 10px rgba(24,30,42,.10);
+  .workspace.fp-show{
+    height:54px;opacity:1;
+    border-color:rgba(217,205,183,.15);
+    overflow:visible;
   }
-  .workspace .logcard{
-    width:min(320px,32vw);max-height:220px;display:flex;flex-direction:column;
-    box-shadow:0 14px 44px rgba(0,0,0,.36),0 2px 10px rgba(0,0,0,.22);
+  .fpbar{display:flex;align-items:stretch;height:100%;}
+  .fpzone{
+    display:flex;align-items:center;gap:11px;padding:0 16px;flex:1;min-width:0;
   }
-  .fphide{
-    background:transparent;border:0;color:var(--grey-soft);
-    font-size:14px;cursor:pointer;padding:2px 7px;line-height:1;
-    border-radius:2px;margin-left:6px;transition:background .15s,color .15s;
+  .fpzone:first-child{flex:1.4;}
+  .fpz-dot{
+    width:5px;height:5px;border-radius:50%;flex:none;
   }
-  .fphide:hover{color:var(--burgundy);background:var(--burgundy-tint);}
-  .logcard .fphide{color:rgba(245,239,228,.42);}
-  .logcard .fphide:hover{color:var(--cream);background:rgba(245,239,228,.10);}
+  .fpz-dot.del{background:var(--burgundy);}
+  .fpz-dot.log{background:var(--gold-soft);}
+  .fpz-lbl{
+    font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+    color:rgba(245,239,228,.45);flex:none;
+  }
+  .fpz-pre{
+    font-family:var(--mono);font-size:10.5px;color:rgba(245,239,228,.72);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;
+  }
+  .fpz-exp{
+    flex:none;background:rgba(245,239,228,.06);border:1px solid rgba(217,205,183,.18);
+    color:rgba(245,239,228,.70);font-family:var(--mono);font-size:9px;
+    letter-spacing:.07em;text-transform:uppercase;padding:4px 10px;
+    border-radius:2px;cursor:pointer;white-space:nowrap;
+    transition:background .15s,color .15s;
+  }
+  .fpz-exp:hover{background:rgba(245,239,228,.14);color:var(--cream);}
+  .fpz-sep{width:1px;background:rgba(217,205,183,.12);flex:none;margin:10px 0;}
+  .fpz-close{
+    flex:none;background:transparent;border:0;color:rgba(245,239,228,.35);
+    font-size:14px;cursor:pointer;padding:2px 8px;line-height:1;
+    border-radius:2px;transition:color .15s;
+  }
+  .fpz-close:hover{color:rgba(245,239,228,.72);}
+  .detail{display:none}
   .detailcard{min-height:0}
   .detail{overflow:auto;flex:1;padding-right:6px}
   .detail::-webkit-scrollbar{width:8px}
@@ -1069,7 +1091,7 @@
     </div>
   </div>
 
-  <div class="app-main" style="display:grid;grid-template-rows:auto minmax(0,1fr);gap:13px;min-height:0">
+  <div class="app-main" style="display:grid;grid-template-rows:minmax(0,1fr) auto;gap:13px;min-height:0">
     <div class="card railwrap">
       <p class="ct"><span class="k">Orchestration pipeline</span>
         <span class="pvlegend"><span class="pv pv-real">REAL</span><b>deterministic gate ran</b> · <span class="pv pv-live">LIVE</span><b>Opus/Sonnet/Haiku · routed by tier</b> · <span class="pv pv-demo">DEMO</span><b>representative</b></span></p>
@@ -1079,24 +1101,26 @@
       </div>
       <div class="flow" id="flow"><div class="placeholder"><div><div class="big">Ready when you are.</div>Type a network problem and hit <kbd>Run&nbsp;WRATH</kbd> — the orchestrator decomposes it and routes the work across specialist agents, gate by gate.</div></div></div>
     </div>
-    <div class="workspace">
-      <div class="card detailcard"><p class="ct"><span class="k">Deliverable</span>
-        <button class="exp" id="expDetail" title="Expand the deliverable">⤢ <span class="lab">EXPAND</span></button>
-        <button class="fphide" data-hide="workspace" title="Hide">✕</button></p>
-        <div class="detail" id="detail"><div class="placeholder"><div class="gs">
-          <div class="gstitle">Welcome to WRATH</div>
-          <div class="gssub">State a network problem; the orchestrator decomposes it, routes specialist agents, runs the gates (Critic red-teams every design, the Validator audits every config), and converges on a grounded, customer-ready solution.</div>
-          <div class="gscards">
-            <div class="gscard" id="gsRun"><b>▶ Run a problem</b><span>type it above, or click to load a sample</span></div>
-            <div class="gscard" id="gsBp"><b>⊞ Blueprints</b><span>start from a ready-made engagement</span></div>
-            <div class="gscard" id="gsEx"><b>📚 Examples</b><span>browse two worked engagements</span></div>
-          </div>
-          <div class="gshint"><span class="pv pv-real">REAL</span> a gate ran · <span class="pv pv-live">LIVE</span> Opus · <span class="pv pv-demo">DEMO</span> representative — full tour in <b>❔ How it works</b>.</div>
-        </div></div></div></div>
-      <div class="card logcard"><p class="ct"><span class="k">Live activity</span>
-        <button class="exp" id="expLog" title="Expand the live activity log">⤢ <span class="lab">EXPAND</span></button>
-        <button class="fphide" data-hide="workspace" title="Hide">✕</button></p>
-        <div class="log" id="log"></div></div>
+    <div class="workspace" id="workspace">
+      <div class="fpbar">
+        <div class="fpzone">
+          <span class="fpz-dot del"></span>
+          <span class="fpz-lbl">Deliverable</span>
+          <span class="fpz-pre" id="fpDelPrev">run WRATH to see output</span>
+          <button class="fpz-exp" id="expDetail" title="Expand deliverable">⤢ Expand</button>
+        </div>
+        <div class="fpz-sep"></div>
+        <div class="fpzone">
+          <span class="fpz-dot log"></span>
+          <span class="fpz-lbl">Live</span>
+          <span class="fpz-pre" id="fpLogPrev">—</span>
+          <button class="fpz-exp" id="expLog" title="Expand live log">⤢ Expand</button>
+          <button class="fpz-close fphide" title="Hide bar">✕</button>
+        </div>
+      </div>
+      <!-- data stores — JS writes here; Expand modal reads from here -->
+      <div class="detail" id="detail" style="display:none"></div>
+      <div class="log" id="log" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -1267,7 +1291,8 @@ function setStage(id,status){const n=$("#n-"+id);if(!n)return;const idx=order.in
   if(status==="running"){b.textContent="";if(idx>0)setEdge(idx-1,"live");if(autoFollow)showDetail(id,true);
     n.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"});}
   if(status==="done"){b.textContent=n.classList.contains("gate")?"⚑":"✓";if(idx>0)setEdge(idx-1,"done");}}
-function logLine(t,stage){const l=$("#log");const d=document.createElement("div");d.className="l";d.innerHTML=(stage&&stage!=="_"?`<span class="s">[${stage}]</span> `:"")+t.replace(/&/g,"&amp;").replace(/</g,"&lt;");l.appendChild(d);l.scrollTop=l.scrollHeight;}
+function logLine(t,stage){const l=$("#log");const d=document.createElement("div");d.className="l";d.innerHTML=(stage&&stage!=="_"?`<span class="s">[${stage}]</span> `:"")+t.replace(/&/g,"&amp;").replace(/</g,"&lt;");l.appendChild(d);l.scrollTop=l.scrollHeight;
+  const lp=$("#fpLogPrev");if(lp)lp.textContent=(stage&&stage!=="_"?"["+stage+"] ":"")+t;}
 function showGround(m){grounds[m.stage]=m;const g=$("#g-"+m.stage);if(g){g.textContent={grounded:"grounded",flagged:"verify",blocked:"blocked"}[m.status];g.className="g show "+m.status;}if(selected===m.stage)showDetail(m.stage);}
 function groundHtml(g){if(!g)return"";const lbl={grounded:"✓ Grounded — every claim checked",flagged:"⚠ Needs verification",blocked:"⛔ Blocked — unverified claim"}[g.status];const mk={verified:"✅",PASS:"✅",flag:"⚠",BLOCKED:"⛔",FAIL:"⛔"};
   const items=(g.checks||[]).map(c=>{const it=c.url?`<a href="${c.url}" target="_blank" rel="noopener" style="color:var(--accent2);text-decoration:underline">${c.item}</a>`:`<b>${c.item}</b>`;return `<li>${mk[c.verdict]||"•"} ${it} — ${c.note}</li>`;}).join("");
@@ -1290,7 +1315,8 @@ function bindAudience(execContent){const tabs=document.querySelectorAll("#audTab
     mdEl.innerHTML='<p style="color:var(--muted)">re-voicing…</p>';
     try{const r=await(await fetch("/api/reframe?audience="+aud+"&problem="+encodeURIComponent(currentProblem))).json();
       mdEl.innerHTML=md(r.markdown);}catch(e){mdEl.innerHTML='<p style="color:var(--bad)">reframe failed</p>';}});}
-function storeOutput(o){outputs[o.stage]={title:o.title,content:o.content};if(autoFollow||selected===o.stage)showDetail(o.stage);}
+function storeOutput(o){outputs[o.stage]={title:o.title,content:o.content};if(autoFollow||selected===o.stage)showDetail(o.stage);
+  const dp=$("#fpDelPrev");if(dp)dp.textContent=o.title||o.stage;}
 function onReject(m){const g=$("#n-"+m.gate);if(g){g.classList.add("reject");setTimeout(()=>g.classList.remove("reject"),1500);}
   rejectArcs.push({gate:m.gate,producer:m.producer});drawEdges();
   setTimeout(()=>{rejectArcs=rejectArcs.filter(a=>!(a.gate===m.gate&&a.producer===m.producer));drawEdges();},3200);
