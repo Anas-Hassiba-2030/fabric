@@ -140,8 +140,9 @@ def diagnosis_correct(question: Dict, sut_answer: str, commands: List[Dict]) -> 
     """If the question is fault-linked, score via the simulator + oracle.
 
     Returns None when no fault is linked (non-executable question — score via RAGAs only).
+    Handles both key conventions: fault_id (older questions) and linked_fault (newer questions).
     """
-    fid = question.get("fault_id")
+    fid = question.get("fault_id") or question.get("linked_fault")
     if not fid:
         return None
     fault_path = os.path.join(
@@ -163,7 +164,9 @@ def diagnosis_correct(question: Dict, sut_answer: str, commands: List[Dict]) -> 
 
 def score_question(question: Dict, sut_response: Dict) -> Dict:
     """Score one (question, sut-response) pair across every metric."""
-    gt = question.get("ground_truth", {})
+    gt_raw = question.get("ground_truth", {})
+    # ground_truth may be a dict (standard) or a string (older question format)
+    gt = gt_raw if isinstance(gt_raw, dict) else {"answer": str(gt_raw)}
     gt_answer = gt.get("answer", "")
     sut_answer = sut_response.get("answer", "")
     retrieved = sut_response.get("retrieved_context", "")
@@ -236,8 +239,8 @@ def summarise(per_question: List[Dict]) -> Dict:
     by_category: Dict[str, List[Dict]] = {}
     by_difficulty: Dict[str, List[Dict]] = {}
     for r in per_question:
-        by_category.setdefault(r["category"], []).append(r)
-        by_difficulty.setdefault(r["difficulty"], []).append(r)
+        by_category.setdefault(r["category"] or "uncategorised", []).append(r)
+        by_difficulty.setdefault(r["difficulty"] or "unspecified", []).append(r)
 
     def bucket(rows: List[Dict]) -> Dict:
         return {
