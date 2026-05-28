@@ -1,84 +1,126 @@
-# Running WRATH + OpsRAG Lab on your Mac
+# Running WRATH + OpsRAG Lab on your Windows PC
 
-> Honest framing: when Claude Code runs in the **web environment** (the one I use to push to GitHub),
-> the server starts inside an ephemeral cloud container, not on your Mac. `localhost:8765` on your
-> browser is *your laptop* — it has nothing running unless **you** start it. Here is exactly how.
+> **Why localhost:8765 was empty:** Claude Code on the web runs in an ephemeral Linux cloud
+> container, not on your PC. When I start `python webui/app.py` in the container, it binds to
+> the container's localhost — your browser's `localhost` is your own machine, where nothing is
+> listening. You need to run the server on your Windows PC to see the UI.
 
-## 1. One-time setup (≈30 seconds)
+---
+
+## Option A — Git Bash (recommended, fastest)
+
+Git Bash ships with Git for Windows and gives you a real bash shell. If you installed Git, you
+already have it.
+
+### 1. Clone / pull the repo
+
+Open **Git Bash**:
 
 ```bash
-cd ~/where-you-keep-projects
-git clone https://github.com/Anas-Hassiba-2030/fabric.git  # if not already cloned
+cd /c/Users/YourName/Projects          # adjust to where you keep code
+git clone https://github.com/Anas-Hassiba-2030/fabric.git
 cd fabric
 git checkout csirt-guard-enforcement
 git pull
 ```
 
-Requirements: Python 3.8+ (every Mac since Big Sur has this). No `pip install`, no Docker, no
-Anthropic key needed to demo OpsRAG.
-
-## 2. Run the deterministic proofs first (≈8 seconds)
-
-Before opening the browser, prove every check is green on your machine:
+### 2. Run the deterministic proofs
 
 ```bash
 bash run_tests.sh
 ```
 
-Expected ending: `ALL GREEN`. 40+ PASS lines including:
-- `opsrag schema + bootstrap from memory + oracle loop`
-- `ingest extractors (CLI + RFC -> typed nodes, idempotent merge)`
+Expected last line: `ALL GREEN`. This proves the entire system (40+ checks) including the OpsRAG
+loop. No Docker, no Anthropic key, no extra installs.
 
-If anything fails, stop and tell me — the suite is the contract.
-
-## 3. Start the console
+### 3. Start the console
 
 ```bash
+python webui/app.py
+```
+
+Leave this terminal open — you'll see:
+
+```
+WRATH Console on http://localhost:8765
+```
+
+### 4. Open in Chrome / Edge
+
+Navigate to `http://localhost:8765`.
+
+Click **🧪 OpsRAG Lab** in the toolbar → pick any fault → click **▶ Run Loop** → see the
+FRR-like terminal output + `✓ executable  ✓ evidence hit  ✓ diagnosis correct` oracle verdict.
+
+---
+
+## Option B — PowerShell or Command Prompt
+
+If you prefer PowerShell / `cmd`:
+
+```powershell
+cd C:\Users\YourName\Projects\fabric
+git checkout csirt-guard-enforcement
+git pull
+python webui\app.py
+```
+
+`run_tests.sh` needs Git Bash for the `bash` command. To run individual Python tests in
+PowerShell:
+
+```powershell
+python webui\test_opsrag.py    # OpsRAG kernel (32 checks)
+python webui\test_ingest.py    # Phase 3 ingestion (16 checks)
+python webui\doctor.py         # full doctor check
+```
+
+To set environment variables in PowerShell:
+
+```powershell
+$env:ANTHROPIC_API_KEY = "sk-..."
+$env:WRATH_UI_PORT = "9000"       # if 8765 is taken
+python webui\app.py
+```
+
+---
+
+## Option C — WSL 2 (best for Phase 2-B Containerlab later)
+
+If you have WSL 2 installed, run everything inside it — Linux commands work exactly as in the
+cloud container, and Containerlab + Docker Desktop also work under WSL 2 when Phase 2-B starts.
+
+```bash
+# inside WSL2 Ubuntu terminal:
+cd ~/projects/fabric
+git pull origin csirt-guard-enforcement
+bash run_tests.sh
 python3 webui/app.py
-# leave that terminal open; you'll see "WRATH Console on http://localhost:8765"
 ```
 
-Then open `http://localhost:8765` in **the same Mac's** browser. (Not Chrome on a different machine,
-not localhost in your remote SSH session — your laptop's own browser.)
+Then open `http://localhost:8765` in your Windows browser — WSL 2 ports are forwarded to Windows
+automatically.
 
-## 4. Demo the OpsRAG Lab in 30 seconds
+---
 
-1. Click **🧪 OpsRAG Lab** in the toolbar (right-hand side, between 🔧 Troubleshoot and 📊 Analytics).
-2. Modal opens with: typed knowledge-graph stats + three seeded BGP faults.
-3. On any fault card, click **▶ Run Loop**.
-4. The card expands to show:
-   - the discovery commands the synthesiser picked (e.g. `R2: show bgp summary`),
-   - the FRR-like terminal output per command,
-   - **three verdict badges**: `✓ executable`, `✓ evidence hit`, `✓ diagnosis correct`,
-   - synthesised root cause vs ground truth side-by-side + the fix command.
+## Requirements (all options)
 
-That is the **action-grounded retrieval loop**. No Docker, no API key.
+| Requirement | Where to get it | Check |
+|---|---|---|
+| Python 3.8+ | python.org → Windows installer (check "Add to PATH") | `python --version` |
+| Git | git-scm.com | `git --version` |
+| No `pip install` needed | stdlib only | — |
+| No Docker needed | for OpsRAG Lab demo | — |
+| No Anthropic key needed | for OpsRAG Lab demo | — |
 
-## 5. (Optional) Live-mode demo
-
-Set an Anthropic key first:
-
-```bash
-export ANTHROPIC_API_KEY=sk-...
-python3 webui/app.py
-```
-
-In the console, flip the **Demo / Live** toggle to Live. Type a problem (or click ⊞ Blueprints).
-The pipeline now calls real Claude Opus/Sonnet/Haiku per agent tier. The OpsRAG Lab still works
-without a key — it is the deterministic side of the system.
-
-## 6. (Optional) Run the doctor
-
-```bash
-python3 webui/doctor.py
-# with a key, this also makes ONE real call to Opus 4.7 to prove the live engine works.
-ANTHROPIC_API_KEY=sk-... python3 webui/doctor.py
-```
+---
 
 ## Troubleshooting
 
-- **"localhost refused to connect"** — the server isn't running on your Mac. Run step 3 again
-  in a terminal on your laptop. Closing the terminal stops the server.
-- **Port 8765 in use** — change it: `WRATH_UI_PORT=9000 python3 webui/app.py`.
-- **macOS firewall popup** — allow it; the server only binds locally.
-- **No `python3`** — `xcode-select --install` then re-try (ships Python 3 by default since macOS 10.15).
+| Symptom | Fix |
+|---|---|
+| `localhost refused to connect` | The server isn't running. Run `python webui\app.py` in a terminal and leave it open. |
+| `python: command not found` | Python not on PATH — re-run installer, check "Add to PATH". Or use `py webui\app.py`. |
+| Port 8765 in use | `set WRATH_UI_PORT=9000 && python webui\app.py` (cmd) or `$env:WRATH_UI_PORT=9000; python webui\app.py` (PS). |
+| Windows Defender firewall pop-up | Allow access — the server only listens on localhost, not the network. |
+| `bash: command not found` in cmd | Use Git Bash or install it via git-scm.com. `run_tests.sh` requires bash. |
+| `ModuleNotFoundError` | Make sure you're in the `fabric` directory before running; the imports use relative paths. |
