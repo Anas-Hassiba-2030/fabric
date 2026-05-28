@@ -282,7 +282,7 @@ The gate has three tiers:
 | **REJECT** (configuration) | 12 patterns | `router bgp`, `neighbor remote-as`, `ip address`, `configure terminal` |
 | **WARN** (potentially risky) | Variable | `clear bgp *`, `debug all` |
 
-A runbook passes the gate if **all** of its commands are in the OK tier. The gate is called before `execution_gated_admit()` — a runbook with any rejected command is never admitted to the graph, regardless of oracle result. 57 deterministic checks prove this (Phase 4, ALL GREEN).
+A runbook passes the gate if **all** of its commands are in the OK tier. The gate is called before `execution_gated_admit()` — a runbook with any rejected command is never admitted to the graph, regardless of oracle result. 64 deterministic checks prove this (Phase 4, ALL GREEN).
 
 **Seeded fault validation:** all 10 seeded fault runbooks pass the gate (100% ≥ 90% exit criterion).
 
@@ -677,7 +677,7 @@ python webui/test_opsrag.py         # sim + oracle (all 10 faults)
 python webui/test_graph_sut.py      # graph SUT (42 checks, 52 concepts)
 python webui/test_phase6.py         # comparative evaluation (53 checks)
 python webui/test_feedback.py       # feedback ablation (53 checks)
-python webui/test_grammar_gate.py   # CLI grammar gate (57 checks)
+python webui/test_grammar_gate.py   # CLI grammar gate (64 checks)
 
 # Interactive evaluation UI:
 python webui/app.py                 # open http://localhost:8765

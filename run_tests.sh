@@ -109,7 +109,7 @@ step "Phase 4 LLM synthesiser + Dense-RAG baseline proof (no API key)"
 if "$PY" webui/test_llm_synthesizer.py >/tmp/_llm.out 2>&1; then ok "llm_sut fallback + dense_rag BM25 retrieval + response parser (42 checks)"; else bad "llm synthesiser"; cat /tmp/_llm.out; fi
 
 step "Phase 4 CLI grammar gate proof (rejects config cmds, all seeded faults pass)"
-if "$PY" webui/test_grammar_gate.py >/tmp/_gg.out 2>&1; then ok "grammar gate: 26 ok patterns, 12 config-reject, warns, seeded faults 100% pass (57 checks)"; else bad "grammar gate"; cat /tmp/_gg.out; fi
+if "$PY" webui/test_grammar_gate.py >/tmp/_gg.out 2>&1; then ok "grammar gate: 26 ok patterns, 12 config-reject, warns, seeded faults 100% pass (64 checks)"; else bad "grammar gate"; cat /tmp/_gg.out; fi
 
 step "Phase 5 dual-signal feedback loop proof (execution-gated vs user-gated ablation)"
 if "$PY" webui/test_feedback.py >/tmp/_fb.out 2>&1; then ok "exec-gated coherence 1.0 vs user-gated 0.146 under popularity bias (53 checks)"; else bad "feedback loop"; cat /tmp/_fb.out; fi

@@ -129,7 +129,7 @@ The academically novel evaluation methodology, built once and reused by every la
 - ✅ `webui/opsrag/grammar_gate.py` — CLI grammar gate: 26 show/diagnostic patterns (ok),
   12 config-command patterns (reject), warn tier for unknown/dangerous commands. Gate is
   called before any command is emitted or admitted to the graph.
-- ✅ `webui/test_grammar_gate.py` — **57 checks ALL GREEN**. All 10 seeded faults pass the
+- ✅ `webui/test_grammar_gate.py` — **64 checks ALL GREEN**. All 10 seeded faults pass the
   gate (100% ≥ 90% exit criterion).
 - Gate is integrated in the synthesiser pipeline: `gate(runbook)["pass"]` must be True
   before `execution_gated_admit()` is called.

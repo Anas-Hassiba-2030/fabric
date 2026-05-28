@@ -388,7 +388,7 @@ A runbook passes the gate if **all** commands are in the OK tier. The gate is ca
 synthesiser pipeline before `execution_gated_admit()`. A runbook with any REJECT command is
 never admitted, regardless of oracle result.
 
-**57 deterministic checks** in `webui/test_grammar_gate.py` prove this. All 10 seeded fault
+**64 deterministic checks** in `webui/test_grammar_gate.py` prove this. All 10 seeded fault
 runbooks pass the gate (100% ≥ 90% exit criterion).
 
 ### 3.10 The Feedback Loop (`webui/opsrag/feedback.py`)
@@ -689,7 +689,7 @@ key and no Docker.
 | `test_ingest.py` | Typed ingestion (CLI + RFC → nodes, idempotent) | 16 checks |
 | `test_evaluator.py` | Benchmark harness, all 5 metrics, per-category | ALL GREEN |
 | `test_llm_synthesizer.py` | BM25 primitives, SUT contract, parser, fallback | 42 checks |
-| `test_grammar_gate.py` | 26 OK / 12 REJECT / warns; all 10 faults pass gate | 57 checks |
+| `test_grammar_gate.py` | 26 OK / 12 REJECT / warns; all 10 faults pass gate | 64 checks |
 | `test_feedback.py` | Execution-gated coherence 1.0 > user-gated 0.146 | 53 checks |
 | `test_phase6.py` | Tables 2-4, Welch t-test, OpsRAG exec > naive | 53 checks |
 | `test_graph_sut.py` | Graph SUT AR > naive AR, 52 concept paragraphs | 42 checks |
@@ -848,7 +848,7 @@ webui/opsrag/
 
 # Tests
 webui/test_opsrag.py    ← sim + oracle loop (all 10 faults)
-webui/test_grammar_gate.py ← 57 checks: grammar tiers + fault gate pass rate
+webui/test_grammar_gate.py ← 64 checks: grammar tiers + fault gate pass rate
 webui/test_feedback.py  ← 53 checks: exec-gated 1.0 > user-gated under bias
 webui/test_graph_sut.py ← 42 checks: Graph SUT AR > naive, 52 concept paragraphs
 webui/test_phase6.py    ← 53 checks: Tables 2-4 + OpsRAG exec > naive p<0.001

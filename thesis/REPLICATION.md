@@ -89,7 +89,7 @@ Graph SUT with popular_fraction=0.3, wrong_rate=0.7, accept_rate=0.9, seed=99.
 
 ```bash
 python3 webui/test_grammar_gate.py
-# 57 checks ALL PASS — all seeded faults pass the gate (100% ≥ 90%)
+# 64 checks ALL PASS — all seeded faults pass the gate (100% ≥ 90%)
 ```
 
 ### All seeded faults close end-to-end
