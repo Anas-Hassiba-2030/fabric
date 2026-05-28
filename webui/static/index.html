@@ -323,6 +323,39 @@
   .ibacts button:hover{color:var(--accent2);border-color:var(--accent2)}
   .ibacts button.del:hover{color:var(--bad);border-color:var(--bad)}
   @media(max-width:1100px){.workspace{grid-template-columns:1fr}html,body{overflow:auto}.app{height:auto;min-height:100vh}}
+
+  /* OpsRAG Lab panel */
+  .orgraph{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:18px;padding:12px 14px;
+    background:rgba(110,168,255,.06);border:1px solid var(--brd);border-radius:12px}
+  .orgraph .ogtitle{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);width:100%;margin-bottom:5px}
+  .ogtype{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;
+    background:rgba(54,224,200,.12);border:1px solid rgba(54,224,200,.25);color:var(--accent2)}
+  .ogedge{font-size:11px;color:var(--muted);margin-left:4px}
+  .orfc{border:1px solid var(--brd);border-radius:14px;padding:15px 17px;margin-bottom:14px;
+    background:linear-gradient(160deg,rgba(110,168,255,.05),rgba(54,224,200,.03))}
+  .orfscopes{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
+  .orfscope{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.5px;
+    background:rgba(255,255,255,.06);border:1px solid var(--brd2);color:var(--muted)}
+  .orftitle{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:5px;line-height:1.3}
+  .orfsymptom{font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:12px}
+  .orfrunbtn{background:linear-gradient(135deg,var(--accent),#2a7eed);color:#fff;border:none;
+    border-radius:10px;padding:7px 17px;font-size:12px;font-weight:700;cursor:pointer;
+    transition:.15s;letter-spacing:.3px}
+  .orfrunbtn:hover{opacity:.85}.orfrunbtn:disabled{opacity:.45;cursor:not-allowed}
+  .orfresult{margin-top:14px;display:none}
+  .orfresult.show{display:block}
+  .orfcmds{font-size:11px;color:var(--muted);margin-bottom:10px}
+  .orfterm{background:#060d1a;border:1px solid #1a2540;border-radius:10px;padding:10px 13px;
+    margin-bottom:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;overflow-x:auto}
+  .orfdev{display:block;color:var(--accent2);margin-bottom:4px;font-size:10.5px;font-weight:700}
+  .orfterm pre{margin:0;color:#b4c8e8;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+  .orfverdict{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0 8px;align-items:center}
+  .orfvok{color:var(--ok);font-size:12px;font-weight:700}
+  .orfvbad{color:var(--bad);font-size:12px;font-weight:700}
+  .orfrc{font-size:12px;line-height:1.6;padding:10px 12px;border-radius:10px;
+    background:rgba(255,255,255,.03);border:1px solid var(--brd)}
+  .orfrc b{color:var(--muted);font-size:10.5px;letter-spacing:.4px;text-transform:uppercase}
+  .orftag-bgp{color:#6ea8ff}.orftag-link{color:var(--warn)}.orftag-tcp-auth{color:#c084fc}
 </style>
 </head>
 <body>
@@ -363,6 +396,7 @@
         <button class="minibtn" id="complianceBtn" title="Standalone NIST/CIS/PCI/HIPAA compliance pack">🛡 Compliance</button>
         <button class="minibtn" id="assuranceBtn" title="Telemetry/SLO catalog + drift check vs live read-only state">📡 Assurance</button>
         <button class="minibtn" id="rcaBtn" title="Root-cause analysis: isolate a fault from the read-only network state">🔧 Troubleshoot</button>
+        <button class="minibtn" id="opsragBtn" title="OpsRAG Lab — action-grounded BGP diagnosis: inject a fault, run the synthesiser, see the oracle verdict">🧪 OpsRAG Lab</button>
         <button class="minibtn" id="analyticsBtn" title="Cross-run analytics dashboard">📊 Analytics</button>
         <button class="minibtn" id="inboxBtn" title="Saved-results inbox — bookmark runs with a note">📥 Inbox</button>
       </span>
@@ -682,6 +716,56 @@ async function downloadTopologyPng(){
     img.onerror=()=>{URL.revokeObjectURL(u);window.open(svgUrl,"_blank");};
     img.src=u;
   }catch(e){window.open(svgUrl,"_blank");}}
+async function openOpsRAGLab(){
+  let faults=[],graph={};
+  try{[faults,graph]=await Promise.all([
+    fetch("/api/opsrag/faults").then(r=>r.json()),
+    fetch("/api/opsrag/graph").then(r=>r.json())
+  ]);}catch(e){}
+  const byType=graph.by_type||{};
+  const typeOrder=["Concept","Runbook","Command","Configuration","Symptom","RootCause"];
+  const typeBadges=typeOrder.filter(t=>byType[t]>0).map(t=>`<span class="ogtype">${t} <b>${byType[t]}</b></span>`).join("");
+  const graphHtml=`<div class="orgraph"><span class="ogtitle">Typed knowledge graph (bootstrapped from WRATH memory)</span>${typeBadges}<span class="ogedge">${graph.edges||0} edges</span></div>`;
+  const scopeColor=s=>s==="bgp"?"orftag-bgp":s==="link"?"orftag-link":s==="tcp-auth"?"orftag-tcp-auth":"";
+  const faultHtml=faults.map(f=>{
+    const scopes=(f.scope||[]).map(s=>`<span class="orfscope ${scopeColor(s)}">${s}</span>`).join("");
+    return `<div class="orfc" id="orfc-${f.id}">
+      <div class="orfscopes">${scopes}</div>
+      <div class="orftitle">${f.title.replace(/</g,"&lt;")}</div>
+      <div class="orfsymptom">${(f.symptom||"").replace(/</g,"&lt;")}</div>
+      <button class="orfrunbtn" id="orbtn-${f.id}">▶ Run Loop</button>
+      <div class="orfresult" id="orres-${f.id}"></div>
+    </div>`;}).join("");
+  openModal("🧪 OpsRAG Lab",`<p style="font-size:12px;color:var(--muted);margin:0 0 14px">
+    Inject a seeded BGP fault, run the deterministic synthesiser, watch the execution oracle score the result — <b>no Docker required</b>.</p>
+    ${graphHtml}${faultHtml}`);
+  faults.forEach(f=>{const btn=document.getElementById("orbtn-"+f.id);if(btn)btn.onclick=()=>runOpsRAGFault(f.id);});}
+async function runOpsRAGFault(faultId){
+  const btn=document.getElementById("orbtn-"+faultId);
+  const resEl=document.getElementById("orres-"+faultId);
+  btn.disabled=true;btn.textContent="…running";
+  let data;
+  try{data=await fetch("/api/opsrag/run?fault_id="+encodeURIComponent(faultId)).then(r=>r.json());}
+  catch(e){resEl.innerHTML='<div class="placeholder">request failed</div>';resEl.classList.add("show");
+    btn.disabled=false;btn.textContent="▶ Run Loop";return;}
+  const rb=data.runbook||{},res=data.result||{},fault=data.fault||{};
+  const cmds=(rb.commands||[]).map(c=>`<code>${c.device}: ${c.cmd}</code>`).join(" · ");
+  const terminals=(res.command_outputs||[]).map(o=>`<div class="orfterm">
+    <span class="orfdev">${(o.device||"?").replace(/</g,"&lt;")} # ${(o.cmd||"").replace(/</g,"&lt;")}</span>
+    <pre>${(o.stdout||"").replace(/</g,"&lt;")}</pre></div>`).join("");
+  const verd=(k,lbl)=>`<span class="${res[k]?"orfvok":"orfvbad"}">${res[k]?"✓":"✗"} ${lbl}</span>`;
+  const verdict=`<div class="orfverdict">${verd("executable","executable")}${verd("evidence_hit","evidence hit")}${verd("diagnosis_correct","diagnosis correct")}</div>`;
+  const gtrc=((fault.ground_truth||{}).root_cause||"(unknown)").replace(/</g,"&lt;");
+  const synRC=(rb.concluded_root_cause||"(no signal)").replace(/</g,"&lt;");
+  const fixCmd=((fault.ground_truth||{}).fix||"").replace(/</g,"&lt;");
+  resEl.innerHTML=`<div class="orfcmds">Discovery commands: ${cmds}</div>${terminals}${verdict}
+    <div class="orfrc"><b>Synthesised root cause</b><br>
+      <span class="${res.diagnosis_correct?"orfvok":""}">${synRC}</span><br><br>
+      <b>Ground truth</b><br><span style="color:var(--muted)">${gtrc}</span>
+      ${fixCmd?`<br><br><b>Fix</b><br><code style="font-size:11px;color:var(--accent2)">${fixCmd}</code>`:""}
+    </div>`;
+  resEl.classList.add("show");
+  btn.disabled=false;btn.textContent="↺ Re-run";}
 function openHelp(){openModal("❔ How WRATH works",`
   <div class="helpsec"><h3>The idea</h3><p>WRATH turns a plain-language network problem into a validated, customer-ready solution stack. It's a <b>reasoning graph</b>, not a chatbot: the Orchestrator decomposes the problem and routes it across 16 specialist agents.</p></div>
   <div class="helpsec"><h3>A run, step by step</h3><ul>
@@ -775,7 +859,7 @@ let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(draw
   $("#helpBtn").onclick=openHelp;
   const gsRun=$("#gsRun");if(gsRun)gsRun.onclick=()=>{if(!$("#problem").value)$("#problem").value="Design an SR-MPLS core for a 3-DC service provider, multi-vendor; HLD + BoM + CTO one-pager.";$("#problem").focus();};
   const gsBp=$("#gsBp");if(gsBp)gsBp.onclick=openBlueprints;
-  const gsEx=$("#gsEx");if(gsEx)gsEx.onclick=openExamples;$("#analyticsBtn").onclick=openAnalytics;$("#inboxBtn").onclick=openInbox;$("#complianceBtn").onclick=openCompliance;$("#assuranceBtn").onclick=openAssurance;$("#rcaBtn").onclick=openTroubleshoot;
+  const gsEx=$("#gsEx");if(gsEx)gsEx.onclick=openExamples;$("#analyticsBtn").onclick=openAnalytics;$("#inboxBtn").onclick=openInbox;$("#complianceBtn").onclick=openCompliance;$("#assuranceBtn").onclick=openAssurance;$("#rcaBtn").onclick=openTroubleshoot;$("#opsragBtn").onclick=openOpsRAGLab;
   $("#shareBtn").onclick=()=>{if(lastSavedId)window.open(withTok("/api/export.html?id="+lastSavedId),"_blank");};
   $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});

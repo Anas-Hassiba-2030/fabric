@@ -50,6 +50,7 @@ import persist  # noqa: E402
 import rca  # noqa: E402
 import recall  # noqa: E402
 import tco  # noqa: E402
+from opsrag import bootstrap, oracle, sim, synthesizer  # noqa: E402
 import topology  # noqa: E402
 import trust  # noqa: E402
 import whatif  # noqa: E402
@@ -668,6 +669,42 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/compliance":
             md = compliance.report(parse_qs(u.query).get("problem", [""])[0])
             return self._send(200, "application/json", json.dumps({"markdown": md}).encode())
+        if u.path == "/api/opsrag/faults":
+            faults_dir = os.path.join(REPO, "thesis", "lab", "faults")
+            faults = []
+            for fname in sorted(os.listdir(faults_dir)):
+                if fname.startswith("f-") and fname.endswith(".json"):
+                    with open(os.path.join(faults_dir, fname), encoding="utf-8") as fh:
+                        f = json.load(fh)
+                    faults.append({
+                        "id": f["id"], "title": f["title"], "scope": f.get("scope", []),
+                        "symptom": f.get("symptom", ""),
+                        "layer": f.get("ground_truth", {}).get("layer", ""),
+                    })
+            return self._send(200, "application/json", json.dumps(faults).encode())
+        if u.path == "/api/opsrag/graph":
+            g = bootstrap.from_memory(REPO)
+            from opsrag.schema import validate
+            v = validate(g)
+            return self._send(200, "application/json", json.dumps({
+                "ok": v["ok"], "total": len(g.nodes), "by_type": v["by_type"],
+                "edges": len(g.edges), "errors": v.get("errors", [])[:5],
+            }).encode())
+        if u.path == "/api/opsrag/run":
+            qs = parse_qs(u.query)
+            fault_id = qs.get("fault_id", [""])[0]
+            faults_dir = os.path.join(REPO, "thesis", "lab", "faults")
+            candidates = [f for f in os.listdir(faults_dir) if f == fault_id + ".json"]
+            if not candidates:
+                return self._send(404, "application/json",
+                                  json.dumps({"error": f"fault {fault_id!r} not found"}).encode())
+            with open(os.path.join(faults_dir, candidates[0]), encoding="utf-8") as fh:
+                fault = json.load(fh)
+            runbook = synthesizer.synthesise_with_sim(fault)
+            result = oracle.execute_runbook(fault, runbook)
+            return self._send(200, "application/json", json.dumps({
+                "fault": fault, "runbook": runbook, "result": result
+            }).encode())
         if u.path == "/api/topology.svg":
             svg = topology.svg_for(parse_qs(u.query).get("problem", [""])[0])
             return self._send(200, "image/svg+xml; charset=utf-8", svg.encode())
