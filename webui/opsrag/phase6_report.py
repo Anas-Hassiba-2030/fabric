@@ -376,26 +376,63 @@ def format_table4(t4: Dict) -> str:
 # Full report entry point
 # ---------------------------------------------------------------------------
 
-def generate_report(bm_dir: str = _BM_DIR) -> Dict:
-    """Generate the full Phase 6 comparative evaluation report.
+def build_table5(bm_dir: str = _BM_DIR) -> Dict:
+    """Table 5 — Feedback-loop ablation (execution-gated vs user-gated coherence).
 
-    This is the main entry point called by the API endpoint and the test suite.
-    Returns a structured dict with tables 2–4 + plain-text renders.
+    Runs a 200-interaction popularity-bias stream using the graph SUT (best performer)
+    and compares execution-gated vs user-gated graph admission strategies.
+    Deterministic (seed=99). Takes ~1s; skipped if feedback module unavailable.
+    """
+    try:
+        from . import feedback, graph_sut
+        import json, os
+
+        questions = []
+        for fn in sorted(os.listdir(bm_dir)):
+            if fn.endswith(".json") and fn != "schema.json":
+                with open(os.path.join(bm_dir, fn), encoding="utf-8") as fh:
+                    questions.extend(json.load(fh))
+
+        stream = feedback.popularity_bias_stream(
+            questions, graph_sut.graph_sut, n=200, rng_seed=99
+        )
+        result = feedback.ablation(stream, step=20)
+        return {
+            "exec_gated_coherence": result["execution_gated"]["final_coherence"],
+            "user_gated_coherence": result["user_gated"]["final_coherence"],
+            "delta_coherence": result["delta"]["coherence"],
+            "exec_gated_admitted": result["execution_gated"]["admitted"],
+            "user_gated_admitted": result["user_gated"]["admitted"],
+            "verdict": result["verdict"],
+            "text": feedback.format_ablation_table(result),
+        }
+    except Exception as e:
+        return {"error": str(e), "text": f"Table 5 unavailable: {e}"}
+
+
+def generate_report(bm_dir: str = _BM_DIR) -> Dict:
+    """Generate the full Phase 6/7 comparative evaluation report (Tables 2–5).
+
+    Main entry point for the API endpoint and the test suite.
+    Returns a structured dict with all four tables and plain-text renders.
     """
     raw = run_all_suts(bm_dir)
     t2 = build_table2(raw)
     t3 = build_table3(raw)
     t4 = build_table4(raw)
+    t5 = build_table5(bm_dir)
 
     return {
         "n_questions": raw["n_questions"],
         "table2": t2,
         "table3": t3,
         "table4": t4,
+        "table5": t5,
         "text": {
             "table2": format_table2(t2),
             "table3": format_table3(t3),
             "table4": format_table4(t4),
+            "table5": t5.get("text", ""),
         },
         "headline_opsrag": raw["suts"].get("opsrag", {}).get("headline", {}),
         "headline_graph": raw["suts"].get("graph", {}).get("headline", {}),

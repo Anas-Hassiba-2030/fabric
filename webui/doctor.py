@@ -68,6 +68,7 @@ run("phase-4 cli grammar gate proof", [sys.executable, "webui/test_grammar_gate.
 run("phase-5 dual-signal feedback loop ablation proof", [sys.executable, "webui/test_feedback.py"])
 run("phase-6 comparative evaluation report proof", [sys.executable, "webui/test_phase6.py"])
 run("phase-6 graph SUT typed-graph retrieval proof", [sys.executable, "webui/test_graph_sut.py"])
+run("phase-7 benchmark integrity (300 questions, 52 categories)", [sys.executable, "thesis/benchmark/validate_benchmark.py"])
 run("worked-example reader proof", [sys.executable, "webui/test_examples.py"])
 run("critic-intensity dial proof", [sys.executable, "webui/test_criticism.py"])
 run("audience reframing proof", [sys.executable, "webui/test_audience.py"])

@@ -36,11 +36,11 @@ Table 2 — Headline metric comparison
 --------------------------------------------------------------------
 SUT                             ans_rel  exec_rate   diag_acc      n
 --------------------------------------------------------------------
-Naive floor                       0.118      0.000      0.000    210
-Dense-RAG (BM25)                  0.066      0.000      0.000    210
-OpsRAG (deterministic)            0.064      0.890      1.000    210
-Graph SUT (typed-graph retrieval) 0.173      0.695      1.000    210
-LLM (Opus 4.7 / fallback)        0.064      0.890      1.000    210
+Naive floor                       0.085      0.000      0.000    300
+Dense-RAG (BM25)                  0.056      0.000      0.000    300
+OpsRAG (deterministic)             0.045      0.623      0.800    300
+Graph SUT (typed-graph retrieval)  0.124      0.803      1.000    300
+LLM (Opus 4.7 / fallback)         0.045      0.623      0.800    300
 ```
 
 ### Table 3 — Per-category ablation
@@ -209,7 +209,7 @@ python3 webui/app.py
 After `git checkout csirt-guard-enforcement`:
 
 ```bash
-# Verify benchmark is complete (210 questions):
+# Verify benchmark is complete (300 questions):
 python3 -c "
 import json, os
 bm = 'thesis/benchmark'
@@ -217,7 +217,7 @@ qs = []
 for f in sorted(os.listdir(bm)):
     if f.endswith('.json') and f != 'schema.json':
         qs.extend(json.load(open(os.path.join(bm, f))))
-print('Questions:', len(qs))    # 210
+print("Questions:", len(qs))    # 300
 cats = len(set(q['category'] for q in qs))
 print('Categories:', cats)      # 38
 fault_qs = len([q for q in qs if q.get('fault_id')])
