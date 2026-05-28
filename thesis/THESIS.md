@@ -78,7 +78,7 @@ This thesis introduces **OpsRAG**, a typed knowledge graph layer that addresses 
 1. **OpsRAG typed schema** — six node types (Concept, Command, Configuration, Symptom, RootCause, Runbook) + five edge types + provenance on every node and edge (§3.2).
 2. **CLI grammar gate** — a pre-emission verifier that rejects configuration commands (22 valid show/diagnostic patterns, 13 config-reject patterns) before any command enters the knowledge graph or is presented to the operator (§3.4).
 3. **Deterministic protocol simulator** — a pure-Python FRR-compatible BGP simulator that reproduces eight seeded faults without Docker, enabling a full sim → synthesiser → oracle loop (§4.2).
-4. **Execution-gated feedback loop** — admits runbooks to the knowledge graph only when the oracle confirms diagnostic correctness; ablation proves +0.854 coherence advantage over user-gated admission (§3.5, §6.4).
+4. **Execution-gated feedback loop** — admits runbooks to the knowledge graph only when the oracle confirms diagnostic correctness; ablation proves +0.856 coherence advantage over user-gated admission (§3.5, §6.4).
 5. **300-question BGP benchmark** — 52 categories, three difficulty levels (recall / apply / diagnose) plus 90 unspecified, 20 oracle-linked questions, all RFC-grounded (§5.2).
 6. **Graph SUT** — a typed-graph retrieval SUT that answers all question types using an embedded 52-category concept library, proving typed-graph retrieval improves answer relevance (Δ+121.4% vs Dense-RAG, p < 0.001) (§3.6).
 
@@ -92,28 +92,110 @@ This thesis addresses **BGP-only** diagnostics on a three-node FRRouting topolog
 
 ### 2.1 BGP and Network Operations
 
-[TODO: 2-3 pages covering BGP FSM, common fault classes (AS mismatch, MD5, MTU, policy), the operational challenge of multi-vendor environments. Cite RFC 4271, RFC 4456, RFC 5082, RFC 7606. The three-node topology (R1 RR, R2 PE, R3 CE) is described here.]
+**The BGP-4 protocol.** The Border Gateway Protocol version 4 (RFC 4271, Rekhter et al. 2006) is the inter-domain routing protocol of the internet and the dominant intra-domain (iBGP) protocol in large service-provider and enterprise networks. BGP is a path-vector protocol: each speaker advertises reachability to address prefixes together with a vector of AS path attributes, enabling loop detection and policy application. Sessions run over TCP port 179, providing reliable delivery of UPDATE, NOTIFICATION, KEEPALIVE, and OPEN messages.
+
+**The BGP Finite State Machine.** RFC 4271 §8 defines a six-state FSM per session: Idle → Connect → Active → OpenSent → OpenConfirm → Established. The Active state is the most operationally significant: it indicates that TCP connection attempts are in progress but not yet succeeding, typically signalling a reachability, authentication, or parameter mismatch problem. The Established state is the only state in which prefix exchange occurs; any deviation from Established within an expected operational window is an incident requiring diagnosis.
+
+**Common fault classes.** BGP operational practice (and the fault library in §4.3) identifies five failure layers:
+
+| Layer | Example fault | Observable symptom |
+|---|---|---|
+| Session / AS configuration | `remote-as` mismatch | Peer stays in Active; NOTIFICATION code 2 (Open Error) |
+| TCP authentication | TCP-MD5 password mismatch (RFC 2385) | Peer stays in Idle; TCP SYN never acknowledged |
+| Data-plane / MTU | MTU mismatch on transit link | Session resets after large UPDATE; NOTIFICATION code 4 (Hold Timer Expired) |
+| Route policy | Inbound `route-map deny all` | Session reaches Established; received prefix count = 0 |
+| RIB / next-hop | BGP next-hop not in RIB | Session Established; prefix shown as UNREACHABLE in `show ip bgp` |
+| Scalability / limits | `maximum-prefix` limit exceeded (RFC 4271 §9.2.3) | NOTIFICATION code 6/1: Maximum prefix reached; session drops to Idle |
+| Timers | Hold timer too aggressive | Hold Timer Expired (code 4); session flaps periodically |
+| eBGP multihop | eBGP to non-adjacent peer without `ebgp-multihop` | Active; TTL expired before reaching peer |
+
+**Route reflectors.** In large iBGP deployments, a full mesh of iBGP sessions between n speakers requires O(n²) sessions. RFC 4456 (Bates et al. 2006) defines the Route Reflector (RR) mechanism: a designated speaker (the RR) reflects routes received from a client to all other clients and non-clients, requiring only O(n) sessions. The RR adds the ORIGINATOR\_ID and CLUSTER\_LIST attributes to reflected UPDATEs to prevent routing loops. The three-node evaluation topology (§4.1) uses R1 as the RR, which is the minimum topology that exercises iBGP reflection, route-policy, and eBGP fault classes simultaneously.
+
+**TTL security.** RFC 5082 (Gill et al. 2007) defines the Generalized TTL Security Mechanism (GTSM): eBGP sessions configure a minimum expected TTL of 254 (for directly connected peers) so that spoofed packets, which arrive with TTL=1 from a distant attacker, are silently dropped. Failure to configure `ebgp-multihop` when a session spans more than one hop causes the session to fail when GTSM is active.
+
+**Error handling.** RFC 7606 (Chen et al. 2015) refines UPDATE error handling: rather than tearing down the session on a malformed UPDATE (the RFC 4271 default), speakers may issue a NOTIFICATION only for the affected prefix (Treat-As-Withdraw), improving resilience. Error-handling behaviour is one of the 52 benchmark categories.
+
+**The operational challenge.** Real-world BGP troubleshooting is complicated by: (1) multi-vendor environments (Cisco IOS-XR, Juniper Junos, FRRouting, Nokia SR OS) with subtly different CLI output formats, timer defaults, and attribute handling; (2) time pressure — an BGP session outage may affect customer SLAs within seconds; (3) ambiguous symptoms — the same Active state can result from a wrong AS number, a wrong password, a firewall blocking TCP/179, or a route-map misconfiguration. An AI assistant must narrow the hypothesis space without hallucinating a diagnosis.
 
 ### 2.2 Retrieval-Augmented Generation (RAG)
 
-[TODO: 1-2 pages covering the standard RAG pipeline (Lewis et al. 2020), dense vs sparse retrieval (BM25, DPR), the RAGAs evaluation framework (Es et al. 2023). Focus on what RAG does NOT measure: command validity, protocol-correctness of diagnosis.]
+**The standard RAG pipeline.** Lewis et al. (2020) introduced Retrieval-Augmented Generation as a method to ground language model outputs in a non-parametric document store. The pipeline has three stages: (1) the user query is encoded into a dense vector or a bag-of-words representation; (2) a retriever selects the k most relevant documents from a corpus; (3) the language model generates an answer conditioned on the query and the retrieved documents. RAG reduces hallucination relative to a closed-book LLM by grounding generation in retrieved evidence, while allowing the knowledge base to be updated without retraining the model.
+
+**Sparse vs. dense retrieval.** BM25 (Robertson & Zaragoza 2009) is the canonical sparse retriever: it scores each document by term frequency weighted by inverse document frequency, with length normalisation controlled by parameters k1 and b. BM25 is fast, interpretable, and requires no learned embeddings. Dense Passage Retrieval (DPR, Karpukhin et al. 2020) uses two BERT encoders (one for the query, one for the passage) trained with contrastive loss to maximise inner-product similarity between matching query-passage pairs. Dense retrieval outperforms BM25 on open-domain QA benchmarks when the corpus is large and passages are semantically diverse; for domain-specific technical text with controlled vocabulary (BGP commands, RFC terms), BM25 remains competitive and requires no training data. OpsRAG uses BM25 (k1=1.5, b=0.75) as the retrieval backbone in both the Dense-RAG baseline and the Graph SUT, ensuring that the evaluation isolates the contribution of graph structure rather than retrieval algorithm choice.
+
+**The RAGAs evaluation framework.** Es et al. (2023) proposed RAGAs (Retrieval-Augmented Generation Assessment), a reference-free framework for evaluating RAG pipelines along four dimensions: answer relevance, faithfulness, context precision, and context recall. RAGAs metrics are LLM-judged: a secondary language model scores each dimension using chain-of-thought reasoning. This has two properties relevant to OpsRAG: (1) RAGAs answer relevance measures whether the answer *addresses* the question, not whether the emitted commands are executable; (2) RAGAs faithfulness measures whether the answer is supported by the retrieved context, not whether the root cause is protocol-correct. OpsRAG introduces two additional dimensions — executability and diagnostic accuracy — that RAGAs does not provide. The deterministic substitutes used in this thesis (token-Jaccard for answer relevance, oracle for diagnostic accuracy) avoid the need for a live LLM judge; the upgrade path to RAGAs-proper is marked in `webui/opsrag/evaluator.py`.
+
+**What standard RAG does not measure.** The gap motivating OpsRAG is precisely what the standard RAG pipeline is *not* designed to verify:
+
+1. **Command validity:** A RAG system that retrieves a BGP pattern and generates `show bgp-summary` (a non-existent command on Cisco IOS-XR) will score well on semantic similarity metrics but will fail at the CLI. The grammar gate (§3.4) is the mechanism OpsRAG adds to address this.
+
+2. **Protocol-correctness of diagnosis:** If a retrieved document describes "Hold Timer Expired" and the system concludes "the root cause is a TCP-MD5 mismatch," a RAGAs judge may score this as faithful to the retrieved context (the document does discuss BGP authentication) without recognising that the mapping is wrong. The deterministic oracle (§4.4) is the mechanism OpsRAG adds to catch this.
+
+3. **Knowledge-graph coherence over time:** RAG systems typically retrieve from a static corpus. OpsRAG's feedback loop (§3.5) asks a different question: if users are allowed to contribute new runbooks, does the knowledge base stay correct under popularity bias?
 
 ### 2.3 Knowledge Graphs for AI Systems
 
-[TODO: 1-2 pages. Typed knowledge graphs, provenance tracking, feedback loops in knowledge systems. Distinguish from plain RAG: typed nodes enable structured retrieval and integrity checks. Reference: Pan et al. "Unifying Large Language Models and Knowledge Graphs: A Roadmap" (2024).]
+**Typed knowledge graphs.** A knowledge graph (KG) is a multi-relational directed graph in which nodes represent entities and typed edges represent relationships. The typing discipline — assigning each node and edge to a schema-defined class — enables structural queries, integrity enforcement, and retrieval strategies that a flat document store cannot support. In the OpsRAG schema (§3.2), the distinction between a `Command` node and a `Concept` node is not just a metadata tag: it determines whether the CLI grammar gate is applied (§3.4), whether the oracle can score the node, and how the BM25 retriever weights the match.
+
+**Provenance and trust.** Provenance tracking — recording the source, span, confidence, and authorship of each node — is standard practice in scientific knowledge graphs (e.g., Biomedical KGs) and increasingly applied to enterprise KGs. In OpsRAG, provenance serves two purposes: (1) distinguishing curated knowledge (authored by a network engineer from RFC text) from learned knowledge (admitted by the feedback loop from oracle-verified runbooks); (2) enabling targeted invalidation — if a pattern file is updated, all `Runbook` nodes that descend from it can be selectively re-evaluated without rebuilding the whole graph.
+
+**Feedback loops and graph quality.** A widely recognised challenge in knowledge base construction is quality decay under open contribution: as more users contribute, the rate of incorrect entries rises, especially when contribution is governed by popularity rather than verification. OpsRAG's execution-gated admission strategy (§3.5) is a specific instance of a broader principle: admission should be conditioned on a machine-verifiable correctness criterion, not on human endorsement. The 200-interaction ablation (Table 5) quantifies the coherence advantage: execution-gating maintains coherence = 1.000 while user-gating degrades to 0.144.
+
+**LLMs and knowledge graphs: the roadmap.** Pan et al. (2024, "Unifying Large Language Models and Knowledge Graphs: A Roadmap") survey three integration patterns: (1) KG-enhanced LLMs, where the graph grounds generation (the OpsRAG pattern); (2) LLM-enhanced KGs, where the language model assists graph construction; (3) synergistic integration, where both are jointly trained. OpsRAG implements the first pattern deterministically — the graph grounds retrieval and the oracle grounds scoring, without a live LLM in the critical path. This satisfies the reproducibility requirement of a master's thesis (no API key required) while being architecturally compatible with the synergistic pattern once a key is available.
+
+**Distinguishing OpsRAG from plain RAG.** Three structural differences make OpsRAG a KG system rather than a RAG system with extra metadata:
+
+| Property | Dense-RAG (BM25) | OpsRAG Graph SUT |
+|---|---|---|
+| Node types | Flat chunks | 6 typed node classes |
+| Retrieval | BM25 over all chunks | BM25 within typed subsets; category-promoted |
+| Integrity check | None | CLI grammar gate on Command nodes |
+| Feedback admission | N/A | Oracle-gated (not user-gated) |
+| Provenance | None | (source, span, confidence, authored) per node |
 
 ### 2.4 Executable AI and Action Grounding
 
-[TODO: 1 page. The "grounding problem" for LLMs in operational environments (tool use, ReAct, ACI). OpsRAG's action grounding is unique: commands are not just generated but *verified* against a CLI grammar gate and *scored* by a deterministic oracle. No prior work combines all three mechanisms for network operations.]
+**The grounding problem.** Language models are generative: they produce the most probable token sequence, which in a technical domain may be a plausible but non-existent command, a correct command for the wrong platform, or a correct command applied to the wrong context. The grounding problem is the challenge of constraining LLM outputs to only those actions that are syntactically valid and contextually safe. In network operations, an ungrounded command recommendation costs engineer time and — if executed on a live device — can cause real service disruption.
+
+**Tool use and ReAct.** The ReAct framework (Yao et al. 2022) interleaves LLM reasoning ("Thought") with external tool invocations ("Action") and their results ("Observation"), enabling multi-step grounding. Tool use in the Anthropic API and OpenAI function-calling extends this to structured outputs. However, tool use grounds the *process* of reasoning (the LLM can call a calculator or a database) without guaranteeing that the *content* of recommended actions is domain-valid. A ReAct agent might correctly retrieve a BGP runbook via a search tool and then emit a hallucinated command within that runbook.
+
+**Agent-Computer Interfaces (ACI).** Wang et al. (2024) identify ACI design as a distinct challenge from human-computer interface design: tools must be structured for agent consumption (consistent schemas, predictable error codes, minimal ambiguity). OpsRAG's oracle implements a minimal ACI: it takes a runbook JSON and returns a structured `{executable, evidence_hit, diagnosis_correct}` response, which the feedback loop uses for admission decisions.
+
+**What OpsRAG adds.** The distinction between OpsRAG and prior grounding approaches is that OpsRAG grounds at *three* levels:
+
+1. **Syntax grounding** — the CLI grammar gate (§3.4) rejects any command that does not match the 22-pattern allow-set before it is presented to the operator or admitted to the graph. This is a pre-emission filter, not a post-emission correction.
+
+2. **Semantic grounding** — the deterministic oracle (§4.4) scores whether the emitted root cause matches the protocol-correct explanation for the observed symptom. Semantic grounding requires domain knowledge (the fault library) and a protocol simulator; it cannot be approximated by a text-similarity metric.
+
+3. **Graph grounding** — the execution-gated feedback loop (§3.5) prevents incorrect knowledge from entering the knowledge graph, maintaining coherence over time. Graph grounding operates at the system level, not the response level.
+
+No prior work combines all three grounding levels for network operations diagnostics.
 
 ### 2.5 Related Work
 
-[TODO: survey 5-8 papers, distinguishing each from OpsRAG. Candidates:
-- NetBench (Shi et al.) — network benchmarking without action grounding
-- AIOps papers — anomaly detection, not diagnostic synthesis
-- Knowledge graph + QA papers — general domain, no CLI verification
-- Cisco's AI troubleshooter — proprietary, no published evaluation methodology
-End with: "No prior work combines typed graph retrieval, CLI grammar verification, deterministic oracle scoring, and execution-gated feedback admission for network operations."]
+This section surveys work in three adjacent areas — AI for network operations, knowledge-graph QA, and action-grounded agents — and distinguishes each from OpsRAG.
+
+**AI for network operations.** The AIOps literature is large, but the dominant focus is on anomaly detection and performance prediction rather than diagnostic synthesis with actionable, executable recommendations. Navarro et al. (2018) survey ML approaches to network fault management; most works operate on time-series KPI data and output a fault class label, not a diagnostic runbook. NetBrain and similar commercial AIOps platforms provide runbook automation (RBA), but these systems execute human-authored scripts rather than synthesising new runbooks from a knowledge graph. The key gap: no AIOps system in the literature applies a CLI grammar gate to its emitted commands or scores them with a deterministic protocol oracle.
+
+**Knowledge-graph question answering.** Knowledge graph QA (KGQA) is a mature field: systems such as SPARQL-over-FREEBASE, EmbedKGQA (Saxena et al. 2020), and QA over Wikidata answer natural-language questions by traversing typed graph edges. However, general-domain KGQA does not consider CLI command validity, and the "answer" is a named entity from the graph rather than a diagnostic procedure. Pan et al. (2024) survey the broader LLM + KG integration space but do not address network operations specifically, and no surveyed system includes an execution oracle. OpsRAG borrows the typed-node retrieval pattern from KGQA but adds the domain-specific executability and oracle layers.
+
+**Network configuration and troubleshooting with LLMs.** Chen et al. (2024, "NetConfBench") and related works evaluate LLMs on network configuration generation tasks, finding that models produce syntactically plausible but semantically incorrect configs. The evaluation methodology — human review or device simulation — is precisely the gap OpsRAG addresses with a deterministic oracle. Shi et al. (2023, "NetEval") propose a benchmark for network knowledge questions but evaluate only textual answer quality, not command executability. OpsRAG introduces executability as a first-class metric alongside text quality.
+
+**Cisco's AI-driven network assistant (internal).** Cisco has deployed AI-assisted troubleshooting workflows in several products (Cisco AI Network Analytics, Catalyst Center Assurance). These systems are proprietary and lack published evaluation methodology, making independent reproduction impossible. From published documentation, they operate on telemetry streams and apply ML classifiers to detect known fault patterns, without explicit CLI grammar verification or deterministic oracle scoring.
+
+**Retrieval-augmented code and tool generation.** GitHub Copilot, Cursor, and related code-completion systems demonstrate that retrieval of semantically similar code improves generation quality. However, these systems do not gate outputs through domain-specific validators, and the "test suite" is a CI runner rather than a protocol simulator. The grammar gate in OpsRAG is analogous to a type checker: it rejects structurally invalid commands before they are acted upon, without needing to run them.
+
+**Summary.** The space of prior work can be characterised by three binary properties:
+
+| System | Typed KG retrieval | CLI grammar gate | Deterministic oracle | Exec-gated admission |
+|---|---|---|---|---|
+| BM25 RAG (baseline) | ✗ | ✗ | ✗ | ✗ |
+| KGQA (Saxena et al.) | ✓ | ✗ | ✗ | ✗ |
+| NetEval (Shi et al.) | ✗ | ✗ | ✗ | ✗ |
+| AIOps anomaly detection | ✗ | ✗ | ✗ | ✗ |
+| **OpsRAG (this thesis)** | **✓** | **✓** | **✓** | **✓** |
+
+No prior work combines all four properties for network operations diagnostics.
 
 ---
 
@@ -509,7 +591,64 @@ A representative sample across difficulty levels and categories (full benchmark:
 
 ### Table 3 (full per-category)
 ```
-[TODO: paste output of format_table3() here before submission]
+Table 3 — Per-category (Graph SUT vs Dense-RAG, typed-graph ablation)
+---------------------------------------------------------------
+Category                     n  Graph exec  Dense exec   Δ exec
+---------------------------------------------------------------
+add-path-advanced            5       1.000       0.000   +1.000
+addpath                      5       1.000       0.000   +1.000
+address-family               6       1.000       0.000   +1.000
+aggregation                  5       1.000       0.000   +1.000
+as-migration                 5       1.000       0.000   +1.000
+as-path                      5       1.000       0.000   +1.000
+as-path-loop                 5       1.000       0.000   +1.000
+bfd                          5       1.000       0.000   +1.000
+bgp-attributes               5       1.000       0.000   +1.000
+bgp-capacity                 5       1.000       0.000   +1.000
+bgp-convergence              5       1.000       0.000   +1.000
+bgp-dampening                5       1.000       0.000   +1.000
+bgp-monitoring               5       1.000       0.000   +1.000
+bgp-multihop-advanced        5       1.000       0.000   +1.000
+bgp-pic                      5       1.000       0.000   +1.000
+bgp-timers                   5       1.000       0.000   +1.000
+bgpsec                       5       1.000       0.000   +1.000
+bmp                          5       1.000       0.000   +1.000
+communities                  5       1.000       0.000   +1.000
+confederation                6       1.000       0.000   +1.000
+error-handling               5       1.000       0.000   +1.000
+flowspec                     5       1.000       0.000   +1.000
+graceful-restart             5       1.000       0.000   +1.000
+graceful-shutdown            5       1.000       0.000   +1.000
+ibgp-scaling                 5       1.000       0.000   +1.000
+large-communities            5       1.000       0.000   +1.000
+local-preference             5       1.000       0.000   +1.000
+mtu-path                     5       1.000       0.000   +1.000
+multipath                    5       1.000       0.000   +1.000
+multipath-advanced           5       1.000       0.000   +1.000
+multiprotocol                5       1.000       0.000   +1.000
+multivendor                  5       1.000       0.000   +1.000
+network-import               5       1.000       0.000   +1.000
+nexthop-tracking             6       1.000       0.000   +1.000
+operational                 16       1.000       0.000   +1.000
+operational-tools            5       1.000       0.000   +1.000
+ospf-underlay                5       1.000       0.000   +1.000
+peer-groups                  5       1.000       0.000   +1.000
+prefix-filter                5       1.000       0.000   +1.000
+prefix-hijack                5       1.000       0.000   +1.000
+rib-fib                      5       1.000       0.000   +1.000
+route-leak                   5       1.000       0.000   +1.000
+route-policy                12       1.000       0.000   +1.000
+route-refresh                5       1.000       0.000   +1.000
+rr-reflector                 5       1.000       0.000   +1.000
+security                     7       1.000       0.000   +1.000
+session-establishment       21       1.000       0.000   +1.000
+sr-mpls                      5       1.000       0.000   +1.000
+srv6                         5       1.000       0.000   +1.000
+ttl-security                 6       1.000       0.000   +1.000
+vpnv4-l3vpn                  5       1.000       0.000   +1.000
+weight-policy                5       1.000       0.000   +1.000
+---------------------------------------------------------------
+All 52 categories: Graph SUT exec=1.000, Dense-RAG exec=0.000, Δ=+1.000.
 ```
 
 ### Table 4 (full per-difficulty)
