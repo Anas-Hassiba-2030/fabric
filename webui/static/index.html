@@ -603,6 +603,18 @@
   }
   .fpz-dot.del{background:var(--burgundy);}
   .fpz-dot.log{background:var(--gold-soft);}
+  .fpz-dot.live{
+    background:var(--burgundy);
+    box-shadow:0 0 0 0 rgba(138,45,59,.55);
+    animation:fpDotPulse 1.4s ease-out infinite;
+  }
+  .fpz-dot.done{background:var(--sage);}
+  @keyframes fpDotPulse{
+    0%{box-shadow:0 0 0 0 rgba(138,45,59,.55);}
+    70%{box-shadow:0 0 0 7px rgba(138,45,59,0);}
+    100%{box-shadow:0 0 0 0 rgba(138,45,59,0);}
+  }
+  .fpz-lbl.running{color:var(--gold-soft);}
   .fpz-lbl{
     font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
     color:rgba(245,239,228,.45);flex:none;
@@ -1111,8 +1123,8 @@
         </div>
         <div class="fpz-sep"></div>
         <div class="fpzone">
-          <span class="fpz-dot log"></span>
-          <span class="fpz-lbl">Live</span>
+          <span class="fpz-dot log" id="fpLogDot"></span>
+          <span class="fpz-lbl" id="fpStageLbl">Live</span>
           <span class="fpz-pre" id="fpLogPrev">—</span>
           <button class="fpz-exp" id="expLog" title="Expand live log">⤢ Expand</button>
           <button class="fpz-close fphide" title="Hide bar">✕</button>
@@ -1289,7 +1301,10 @@ function setEdge(i,state){if(i<0)return;edgeState[i]=state;drawEdges();}
 function setStage(id,status){const n=$("#n-"+id);if(!n)return;const idx=order.indexOf(id);
   n.classList.remove("idle","run","done");n.classList.add(status==="running"?"run":status);const b=n.querySelector(".b");
   if(status==="running"){b.textContent="";if(idx>0)setEdge(idx-1,"live");if(autoFollow)showDetail(id,true);
-    n.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"});}
+    n.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"});
+    const sl=$("#fpStageLbl"),sd=$("#fpLogDot");
+    if(sl){sl.textContent=id;sl.classList.add("running");}
+    if(sd){sd.classList.remove("log","done");sd.classList.add("live");}}
   if(status==="done"){b.textContent=n.classList.contains("gate")?"⚑":"✓";if(idx>0)setEdge(idx-1,"done");}}
 function logLine(t,stage){const l=$("#log");const d=document.createElement("div");d.className="l";d.innerHTML=(stage&&stage!=="_"?`<span class="s">[${stage}]</span> `:"")+t.replace(/&/g,"&amp;").replace(/</g,"&lt;");l.appendChild(d);l.scrollTop=l.scrollHeight;
   const lp=$("#fpLogPrev");if(lp)lp.textContent=(stage&&stage!=="_"?"["+stage+"] ":"")+t;}
@@ -1325,6 +1340,11 @@ function savePrefs(){try{localStorage.setItem("wrathPrefs",JSON.stringify({probl
 async function run(){if(running)return;const problem=$("#problem").value.trim();if(!problem){$("#problem").focus();return;}savePrefs();
   running=true;$("#runBtn").disabled=true;$("#runBtn").textContent="● Running…";$("#log").innerHTML="";$("#detail").innerHTML='<div class="placeholder">Booting orchestrator…</div>';
   document.querySelector(".workspace")?.classList.add("fp-show");
+  const _sl=$("#fpStageLbl"),_sd=$("#fpLogDot"),_dp=$("#fpDelPrev"),_lp=$("#fpLogPrev");
+  if(_sl){_sl.textContent="booting";_sl.classList.add("running");}
+  if(_sd){_sd.classList.remove("log","done");_sd.classList.add("live");}
+  if(_dp)_dp.textContent="waiting for first deliverable…";
+  if(_lp)_lp.textContent="—";
   document.querySelector(".orchpill")?.classList.add("running");$("#orchLive").textContent="routing live";
   let res;try{res=await fetch(withTok("/api/run"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({problem,mode:LIVE?"live":"demo",intensity:$("#critic").value})});}catch(e){logLine("connection failed: "+e);return finish();}
   if(res.status===401){const t=await askInput("This console requires an access token","paste your token");if(t){localStorage.setItem("wrathTok",t);}running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";if(t)return run();return finish();}
@@ -1344,6 +1364,9 @@ async function run(){if(running)return;const problem=$("#problem").value.trim();
 function finish(){running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";
   $("#exportBtn").disabled=!order.some(s=>outputs[s]);$("#orchLive").textContent="idle";
   document.querySelector(".orchpill")?.classList.remove("running");
+  const sl=$("#fpStageLbl"),sd=$("#fpLogDot");
+  if(sl){sl.textContent="Complete";sl.classList.remove("running");}
+  if(sd){sd.classList.remove("live","log");sd.classList.add("done");}
   $("#whatifBtn").disabled=!lastSavedId;$("#patternBtn").disabled=!lastSavedId;$("#shareBtn").disabled=!lastSavedId;
   if(pendingFork&&lastSavedId&&lastSavedId!==pendingFork.base){const a=pendingFork.base,b=lastSavedId;pendingFork=null;setTimeout(()=>openCompareUI(a,b),350);}}
 function exportRun(){if(!order.length)return;let md_="# WRATH run\n\n**Problem:** "+($("#problem").value||"")+"\n\n";
@@ -1357,7 +1380,13 @@ async function openSaved(id){if(!id)return;let rec;try{rec=await(await fetch(wit
   setTimeout(()=>{order.forEach((sid,i)=>{const n=$("#n-"+sid);if(n){n.classList.remove("idle","run");n.classList.add("done");const b=n.querySelector(".b");if(b)b.textContent=n.classList.contains("gate")?"⚑":"✓";}if(i>0)setEdge(i-1,"done");});
     Object.entries(rec.deliverables||{}).forEach(([sid,o])=>{outputs[sid]=o;});
     Object.entries(rec.grounding||{}).forEach(([sid,g])=>showGround({stage:sid,status:g.status,checks:g.checks}));
-    const first=order.find(s=>outputs[s]);if(first)showDetail(first);logLine("loaded saved run "+id.slice(0,8),"_");$("#exportBtn").disabled=false;},90);}
+    const first=order.find(s=>outputs[s]);if(first)showDetail(first);
+    const lastDel=order.slice().reverse().find(s=>outputs[s]);
+    const dp=$("#fpDelPrev");if(dp&&lastDel)dp.textContent=outputs[lastDel].title||lastDel;
+    const sl=$("#fpStageLbl"),sd=$("#fpLogDot");
+    if(sl){sl.textContent="Loaded · "+id.slice(0,8);sl.classList.remove("running");}
+    if(sd){sd.classList.remove("live","log");sd.classList.add("done");}
+    logLine("loaded saved run "+id.slice(0,8),"_");$("#exportBtn").disabled=false;},90);}
 function openModal(titleHtml,bodyHtml,isDeliverable){const m=$("#modal");$("#modalTitle").innerHTML=titleHtml;
   $("#modalBody").innerHTML=bodyHtml;m.classList.add("show");if(isDeliverable)renderMermaid($("#modalBody"));}
 function closeModal(){$("#modal").classList.remove("show");}
@@ -1724,9 +1753,7 @@ let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(draw
   document.querySelectorAll(".fphide").forEach(b=>b.onclick=()=>document.querySelector(".workspace")?.classList.remove("fp-show"));
   $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;$("#examplesBtn").onclick=openExamples;$("#patternBtn").onclick=savePattern;
   $("#helpBtn").onclick=openHelp;
-  const gsRun=$("#gsRun");if(gsRun)gsRun.onclick=()=>{if(!$("#problem").value)$("#problem").value="Design an SR-MPLS core for a 3-DC service provider, multi-vendor; HLD + BoM + CTO one-pager.";$("#problem").focus();};
-  const gsBp=$("#gsBp");if(gsBp)gsBp.onclick=openBlueprints;
-  const gsEx=$("#gsEx");if(gsEx)gsEx.onclick=openExamples;$("#analyticsBtn").onclick=openAnalytics;$("#inboxBtn").onclick=openInbox;$("#complianceBtn").onclick=openCompliance;$("#assuranceBtn").onclick=openAssurance;$("#rcaBtn").onclick=openTroubleshoot;$("#opsragBtn").onclick=openOpsRAGLab;
+  $("#analyticsBtn").onclick=openAnalytics;$("#inboxBtn").onclick=openInbox;$("#complianceBtn").onclick=openCompliance;$("#assuranceBtn").onclick=openAssurance;$("#rcaBtn").onclick=openTroubleshoot;$("#opsragBtn").onclick=openOpsRAGLab;
   $("#shareBtn").onclick=()=>{if(lastSavedId)window.open(withTok("/api/export.html?id="+lastSavedId),"_blank");};
   $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
