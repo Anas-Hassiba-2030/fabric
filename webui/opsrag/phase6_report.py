@@ -256,25 +256,33 @@ def build_table2(raw: Dict) -> Dict:
 
 
 def build_table3(raw: Dict) -> Dict:
-    """Table 3 — Per-category: OpsRAG vs Dense-RAG (graph contribution ablation)."""
-    if "opsrag" not in raw["suts"] or "dense_rag" not in raw["suts"]:
+    """Table 3 — Per-category: Graph SUT vs Dense-RAG (typed-graph contribution ablation).
+
+    Compares the Graph SUT (typed-graph + concept library) against the Dense-RAG (BM25 over
+    flat chunks) baseline per category. The delta isolates the value of typed retrieval over
+    a flat-corpus retriever. OpsRAG (deterministic synth) is kept for cross-comparison.
+    """
+    if "graph" not in raw["suts"] or "dense_rag" not in raw["suts"]:
         return {}
 
-    opsrag_cats = raw["suts"]["opsrag"].get("by_category", {})
+    graph_cats = raw["suts"]["graph"].get("by_category", {})
     dense_cats = raw["suts"]["dense_rag"].get("by_category", {})
+    opsrag_cats = raw["suts"].get("opsrag", {}).get("by_category", {})
 
     rows = []
-    for cat in sorted(set(list(opsrag_cats.keys()) + list(dense_cats.keys()))):
-        ocat = opsrag_cats.get(cat, {})
+    for cat in sorted(set(list(graph_cats.keys()) + list(dense_cats.keys()))):
+        gcat = graph_cats.get(cat, {})
         dcat = dense_cats.get(cat, {})
+        ocat = opsrag_cats.get(cat, {})
         rows.append({
             "category": cat,
-            "n": ocat.get("n", 0),
-            "opsrag_exec": ocat.get("executability_rate"),
+            "n": gcat.get("n", 0) or dcat.get("n", 0),
+            "graph_exec": gcat.get("executability_rate"),
             "dense_exec": dcat.get("executability_rate"),
-            "opsrag_ans_rel": (ocat.get("answer_relevance") or {}).get("mean"),
+            "opsrag_exec": ocat.get("executability_rate"),
+            "graph_ans_rel": (gcat.get("answer_relevance") or {}).get("mean"),
             "dense_ans_rel": (dcat.get("answer_relevance") or {}).get("mean"),
-            "opsrag_diag_acc": ocat.get("diagnostic_accuracy"),
+            "graph_diag_acc": gcat.get("diagnostic_accuracy"),
             "dense_diag_acc": dcat.get("diagnostic_accuracy"),
         })
 
@@ -338,16 +346,16 @@ def format_table2(t2: Dict) -> str:
 
 def format_table3(t3: Dict) -> str:
     rows = t3.get("rows", [])
-    header = f"{'Category':<25} {'n':>4} {'OpsRAG exec':>12} {'Dense exec':>11} {'Δ exec':>8}"
+    header = f"{'Category':<25} {'n':>4} {'Graph exec':>11} {'Dense exec':>11} {'Δ exec':>8}"
     sep = "-" * len(header)
-    lines = ["Table 3 — Per-category (OpsRAG vs Dense-RAG, graph ablation)", sep, header, sep]
+    lines = ["Table 3 — Per-category (Graph SUT vs Dense-RAG, typed-graph ablation)", sep, header, sep]
     for r in rows:
-        oe = r.get("opsrag_exec")
+        ge = r.get("graph_exec")
         de = r.get("dense_exec")
-        delta = round((oe or 0) - (de or 0), 3) if oe is not None and de is not None else None
+        delta = round((ge or 0) - (de or 0), 3) if ge is not None and de is not None else None
         fmt = lambda v: f"{v:.3f}" if v is not None else "  —  "
         d_str = f"{delta:+.3f}" if delta is not None else "  —  "
-        lines.append(f"{r['category']:<25} {r['n']:>4} {fmt(oe):>12} {fmt(de):>11} {d_str:>8}")
+        lines.append(f"{r['category']:<25} {r['n']:>4} {fmt(ge):>11} {fmt(de):>11} {d_str:>8}")
     lines.append(sep)
     return "\n".join(lines)
 

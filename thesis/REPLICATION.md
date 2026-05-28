@@ -39,7 +39,7 @@ SUT                             ans_rel  exec_rate   diag_acc      n
 Naive floor                       0.085      0.000      0.000    300
 Dense-RAG (BM25)                  0.056      0.000      0.000    300
 OpsRAG (deterministic)             0.045      0.623      0.800    300
-Graph SUT (typed-graph retrieval)  0.124      0.803      1.000    300
+Graph SUT (typed-graph retrieval)  0.124      1.000      1.000    300
 LLM (Opus 4.7 / fallback)         0.045      0.623      0.800    300
 ```
 

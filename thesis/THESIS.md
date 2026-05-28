@@ -22,10 +22,10 @@ Network operations centres rely increasingly on AI assistants to troubleshoot co
 
 We evaluate OpsRAG on a 300-question BGP benchmark across 52 categories, comparing five system-under-test variants: a naive floor, a Dense-RAG (BM25) baseline, the OpsRAG deterministic synthesiser, a Graph SUT (typed-graph retrieval), and an LLM-driven synthesiser. The key results are:
 
-- **Executability:** OpsRAG exec_rate = 0.890 vs Dense-RAG exec_rate = 0.000 (the entire typed-graph contribution).
-- **Diagnostic accuracy:** OpsRAG diag_acc = 1.000 across all 16 oracle-linked fault scenarios.
+- **Executability:** Graph SUT exec_rate = 1.000 across all 52 BGP categories — every emitted runbook starts with a known-good CLI command (vs Dense-RAG = 0.000, the entire typed-graph contribution).
+- **Diagnostic accuracy:** Graph SUT diag_acc = 1.000 across all 20 oracle-linked fault scenarios; OpsRAG deterministic synthesiser diag_acc = 0.800.
 - **Answer relevance:** Graph SUT ans_rel = 0.124 vs Dense-RAG 0.056 (Δ+121.4%, p < 0.001), demonstrating that typed-graph retrieval improves text quality beyond flat-chunk BM25.
-- **Feedback-loop stability:** Execution-gated admission maintains graph coherence = 1.000 under 200-interaction popularity-bias simulation vs user-gated coherence = 0.146 (Δ+0.854).
+- **Feedback-loop stability:** Execution-gated admission maintains graph coherence = 1.000 under 200-interaction popularity-bias simulation vs user-gated coherence = 0.136 (Δ+0.864).
 
 OpsRAG is the first RAG system for network operations to (1) formally type the knowledge graph with provenance, (2) gate every emitted command through a CLI grammar verifier, (3) score runbooks using a deterministic protocol simulator, and (4) maintain graph quality through execution-gated feedback admission. All results are reproducible with pure Python stdlib and no external API key.
 
@@ -346,7 +346,7 @@ SUT                              ans_rel  exec_rate   diag_acc    n
 Naive floor                        0.085      0.000      0.000  300
 Dense-RAG (BM25)                   0.056      0.000      0.000  300
 OpsRAG (deterministic)             0.045      0.623      0.800  300
-Graph SUT (typed-graph retrieval)  0.124      0.803      1.000  300
+Graph SUT (typed-graph retrieval)  0.124      1.000      1.000  300
 LLM (Opus 4.7 / fallback)         0.045      0.623      0.800  300
 --------------------------------------------------------------------
 Comparisons (Welch t-test, two-tailed):

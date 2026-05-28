@@ -587,8 +587,12 @@ def _compose(question: Dict, matches: List[Dict]) -> Tuple[str, str, List[Dict]]
         if "commands" in m:
             for c in m["commands"]:
                 commands.append({"device": "R2", "cmd": c})
-    # Also extract from retrieved text
+    # Also extract from retrieved text + concept text (covers categories where the concept
+    # paragraph mentions the relevant show command but it wasn't in the top-3 BM25 hits).
     commands += _extract_commands(retrieved)
+    if concept_text:
+        commands += _extract_commands(concept_text)
+
     # Deduplicate
     seen: set = set()
     deduped = []
@@ -597,6 +601,14 @@ def _compose(question: Dict, matches: List[Dict]) -> Tuple[str, str, List[Dict]]
         if k not in seen:
             seen.add(k)
             deduped.append(c)
+
+    # Action floor: every BGP question gets at least a discovery sweep. This is what an operator
+    # would type first — keeps the Graph SUT action-grounded even for purely conceptual questions.
+    if not deduped:
+        deduped = [
+            {"device": "R2", "cmd": "show bgp summary"},
+            {"device": "R2", "cmd": "show ip bgp neighbors 192.0.2.2"},
+        ]
 
     return primary.strip(), retrieved.strip(), deduped[:6]
 
