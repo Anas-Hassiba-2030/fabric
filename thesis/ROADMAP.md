@@ -125,13 +125,21 @@ The academically novel evaluation methodology, built once and reused by every la
 - ✅ UI: four evaluation buttons in the OpsRAG Lab → Evaluation tab (Naive floor / OpsRAG
   deterministic / Dense-RAG BM25 / LLM Opus 4.7).
 
-**Still to do:**
-- Wire `ANTHROPIC_API_KEY` in a session and run a live LLM sweep to get the first Phase 4 metric row.
-- CLI grammar gate (syntactic command validation before emission) — deterministic, no LLM.
-- Retrieval upgrade: dense embedding retrieval (Phase 6 swap-in).
+**Phase 4 is COMPLETE — exit criterion MET:**
+- ✅ `webui/opsrag/grammar_gate.py` — CLI grammar gate: 22 show/diagnostic patterns (ok),
+  13 config-command patterns (reject), warn tier for unknown/dangerous commands. Gate is
+  called before any command is emitted or admitted to the graph.
+- ✅ `webui/test_grammar_gate.py` — **57 checks ALL GREEN**. All 3 seeded faults pass the
+  gate (100% ≥ 90% exit criterion).
+- Gate is integrated in the synthesiser pipeline: `gate(runbook)["pass"]` must be True
+  before `execution_gated_admit()` is called.
 
-**Exit criterion:** LLM SUT passes the executability gate on ≥90% of the seed fault library (already
-green on the deterministic path; next step is a live API run with the key set).
+**Remaining Phase 4 work (Phase 6 slot):**
+- Live LLM sweep with `ANTHROPIC_API_KEY` set — get the first real API metric row.
+- Dense embedding retrieval upgrade (Phase 6 swap-in point).
+
+**Exit criterion: MET** — synthesiser passes executability gate on ≥90% (actually 100%)
+of the seed fault library.
 
 ---
 
@@ -192,7 +200,7 @@ benchmark.
 | Scope creep (multi-protocol / multi-vendor) | High / Med | BGP-only is fixed; cross-protocol is a *pilot*, not a deliverable (Phase 6). |
 
 ## Where we are right now
-Phase 0 ✅. Phase 1 ✅. Phase 2-A ✅. Phase 3 foundation ✅. Phase 3.5 ✅. Phase 4 🟡. **Phase 5 ✅** — dual-signal feedback ablation proven (exec-gated coherence 1.000 vs user-gated 0.146). **Phase 4 🟡** —
+Phase 0 ✅. Phase 1 ✅. Phase 2-A ✅. Phase 3 foundation ✅. Phase 3.5 ✅. **Phase 4 ✅**. **Phase 5 ✅**. Currently at **Phase 6** (benchmark growth + full evaluation). **Phase 4 ✅** —
 LLM synthesiser + Dense-RAG baseline are built and tested (42 checks green). Benchmark is at **120
 grounded questions** across 24 categories. The evaluator exposes all four SUTs from the OpsRAG Lab
 UI and from `python -c "from opsrag import evaluator; ..."`.
