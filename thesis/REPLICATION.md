@@ -258,5 +258,5 @@ bash run_tests.sh | tail -1            # ALL GREEN
 
 ## Known non-reproducible elements
 
-- **LLM SUT row in Table 2:** without an Anthropic API key, the LLM SUT falls back to `opsrag_sut`. The reported LLM row (`exec_rate=0.890, diag_acc=1.000`) reflects the fallback, not a live API call. Set `ANTHROPIC_API_KEY` to get real Opus 4.7 numbers.
+- **LLM SUT row in Table 2:** without an Anthropic API key, the LLM SUT falls back to `opsrag_sut`. The reported LLM row (`exec_rate=0.637, diag_acc=1.000`) reflects the fallback path, not a live API call. Set `ANTHROPIC_API_KEY` to get real Opus 4.7 numbers; that upgrades the LLM row without changing any other table.
 - **Phase 2-B (real Containerlab):** requires Docker + a host with FRRouting. The simulator produces identical results deterministically. See `thesis/lab/SETUP.md` for three real-software paths.
