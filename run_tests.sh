@@ -96,6 +96,9 @@ if "$PY" webui/test_assurance.py >/tmp/_as.out 2>&1; then ok "assurance: SLO cat
 step "Pipeline integrity proof (stage -> subagent -> skill, no API key)"
 if "$PY" webui/test_agents.py >/tmp/_ag.out 2>&1; then ok "every stage wired to a real subagent+skill; routing matches; slash commands present"; else bad "pipeline integrity"; cat /tmp/_ag.out; fi
 
+step "OpsRAG kernel proof (schema + bootstrap + oracle, no Docker)"
+if "$PY" webui/test_opsrag.py >/tmp/_or.out 2>&1; then ok "opsrag schema + bootstrap from memory + oracle loop"; else bad "opsrag"; cat /tmp/_or.out; fi
+
 step "Worked-example reader proof (path-jailed, no API key)"
 if "$PY" webui/test_examples.py >/tmp/_ex.out 2>&1; then ok "examples reader lists+serves, traversal refused"; else bad "examples reader"; cat /tmp/_ex.out; fi
 

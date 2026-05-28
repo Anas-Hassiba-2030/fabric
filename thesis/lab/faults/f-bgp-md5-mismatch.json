@@ -1,0 +1,26 @@
+{
+  "id": "f-bgp-md5-mismatch",
+  "title": "BGP TCP session never opens — TCP-MD5 key mismatch",
+  "scope": ["bgp", "tcp", "auth"],
+  "symptom": "BGP neighbor state cycles Active/Idle; no OPEN reaches R3; TCP socket repeatedly resets.",
+  "inject": {
+    "device": "R2",
+    "kind": "frr-config-patch",
+    "patch": [
+      "router bgp 65001",
+      " neighbor 192.0.2.2 password wrong-key-here"
+    ],
+    "note": "R3 carries a different MD5 key; the TCP-MD5 hash fails, sockets are silently dropped."
+  },
+  "expected_evidence": [
+    "show ip bgp neighbors 192.0.2.2",
+    "show bgp summary"
+  ],
+  "ground_truth": {
+    "root_cause": "TCP-MD5 password mismatch on R2<->R3 — TCP segments fail authentication, BGP never establishes",
+    "layer": "tcp-auth",
+    "fix": "router bgp 65001 / no neighbor 192.0.2.2 password ... / neighbor 192.0.2.2 password <agreed-key>",
+    "verify": "TCP session opens; BGP reaches Established"
+  },
+  "provenance": {"source": "thesis/lab/faults/f-bgp-md5-mismatch.json", "authored": true, "confidence": 1.0}
+}

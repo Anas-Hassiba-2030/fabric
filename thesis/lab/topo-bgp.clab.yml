@@ -1,0 +1,47 @@
+# OpsRAG sandbox topology — Containerlab + FRRouting BGP testbed.
+#
+# Run on a host with Docker + Containerlab installed:
+#   sudo containerlab deploy -t thesis/lab/topo-bgp.clab.yml
+#   sudo containerlab destroy -t thesis/lab/topo-bgp.clab.yml
+#
+# Topology (the smallest one that exercises eBGP, iBGP with a route reflector, and a customer edge —
+# exactly what the fault library injects faults against):
+#
+#                +--------- AS 65001 ---------+         AS 65010
+#
+#    R1 (RR/loopback 10.255.0.1)
+#       |  iBGP (l2vpn evpn / vpnv4)
+#    R2 (PE/loopback 10.255.0.2)  ---- eBGP ---- R3 (CE/loopback 10.255.0.3)
+#                                  192.0.2.0/31
+#
+# Loopbacks are advertised over OSPF underlay; R1 is the iBGP route-reflector for the AS.
+
+name: opsrag-bgp
+
+topology:
+  nodes:
+    R1:
+      kind: linux
+      image: quay.io/frrouting/frr-master:latest
+      labels:
+        opsrag.role: route-reflector
+        opsrag.as: "65001"
+    R2:
+      kind: linux
+      image: quay.io/frrouting/frr-master:latest
+      labels:
+        opsrag.role: provider-edge
+        opsrag.as: "65001"
+    R3:
+      kind: linux
+      image: quay.io/frrouting/frr-master:latest
+      labels:
+        opsrag.role: customer-edge
+        opsrag.as: "65010"
+
+  links:
+    - endpoints: ["R1:eth1", "R2:eth1"]      # iBGP path inside AS 65001 (OSPF underlay)
+    - endpoints: ["R2:eth2", "R3:eth1"]      # eBGP customer edge (the fault path)
+
+# Per-node startup config files live next to this topology (one folder per node);
+# the fault library patches the relevant node's frr.conf before deploy / re-deploy.
