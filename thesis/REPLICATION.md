@@ -97,7 +97,7 @@ python3 webui/test_grammar_gate.py
 ```bash
 python3 webui/test_opsrag.py
 # Expect: ALL GREEN — OpsRAG kernel operational
-# Verifies: all 8 faults simulated, synthesised, and oracle-diagnosed correctly
+# Verifies: all 10 faults simulated, synthesised, and oracle-diagnosed correctly
 ```
 
 ### Graph SUT beats naive on answer relevance
@@ -234,8 +234,8 @@ fault_qs = len([q for q in qs if q.get('fault_id')])
 print('Oracle-linked:', fault_qs)  # 16
 "
 
-# Verify fault library (8 faults):
-ls thesis/lab/faults/*.json | wc -l   # 8
+# Verify fault library (10 faults):
+ls thesis/lab/faults/*.json | wc -l   # 10
 
 # Verify test suite passes:
 bash run_tests.sh | tail -1            # ALL GREEN

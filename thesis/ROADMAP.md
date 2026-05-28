@@ -126,10 +126,10 @@ The academically novel evaluation methodology, built once and reused by every la
   deterministic / Dense-RAG BM25 / LLM Opus 4.7).
 
 **Phase 4 is COMPLETE — exit criterion MET:**
-- ✅ `webui/opsrag/grammar_gate.py` — CLI grammar gate: 22 show/diagnostic patterns (ok),
-  13 config-command patterns (reject), warn tier for unknown/dangerous commands. Gate is
+- ✅ `webui/opsrag/grammar_gate.py` — CLI grammar gate: 26 show/diagnostic patterns (ok),
+  12 config-command patterns (reject), warn tier for unknown/dangerous commands. Gate is
   called before any command is emitted or admitted to the graph.
-- ✅ `webui/test_grammar_gate.py` — **57 checks ALL GREEN**. All 3 seeded faults pass the
+- ✅ `webui/test_grammar_gate.py` — **57 checks ALL GREEN**. All 10 seeded faults pass the
   gate (100% ≥ 90% exit criterion).
 - Gate is integrated in the synthesiser pipeline: `gate(runbook)["pass"]` must be True
   before `execution_gated_admit()` is called.
@@ -176,7 +176,7 @@ popular_fraction=0.3, wrong_rate=0.7, accept_rate=0.9, seed=99).
 
 **Final state:**
 - ✅ Benchmark at **300 questions** across **52 categories** (q001–q300).
-- ✅ **8 seeded BGP faults** in `thesis/lab/faults/` (session, MD5, MTU, policy, next-hop, max-prefix, hold-timer, ebgp-multihop).
+- ✅ **10 seeded BGP faults** in `thesis/lab/faults/` (session, MD5, MTU, policy, next-hop, max-prefix, hold-timer, ebgp-multihop, as-path-loop, local-pref-override).
 - ✅ **20 oracle-linked questions** — all score `diagnosis_correct=True` end-to-end (both `fault_id` and `linked_fault` conventions).
 - ✅ Graph SUT exec_rate = **1.000** across all 52 categories (action-floor guarantee).
 - ✅ `webui/test_graph_sut.py` — **42 checks ALL GREEN** (52 concept paragraphs).
@@ -244,7 +244,7 @@ Contents (11 sections):
    servers (wrath-standards / wrath-netstate), memory model (working / episodic / semantic).
 3. **OpsRAG Layer 2 (the typed knowledge layer)** — typed schema (6 node types, 5 edge types,
    Provenance triple), bootstrap flow, typed-ingestion pipeline, BGP fault simulator, fault
-   library (8 faults, table), synthesiser pipeline, oracle contract + scoring thresholds,
+   library (10 faults, table), synthesiser pipeline, oracle contract + scoring thresholds,
    CLI grammar gate (3 tiers: OK/WARN/REJECT, exact counts), dual-signal feedback loop with
    execution-gated vs user-gated coherence numbers, evaluator (5 metrics definitions), all 5
    SUTs with canonical results table, Graph SUT decision flow, phase6_report module.
@@ -263,7 +263,7 @@ Contents (11 sections):
 
 **Why this is a thesis phase, not a README:**
 - It is the *only* place that names the full 16-agent roster with routing semantics, the exact
-  grammar-gate counts (22 OK / 13 REJECT), the oracle scoring threshold (70% key-token overlap),
+  grammar-gate counts (26 OK / 12 REJECT), the oracle scoring threshold (70% key-token overlap),
   the feedback ablation canonical parameters, and the 10 invariants the test suite enforces.
 - A supervisor or examiner reading this file can verify the thesis claims without running any code.
 - It doubles as the replication entry point: §6 (test coverage) and §8 (navigation guide) tell
@@ -278,7 +278,7 @@ every public-facing component of both WRATH and OpsRAG. No external service requ
 | Risk | L / I | Status |
 |---|---|---|
 | Schema brittleness | Med / High | **Retired** — typed schema proven across 300 questions, 52 categories. Phase 1 ✅. |
-| Sandbox-to-real gap | Med / Med | **Managed** — 8 faults chosen protocol-standard; Phase 2-B documented in `thesis/lab/SETUP.md` (not blocking). |
+| Sandbox-to-real gap | Med / Med | **Managed** — 10 faults chosen protocol-standard; Phase 2-B documented in `thesis/lab/SETUP.md` (not blocking). |
 | Feedback-loop instability | Med / High | **Retired** — execution-gated coherence = 1.000 under popularity-bias ablation. Phase 5 ✅. |
 | Benchmark contamination | High / Med | **Managed** — 300 questions authored from RFC text by Kamal; no LLM-generated questions. |
 | Scope creep (multi-protocol / multi-vendor) | High / Med | **Retired** — BGP-only; cross-protocol noted as future work (§7.3). |
@@ -287,7 +287,7 @@ every public-facing component of both WRATH and OpsRAG. No external service requ
 
 **All 8 phases complete.** Phase 0 ✅ · Phase 1 ✅ · Phase 2-A ✅ · Phase 3 ✅ · Phase 3.5 ✅ · Phase 4 ✅ · Phase 5 ✅ · Phase 6 ✅ · Phase 7 ✅ · **Phase 8 ✅**.
 
-Benchmark: **300 questions**, 52 categories, 8 seeded faults, 5 SUTs, 20 oracle-linked questions all scoring correctly. `bash run_tests.sh` → **ALL GREEN**.
+Benchmark: **300 questions**, 52 categories, 10 seeded faults, 5 SUTs, 20 oracle-linked questions all scoring correctly. `bash run_tests.sh` → **ALL GREEN**.
 
 Phase 2-B (real Containerlab) is gated on host availability and is not blocking the thesis.
 

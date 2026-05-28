@@ -47,9 +47,9 @@ contribution and methodology are unchanged.
 
 - The artefact under evaluation exists, is tested, and clears **all 42+ deterministic test
   batteries** (run `bash run_tests.sh` → ALL GREEN). No API key, no Docker required.
-- All 7 phases complete. The thesis (THESIS.md) is fully written — 8 chapters, 3 appendices,
-  references, no [TODO] blocks.
-- 300-question BGP benchmark across 52 categories; 8 seeded faults; 20 oracle-linked questions
+- All 8 phases complete. The thesis (THESIS.md) is fully written — 8 chapters, 3 appendices,
+  references, no [TODO] blocks. A complete system map lives at `SYSTEM.md` (Phase 8).
+- 300-question BGP benchmark across 52 categories; 10 seeded faults; 20 oracle-linked questions
   all scoring `diagnosis_correct=True` end-to-end.
 - Typed schema, bootstrap, oracle, grammar gate, feedback loop, Graph SUT, LLM synthesiser,
   Dense-RAG baseline — all in `webui/opsrag/`.

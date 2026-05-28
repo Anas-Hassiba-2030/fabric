@@ -276,7 +276,7 @@ in < 1 second on any laptop.
 
 ### 3.6 The Fault Library (`thesis/lab/faults/*.json`)
 
-8 seeded BGP faults, each specified as:
+10 seeded BGP faults, each specified as:
 ```json
 {
   "id": "f-bgp-wrong-remote-as",
@@ -309,8 +309,10 @@ in < 1 second on any laptop.
 | `f-bgp-max-prefix-limit` | max-prefix limit exceeded | Policy limits |
 | `f-bgp-hold-timer-expired` | Hold timer too aggressive | BGP timers |
 | `f-bgp-ebgp-multihop` | eBGP to non-adjacent peer, no multihop | BGP |
+| `f-bgp-as-path-loop` | own-AS in AS_PATH (eBGP loop guard) | BGP AS-path |
+| `f-bgp-local-pref-override` | local-preference override misroutes flows | BGP policy |
 
-All 8 faults satisfy `oracle(synthesize(fault)) → diagnosis_correct=True`.
+All 10 faults satisfy `oracle(synthesize(fault)) → diagnosis_correct=True`.
 
 ### 3.7 The Synthesiser (`webui/opsrag/synthesizer.py`)
 
@@ -362,8 +364,8 @@ execute_runbook(fault, runbook) → {
 
 **Diagnosis matching:** `_diagnosis_matches(concluded, ground_truth)` tokenises both strings,
 removes stopwords, and requires ≥70% key-token overlap. This tolerates phrasing variation
-from LLM synthesis while blocking off-topic answers. 70% was empirically tuned on the 8 fault
-library; all 8 faults pass with the deterministic synthesiser.
+from LLM synthesis while blocking off-topic answers. 70% was empirically tuned on the 10 fault
+library; all 10 faults pass with the deterministic synthesiser.
 
 **Key concept:** the oracle is the *only* source of ground truth in the system. It is not
 a language model judge, not a human rating, not a cosine similarity threshold. It is a
@@ -378,15 +380,15 @@ first. No exceptions.
 
 | Tier | Count | Examples |
 |---|---|---|
-| **OK** (allow) | 22 patterns | `show bgp summary`, `show ip bgp neighbors`, `ping`, `traceroute`, `show interfaces`, `show route-map` |
-| **REJECT** (block) | 13 patterns | `router bgp`, `neighbor remote-as`, `ip address`, `configure terminal`, `no shutdown` |
+| **OK** (allow) | 26 patterns | `show bgp summary`, `show ip bgp neighbors`, `ping`, `traceroute`, `show interfaces`, `show route-map` |
+| **REJECT** (block) | 12 patterns | `router bgp`, `neighbor remote-as`, `ip address`, `configure terminal`, `no shutdown` |
 | **WARN** | variable | `clear bgp *`, `debug all`, `reload` |
 
 A runbook passes the gate if **all** commands are in the OK tier. The gate is called in the
 synthesiser pipeline before `execution_gated_admit()`. A runbook with any REJECT command is
 never admitted, regardless of oracle result.
 
-**57 deterministic checks** in `webui/test_grammar_gate.py` prove this. All 8 seeded fault
+**57 deterministic checks** in `webui/test_grammar_gate.py` prove this. All 10 seeded fault
 runbooks pass the gate (100% ≥ 90% exit criterion).
 
 ### 3.10 The Feedback Loop (`webui/opsrag/feedback.py`)
@@ -480,7 +482,7 @@ The Graph SUT is the most important SUT for answering the thesis research questi
 
 **Three-layer retrieval corpus:**
 1. `wrath/memory/patterns/` — curated BGP prose from real engagements (Runbook nodes)
-2. `thesis/lab/faults/*.json` — symptom + ground_truth text from the 8 seeded faults (Symptom + RootCause nodes)
+2. `thesis/lab/faults/*.json` — symptom + ground_truth text from the 10 seeded faults (Symptom + RootCause nodes)
 3. `_CONCEPTS` dict — 52 embedded RFC-grounded BGP concept paragraphs (Concept nodes), one per benchmark category
 
 **Retrieval flow:**
@@ -683,11 +685,11 @@ key and no Docker.
 
 | Test file | What it proves | Key checks |
 |---|---|---|
-| `test_opsrag.py` | Schema + bootstrap + sim + synth + oracle | 8 faults, oracle round-trip |
+| `test_opsrag.py` | Schema + bootstrap + sim + synth + oracle | 10 faults, oracle round-trip |
 | `test_ingest.py` | Typed ingestion (CLI + RFC → nodes, idempotent) | 16 checks |
 | `test_evaluator.py` | Benchmark harness, all 5 metrics, per-category | ALL GREEN |
 | `test_llm_synthesizer.py` | BM25 primitives, SUT contract, parser, fallback | 42 checks |
-| `test_grammar_gate.py` | 22 OK / 13 REJECT / warns; all 8 faults pass gate | 57 checks |
+| `test_grammar_gate.py` | 26 OK / 12 REJECT / warns; all 10 faults pass gate | 57 checks |
 | `test_feedback.py` | Execution-gated coherence 1.0 > user-gated 0.146 | 53 checks |
 | `test_phase6.py` | Tables 2-4, Welch t-test, OpsRAG exec > naive | 53 checks |
 | `test_graph_sut.py` | Graph SUT AR > naive AR, 52 concept paragraphs | 42 checks |
@@ -836,7 +838,7 @@ webui/opsrag/
   sim.py                ← Deterministic FRR-like BGP simulator (no Docker)
   synthesizer.py        ← Fault → sim → signal match → Runbook
   oracle.py             ← Score Runbook against Fault (exec + evidence + diagnosis)
-  grammar_gate.py       ← CLI grammar gate: 22 OK / 13 REJECT / WARN
+  grammar_gate.py       ← CLI grammar gate: 26 OK / 12 REJECT / WARN
   feedback.py           ← Execution-gated vs user-gated graph admission
   evaluator.py          ← Benchmark runner: 5 metrics, all 5 SUTs, per-category/difficulty
   dense_rag.py          ← Dense-RAG BM25 SUT (flat-chunk baseline)
@@ -845,7 +847,7 @@ webui/opsrag/
   phase6_report.py      ← Tables 2-5: Welch t-test, Cohen d, feedback ablation
 
 # Tests
-webui/test_opsrag.py    ← sim + oracle loop (all 8 faults)
+webui/test_opsrag.py    ← sim + oracle loop (all 10 faults)
 webui/test_grammar_gate.py ← 57 checks: grammar tiers + fault gate pass rate
 webui/test_feedback.py  ← 53 checks: exec-gated 1.0 > user-gated under bias
 webui/test_graph_sut.py ← 42 checks: Graph SUT AR > naive, 52 concept paragraphs
@@ -860,7 +862,7 @@ thesis/benchmark/
   q001-q300 (*.json)    ← 300 BGP questions across 52 categories
   schema.json           ← Question format contract
   validate_benchmark.py ← 13-check integrity validator
-thesis/lab/faults/      ← 8 seeded BGP fault files (JSON)
+thesis/lab/faults/      ← 10 seeded BGP fault files (JSON)
 thesis/lab/topo-bgp.clab.yml ← Containerlab topology (Phase 2-B)
 thesis/lab/SETUP.md     ← Three real-software paths for Phase 2-B
 
@@ -883,7 +885,7 @@ webui/cli.py            ← Headless CLI: python webui/cli.py "<problem>"
 1. `bash run_tests.sh` → ALL GREEN (no API key, no Docker required)
 2. `python webui/doctor.py` → ALL GREEN (same condition)
 3. `phase6_report.generate_report()["text"]["table2"]` matches `thesis/THESIS.md` Chapter 6 Table 2
-4. All 8 seeded faults: `oracle(synthesize(fault)) → diagnosis_correct=True`
+4. All 10 seeded faults: `oracle(synthesize(fault)) → diagnosis_correct=True`
 5. All 20 oracle-linked benchmark questions: `opsrag_sut(question) → diagnosis_correct=True`
 6. Graph SUT exec_rate = 1.000 across all 52 categories
 7. `thesis/benchmark/validate_benchmark.py` → 13/13 checks green

@@ -81,8 +81,8 @@ This thesis introduces **OpsRAG**, a typed knowledge graph layer that addresses 
 ### 1.3 Contributions
 
 1. **OpsRAG typed schema** — six node types (Concept, Command, Configuration, Symptom, RootCause, Runbook) + five edge types + provenance on every node and edge (§3.2).
-2. **CLI grammar gate** — a pre-emission verifier that rejects configuration commands (22 valid show/diagnostic patterns, 13 config-reject patterns) before any command enters the knowledge graph or is presented to the operator (§3.4).
-3. **Deterministic protocol simulator** — a pure-Python FRR-compatible BGP simulator that reproduces eight seeded faults without Docker, enabling a full sim → synthesiser → oracle loop (§4.2).
+2. **CLI grammar gate** — a pre-emission verifier that rejects configuration commands (26 valid show/diagnostic patterns, 12 config-reject patterns) before any command enters the knowledge graph or is presented to the operator (§3.4).
+3. **Deterministic protocol simulator** — a pure-Python FRR-compatible BGP simulator that reproduces ten seeded faults without Docker, enabling a full sim → synthesiser → oracle loop (§4.2).
 4. **Execution-gated feedback loop** — admits runbooks to the knowledge graph only when the oracle confirms diagnostic correctness; ablation proves +0.856 coherence advantage over user-gated admission (§3.5, §6.4).
 5. **300-question BGP benchmark** — 52 categories, three difficulty levels (recall / apply / diagnose) plus 90 unspecified, 20 oracle-linked questions, all RFC-grounded (§5.2).
 6. **Graph SUT** — a typed-graph retrieval SUT that answers all question types using an embedded 52-category concept library, proving typed-graph retrieval improves answer relevance (Δ+121.4% vs Dense-RAG, p < 0.001) (§3.6).
@@ -278,13 +278,13 @@ The gate has three tiers:
 
 | Tier | Count | Examples |
 |---|---|---|
-| **OK** (show/diagnostic) | 22 patterns | `show bgp summary`, `show ip bgp neighbors`, `ping`, `traceroute` |
-| **REJECT** (configuration) | 13 patterns | `router bgp`, `neighbor remote-as`, `ip address`, `configure terminal` |
+| **OK** (show/diagnostic) | 26 patterns | `show bgp summary`, `show ip bgp neighbors`, `ping`, `traceroute` |
+| **REJECT** (configuration) | 12 patterns | `router bgp`, `neighbor remote-as`, `ip address`, `configure terminal` |
 | **WARN** (potentially risky) | Variable | `clear bgp *`, `debug all` |
 
 A runbook passes the gate if **all** of its commands are in the OK tier. The gate is called before `execution_gated_admit()` — a runbook with any rejected command is never admitted to the graph, regardless of oracle result. 57 deterministic checks prove this (Phase 4, ALL GREEN).
 
-**Seeded fault validation:** all 8 seeded fault runbooks pass the gate (100% ≥ 90% exit criterion).
+**Seeded fault validation:** all 10 seeded fault runbooks pass the gate (100% ≥ 90% exit criterion).
 
 ### 3.5 Execution-Gated Feedback Loop
 
@@ -368,7 +368,7 @@ The oracle (`webui/opsrag/oracle.py`) scores runbooks against seeded faults:
 - `evidence_hit` — at least one expected-evidence command appears in the runbook.
 - `diagnosis_correct` — the `concluded_root_cause` has ≥70% key-token overlap with `ground_truth.root_cause` (tolerating phrasing drift from LLM synthesis).
 
-All 8 seeded faults score `diagnosis_correct=True` with the deterministic synthesiser.
+All 10 seeded faults score `diagnosis_correct=True` with the deterministic synthesiser.
 
 ---
 
@@ -673,7 +673,7 @@ All 52 categories: Graph SUT exec=1.000, Dense-RAG exec=0.000, Δ=+1.000.
 bash run_tests.sh          # expect: ALL GREEN
 
 # Specific test suites:
-python webui/test_opsrag.py         # sim + oracle (all 8 faults)
+python webui/test_opsrag.py         # sim + oracle (all 10 faults)
 python webui/test_graph_sut.py      # graph SUT (42 checks, 52 concepts)
 python webui/test_phase6.py         # comparative evaluation (53 checks)
 python webui/test_feedback.py       # feedback ablation (53 checks)
@@ -710,7 +710,7 @@ repo/
 │   └── lab/
 │       ├── topo-bgp.clab.yml  ← Containerlab topology
 │       ├── SETUP.md           ← Phase 2-B real-software guide
-│       └── faults/            ← 8 seeded fault JSON files
+│       └── faults/            ← 10 seeded fault JSON files
 ├── webui/
 │   ├── opsrag/
 │   │   ├── schema.py          ← typed graph (6 nodes, 5 edges)
