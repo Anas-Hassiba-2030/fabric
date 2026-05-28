@@ -166,11 +166,12 @@ def _pct_improvement(base: Optional[float], improved: Optional[float]) -> Option
 # ---------------------------------------------------------------------------
 
 def _load_suts() -> Dict:
-    from . import evaluator, llm_synthesizer, dense_rag
+    from . import evaluator, llm_synthesizer, dense_rag, graph_sut
     return {
         "naive": evaluator.naive_sut,
         "dense_rag": dense_rag.dense_rag_sut,
         "opsrag": evaluator.opsrag_sut,
+        "graph": graph_sut.graph_sut,
         "llm": llm_synthesizer.llm_sut,  # falls back deterministically without a key
     }
 
@@ -179,6 +180,7 @@ _SUT_LABELS = {
     "naive": "Naive floor",
     "dense_rag": "Dense-RAG (BM25)",
     "opsrag": "OpsRAG (deterministic)",
+    "graph": "Graph SUT (typed-graph retrieval)",
     "llm": "LLM (Opus 4.7 / fallback)",
 }
 
@@ -219,7 +221,7 @@ def build_table2(raw: Dict) -> Dict:
     rows = {}
     for sut, report in sut_reports.items():
         hl = report.get("headline", {})
-        row = {"label": _SUT_LABELS[sut], "n": report.get("n", 0)}
+        row = {"label": _SUT_LABELS.get(sut, sut), "n": report.get("n", 0)}
         for m in metrics:
             mv = hl.get(m, {})
             row[m] = {"mean": mv.get("mean"), "std": mv.get("std")}
@@ -227,27 +229,28 @@ def build_table2(raw: Dict) -> Dict:
             row[m] = hl.get(m)
         rows[sut] = row
 
-    # Pairwise comparisons: OpsRAG vs naive and OpsRAG vs dense_rag
+    # Pairwise comparisons: OpsRAG and Graph vs naive and dense_rag
     comparisons = {}
-    for baseline in ("naive", "dense_rag"):
-        if baseline not in sut_reports or "opsrag" not in sut_reports:
-            continue
-        comp = {}
-        for m in metrics:
-            a = _extract_metric_series(sut_reports["opsrag"], m)
-            b = _extract_metric_series(sut_reports[baseline], m)
-            t, p = _welch_t(a, b)
-            d = _cohens_d(a, b)
-            comp[m] = {
-                "t": round(t, 3) if t is not None else None,
-                "p": round(p, 4) if p is not None else None,
-                "stars": _pval_stars(p),
-                "cohens_d": round(d, 3) if d is not None else None,
-                "pct_improvement": _pct_improvement(
-                    rows[baseline][m]["mean"], rows["opsrag"][m]["mean"]
-                ),
-            }
-        comparisons[f"opsrag_vs_{baseline}"] = comp
+    for improved in ("opsrag", "graph"):
+        for baseline in ("naive", "dense_rag"):
+            if baseline not in sut_reports or improved not in sut_reports:
+                continue
+            comp = {}
+            for m in metrics:
+                a = _extract_metric_series(sut_reports[improved], m)
+                b = _extract_metric_series(sut_reports[baseline], m)
+                t, p = _welch_t(a, b)
+                d = _cohens_d(a, b)
+                comp[m] = {
+                    "t": round(t, 3) if t is not None else None,
+                    "p": round(p, 4) if p is not None else None,
+                    "stars": _pval_stars(p),
+                    "cohens_d": round(d, 3) if d is not None else None,
+                    "pct_improvement": _pct_improvement(
+                        rows[baseline][m]["mean"], rows[improved][m]["mean"]
+                    ),
+                }
+            comparisons[f"{improved}_vs_{baseline}"] = comp
 
     return {"rows": rows, "comparisons": comparisons}
 
@@ -306,7 +309,7 @@ def format_table2(t2: Dict) -> str:
     header = f"{'SUT':<30} {'ans_rel':>8} {'exec_rate':>10} {'diag_acc':>10} {'n':>6}"
     sep = "-" * len(header)
     lines = ["Table 2 — Headline metric comparison", sep, header, sep]
-    for sut in ("naive", "dense_rag", "opsrag", "llm"):
+    for sut in ("naive", "dense_rag", "opsrag", "graph", "llm"):
         if sut not in rows:
             continue
         r = rows[sut]
@@ -318,8 +321,8 @@ def format_table2(t2: Dict) -> str:
     lines.append(sep)
 
     # Improvement rows
-    for comp_key, comp in (t2.get("comparisons") or {}).items():
-        label = comp_key.replace("opsrag_vs_", "OpsRAG vs ").replace("_", " ")
+    for comp_key, comp in sorted((t2.get("comparisons") or {}).items()):
+        label = comp_key.replace("_vs_", " vs ").replace("opsrag", "OpsRAG").replace("graph", "Graph").replace("naive", "Naive").replace("dense_rag", "Dense-RAG")
         parts = []
         for m in ["answer_relevance"]:
             if m in comp:
@@ -354,7 +357,7 @@ def format_table4(t4: Dict) -> str:
     header = f"{'SUT':<30} {'recall exec':>11} {'apply exec':>10} {'diag exec':>10}"
     sep = "-" * len(header)
     lines = ["Table 4 — Per-difficulty breakdown", sep, header, sep]
-    for sut in ("naive", "dense_rag", "opsrag", "llm"):
+    for sut in ("naive", "dense_rag", "opsrag", "graph", "llm"):
         if sut not in rows:
             continue
         label = _SUT_LABELS[sut]
@@ -395,5 +398,6 @@ def generate_report(bm_dir: str = _BM_DIR) -> Dict:
             "table4": format_table4(t4),
         },
         "headline_opsrag": raw["suts"].get("opsrag", {}).get("headline", {}),
+        "headline_graph": raw["suts"].get("graph", {}).get("headline", {}),
         "headline_naive": raw["suts"].get("naive", {}).get("headline", {}),
     }

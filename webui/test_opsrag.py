@@ -87,11 +87,19 @@ check("healthy R2 summary shows Established peers",
       "Active" not in healthy_out["stdout"] and "Idle" not in healthy_out["stdout"])
 
 # Each fault, when applied, should leave a recoverable signal in at least one expected-evidence command.
+_FAULT_SIGNALS = (
+    "active", "idle", "mtu 1500", "tcp-md5 password: set",
+    # new faults (phase 6)
+    "unreachable", "route-map for incoming", "maximum prefix reached",
+    "ttl = 1, multihop", "hold timer expired", "notification sent", "not in table",
+    "deny", "prefixes received and rejected",
+)
+
 def has_fault_signal(state, fault):
     for cmd in fault.get("expected_evidence", []):
         out = sim.exec_cmd(state, fault["inject"]["device"], cmd)
         text = out["stdout"].lower()
-        if any(k in text for k in ("active", "idle", "mtu 1500", "tcp-md5 password: set")):
+        if any(k in text for k in _FAULT_SIGNALS):
             return True
     return False
 

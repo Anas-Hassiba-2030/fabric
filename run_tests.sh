@@ -117,6 +117,9 @@ if "$PY" webui/test_feedback.py >/tmp/_fb.out 2>&1; then ok "exec-gated coherenc
 step "Phase 6 comparative evaluation report (Welch t-test, Cohen d, Tables 2-4)"
 if "$PY" webui/test_phase6.py >/tmp/_p6.out 2>&1; then ok "Tables 2-4 generated; OpsRAG exec>naive p<0.001 (53 checks)"; else bad "phase 6 report"; cat /tmp/_p6.out; fi
 
+step "Phase 6 graph SUT (typed-graph retrieval beats naive on answer_relevance)"
+if "$PY" webui/test_graph_sut.py >/tmp/_gs.out 2>&1; then ok "graph_sut AR > naive AR (36 checks)"; else bad "graph SUT"; cat /tmp/_gs.out; fi
+
 step "Worked-example reader proof (path-jailed, no API key)"
 if "$PY" webui/test_examples.py >/tmp/_ex.out 2>&1; then ok "examples reader lists+serves, traversal refused"; else bad "examples reader"; cat /tmp/_ex.out; fi
 

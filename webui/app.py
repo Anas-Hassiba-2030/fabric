@@ -693,7 +693,7 @@ class Handler(BaseHTTPRequestHandler):
             result["table"] = feedback.format_ablation_table(result)
             return self._send(200, "application/json", json.dumps(result).encode())
         if u.path == "/api/opsrag/evaluate":
-            from opsrag import evaluator, llm_synthesizer, dense_rag
+            from opsrag import evaluator, llm_synthesizer, dense_rag, graph_sut
             bm_dir = os.path.join(REPO, "thesis", "benchmark")
             sut_name = parse_qs(u.query).get("sut", ["opsrag"])[0]
             sut_fn = {
@@ -701,6 +701,7 @@ class Handler(BaseHTTPRequestHandler):
                 "naive": evaluator.naive_sut,
                 "llm": llm_synthesizer.llm_sut,
                 "dense": dense_rag.dense_rag_sut,
+                "graph": graph_sut.graph_sut,
             }.get(sut_name, evaluator.opsrag_sut)
             report = evaluator.evaluate(sut_fn, bm_dir)
             report["sut"] = sut_name

@@ -1,0 +1,26 @@
+{
+  "id": "f-bgp-hold-timer-expired",
+  "title": "BGP session cycles Active/Idle — hold-timer too aggressive on R2",
+  "scope": ["bgp", "timers", "keepalive", "hold-timer"],
+  "symptom": "R2-R3 eBGP session briefly reaches Established then drops to Idle every 10-15 seconds. Logs show hold-timer expiry. The session never stays Established long enough to pass prefixes.",
+  "inject": {
+    "device": "R2",
+    "kind": "frr-config-patch",
+    "patch": [
+      "router bgp 65001",
+      " neighbor 192.0.2.2 timers 3 10"
+    ],
+    "note": "Configures keepalive=3s and hold-time=10s. Any transient delay (CPU spike, interface queue) causes the hold timer to expire, tearing down the session. Peer is using default 60/180 timers."
+  },
+  "expected_evidence": [
+    "show ip bgp neighbors 192.0.2.2",
+    "show bgp summary"
+  ],
+  "ground_truth": {
+    "root_cause": "hold-timer too aggressive (10s) on R2 toward 192.0.2.2 — session resets on transient delay; increase hold-time to 90 or 180 seconds",
+    "layer": "bgp",
+    "fix": "router bgp 65001 / neighbor 192.0.2.2 timers 30 90",
+    "verify": "show ip bgp neighbors 192.0.2.2 shows Hold time = 90 and session stable"
+  },
+  "provenance": {"source": "thesis/lab/faults/f-bgp-hold-timer-expired.json", "authored": true, "confidence": 1.0}
+}

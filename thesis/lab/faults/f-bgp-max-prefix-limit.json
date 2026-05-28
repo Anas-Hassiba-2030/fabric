@@ -1,0 +1,26 @@
+{
+  "id": "f-bgp-max-prefix-limit",
+  "title": "eBGP session torn down — max-prefix limit exceeded",
+  "scope": ["bgp", "ebgp", "policy", "max-prefix"],
+  "symptom": "R2-R3 eBGP session establishes briefly then immediately drops to Idle. The pattern repeats on reconnect. Customer has no reachability.",
+  "inject": {
+    "device": "R2",
+    "kind": "frr-config-patch",
+    "patch": [
+      "router bgp 65001",
+      " neighbor 192.0.2.2 maximum-prefix 1"
+    ],
+    "note": "R3 advertises 2 prefixes (10.1.0.0/24 and 10.2.0.0/24). With maximum-prefix set to 1, R2 sends a NOTIFICATION and shuts the session as soon as the second prefix arrives."
+  },
+  "expected_evidence": [
+    "show ip bgp neighbors 192.0.2.2",
+    "show bgp summary"
+  ],
+  "ground_truth": {
+    "root_cause": "max-prefix limit (1) exceeded on R2 toward 192.0.2.2 — peer advertised 2 prefixes, R2 sent NOTIFICATION and shut down the session",
+    "layer": "policy",
+    "fix": "router bgp 65001 / neighbor 192.0.2.2 maximum-prefix 10 (or remove the limit)",
+    "verify": "show ip bgp neighbors 192.0.2.2 shows Established with correct prefix count"
+  },
+  "provenance": {"source": "thesis/lab/faults/f-bgp-max-prefix-limit.json", "authored": true, "confidence": 1.0}
+}

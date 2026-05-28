@@ -1,0 +1,26 @@
+{
+  "id": "f-bgp-next-hop-unreachable",
+  "title": "Customer prefix inactive — BGP next-hop not resolved in RIB",
+  "scope": ["bgp", "rib", "nexthop", "routing"],
+  "symptom": "R2 shows the customer prefix 10.1.0.0/24 in the BGP table with an Established session to 192.0.2.2, but the prefix does not appear in the IP routing table and traffic is black-holed.",
+  "inject": {
+    "device": "R2",
+    "kind": "frr-config-patch",
+    "patch": [
+      "no ip route 192.0.2.0/31"
+    ],
+    "note": "Removes the connected or static route covering the eBGP peer subnet. BGP session stays up (TCP keepalives continue), but prefix 10.1.0.0/24 has an unreachable next-hop 192.0.2.2 and is marked inactive."
+  },
+  "expected_evidence": [
+    "show ip bgp neighbors 192.0.2.2",
+    "show ip route 192.0.2.2",
+    "show ip bgp 10.1.0.0/24"
+  ],
+  "ground_truth": {
+    "root_cause": "BGP next-hop 192.0.2.2 not resolved in RIB on R2 — customer prefix 10.1.0.0/24 is inactive (next-hop unreachable)",
+    "layer": "rib",
+    "fix": "Restore the route to 192.0.2.0/31 (connected or static) so the BGP next-hop resolves",
+    "verify": "show ip bgp 10.1.0.0/24 shows prefix with valid next-hop and best-path flag set"
+  },
+  "provenance": {"source": "thesis/lab/faults/f-bgp-next-hop-unreachable.json", "authored": true, "confidence": 1.0}
+}

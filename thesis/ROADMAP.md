@@ -174,37 +174,44 @@ popularity-bias drift (Δ coherence = +0.854 over 200-interaction simulation).
 ## Phase 6 — Benchmark + evaluation 🟡 IN PROGRESS
 
 **Built (this push):**
-- ✅ Benchmark at **200 questions** across 38 categories — target reached.
-- ✅ `webui/opsrag/phase6_report.py` — publication-ready evaluation report:
-  - `run_all_suts()` — runs all 4 SUTs (naive / dense-RAG / OpsRAG / LLM) in <1 second.
-  - `build_table2()` — headline comparison with **Welch's t-test + Cohen's d** (stdlib only).
-  - `build_table3()` — per-category OpsRAG vs Dense-RAG (typed-graph contribution ablation).
-  - `build_table4()` — per-difficulty (recall / apply / diagnose).
-  - `format_table*()` — plain-text renders for the thesis appendix.
-- ✅ `/api/opsrag/report` endpoint + "📊 Full Phase 6 Report" button in the Evaluation UI tab.
-- ✅ `webui/test_phase6.py` — **53 checks ALL GREEN**.
+- ✅ Benchmark at **210 questions** across 38 categories + 10 new oracle-linked questions (q-201–q-210).
+- ✅ **5 new seeded BGP faults** in `thesis/lab/faults/`:
+  - `f-bgp-route-policy-reject` — inbound route-map denies all prefixes (session Established, 0 routes)
+  - `f-bgp-next-hop-unreachable` — connected route removed; BGP next-hop not in RIB; prefix inactive
+  - `f-bgp-max-prefix-limit` — max-prefix exceeded; NOTIFICATION sent; session shut down
+  - `f-bgp-hold-timer-expired` — hold-timer too aggressive (10s); session resets on transient delay
+  - `f-bgp-ebgp-multihop` — non-adjacent eBGP peer without multihop; TCP SYN dropped at TTL=1
+- ✅ `sim.py` extended with 5 new `apply_fault` + `exec_cmd` handlers for all new faults.
+- ✅ `synthesizer.py` extended: 8 canonical root-cause strings; IP extraction from symptom text; 8 signal patterns in `_infer_category()`.
+- ✅ **16 oracle-linked questions** (up from 6) — all score `diagnosis_correct=True` end-to-end.
+- ✅ `webui/opsrag/graph_sut.py` — **Graph SUT**: typed-graph BM25 retrieval answers ALL 210 questions:
+  - Embedded BGP concept library (38 categories); pattern files; fault library indexed.
+  - Fault-linked questions → existing synthesiser path (exec+diag preserved).
+  - All other questions → concept promotion + text composition → structured answer.
+- ✅ `webui/test_graph_sut.py` — **36 checks ALL GREEN**.
+- ✅ Phase 6 report updated: 5 SUTs (naive / dense-RAG / OpsRAG / graph / LLM).
 
-**Current headline results (170 questions, deterministic):**
+**Current headline results (210 questions, deterministic):**
 ```
-Naive floor:   exec_rate=0.000  diag_acc=0.000
-Dense-RAG:     exec_rate=0.000  diag_acc=0.000
-OpsRAG:        exec_rate=0.871  diag_acc=1.000   ← typed graph contribution
-LLM fallback:  exec_rate=0.871  diag_acc=1.000   ← same without API key
+Table 2 — Headline metric comparison
+SUT                              ans_rel  exec_rate  diag_acc    n
+Naive floor                        0.118      0.000     0.000  210
+Dense-RAG (BM25)                   0.066      0.000     0.000  210
+OpsRAG (deterministic)             0.064      0.890     1.000  210
+Graph SUT (typed-graph retrieval)  0.173      0.695     1.000  210   ← ANS_REL WINNER
+LLM (Opus 4.7 / fallback)         0.064      0.890     1.000  210
 ```
-Table 3: OpsRAG Δexec vs Dense-RAG = **+1.000** on most categories (graph ablation).
-Table 4: OpsRAG recall=0.862 / apply=0.839 / diagnose=0.930.
+Graph SUT ans_rel **Δ=+46.6% vs naive** (p<0.001) and **Δ=+162.1% vs Dense-RAG** (p<0.001).
+OpsRAG exec_rate=0.890, diag_acc=1.000 — typed-graph contribution for fault-linked questions.
 
 **Still to do (for publication-quality Phase 6):**
-- ✅ Benchmark at 200 questions across 38 categories.
 - Live LLM sweep with `ANTHROPIC_API_KEY` — replace fallback row with real LLM numbers.
-- RAGAs LLM judge swap-in (Phase 6 swap point) — fix the token-Jaccard answer_relevance
-  limitation that underscores OpsRAG relative to naive (OpsRAG returns empty for non-fault
-  questions; LLM judge will score the typed-graph answers correctly).
+- RAGAs LLM judge swap-in — replace token-Jaccard `answer_relevance` with real LLM judge.
 - Confidence intervals (already in Welch t-test output).
 - Optional: cross-protocol pilot (OSPF/IS-IS) for generalisation discussion.
 
-**Exit criterion in sight:** paired comparisons with CIs and ablation tables are produced by
-`generate_report()`; the benchmark needs 30 more questions and a live LLM run.
+**Exit criterion:** All paired comparisons with CIs + ablation tables produced by `generate_report()`;
+16 oracle-linked questions all score correctly. **Substantially met — only live LLM run pending.**
 
 ---
 
@@ -225,27 +232,25 @@ Table 4: OpsRAG recall=0.862 / apply=0.839 / diagnose=0.930.
 | Scope creep (multi-protocol / multi-vendor) | High / Med | BGP-only is fixed; cross-protocol is a *pilot*, not a deliverable (Phase 6). |
 
 ## Where we are right now
-Phase 0 ✅. Phase 1 ✅. Phase 2-A ✅. Phase 3 foundation ✅. Phase 3.5 ✅. **Phase 4 ✅**. **Phase 5 ✅**. Currently at **Phase 6** (benchmark growth + full evaluation). **Phase 4 ✅** —
-LLM synthesiser + Dense-RAG baseline are built and tested (42 checks green). Benchmark is at **120
-grounded questions** across 24 categories. The evaluator exposes all four SUTs from the OpsRAG Lab
-UI and from `python -c "from opsrag import evaluator; ..."`.
+Phase 0 ✅. Phase 1 ✅. Phase 2-A ✅. Phase 3 foundation ✅. Phase 3.5 ✅. **Phase 4 ✅**. **Phase 5 ✅**. **Phase 6 substantially complete** — all deterministic work done; only live LLM sweep pending. Benchmark at **210 questions**, 8 seeded faults, 5 SUTs, 16 oracle-linked questions all scoring correctly.
 
 Phase 2-B (real Containerlab) is gated on host availability and is not blocking the thesis.
 
 **Running the evaluation:**
 ```python
-from opsrag import evaluator, llm_synthesizer, dense_rag
+from opsrag import evaluator, llm_synthesizer, dense_rag, graph_sut, phase6_report
 import os, json
 
 bm_dir = "thesis/benchmark"
 # Deterministic (no API key needed):
 r = evaluator.evaluate(evaluator.opsrag_sut, bm_dir)
+# Typed-graph retrieval (fixes answer_relevance for all question types):
+r = evaluator.evaluate(graph_sut.graph_sut, bm_dir)
 # Dense-RAG ablation baseline:
 r = evaluator.evaluate(dense_rag.dense_rag_sut, bm_dir)
-# LLM-driven (requires ANTHROPIC_API_KEY):
-os.environ["ANTHROPIC_API_KEY"] = "sk-ant-..."
-r = evaluator.evaluate(llm_synthesizer.llm_sut, bm_dir)
-print(r["headline"])
+# Full Phase 6 report (5 SUTs, Tables 2-4, Welch t-test, Cohen d):
+report = phase6_report.generate_report(bm_dir)
+print(report["text"]["table2"])
 ```
 
 Master's-level scope + the trim list (vs PhD-shaped work) is documented in `thesis/MASTERS.md`.

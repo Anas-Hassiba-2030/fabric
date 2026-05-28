@@ -1,0 +1,26 @@
+{
+  "id": "f-bgp-ebgp-multihop",
+  "title": "eBGP session to non-adjacent peer stays Active — multihop not configured",
+  "scope": ["bgp", "ebgp", "multihop", "ttl"],
+  "symptom": "R2 eBGP session toward loopback 10.10.10.2 (R4, two hops away) stays in Active state indefinitely. No BGP OPEN is received. Ping to 10.10.10.2 succeeds (ICMP) but BGP does not establish.",
+  "inject": {
+    "device": "R2",
+    "kind": "frr-config-patch",
+    "patch": [
+      "router bgp 65001",
+      " neighbor 10.10.10.2 remote-as 65020"
+    ],
+    "note": "Session is configured to a non-directly connected loopback (two IGP hops away). Without ebgp-multihop, BGP TCP SYNs are sent with TTL=1 and are dropped by the intervening router before reaching 10.10.10.2."
+  },
+  "expected_evidence": [
+    "show ip bgp neighbors 10.10.10.2",
+    "show bgp summary"
+  ],
+  "ground_truth": {
+    "root_cause": "eBGP neighbor 10.10.10.2 is not directly connected — ebgp-multihop not configured, TCP SYN dropped by TTL exhaustion after first hop",
+    "layer": "bgp",
+    "fix": "router bgp 65001 / neighbor 10.10.10.2 ebgp-multihop 2 / neighbor 10.10.10.2 update-source Loopback0",
+    "verify": "show ip bgp neighbors 10.10.10.2 shows Established after multihop + update-source configured"
+  },
+  "provenance": {"source": "thesis/lab/faults/f-bgp-ebgp-multihop.json", "authored": true, "confidence": 1.0}
+}

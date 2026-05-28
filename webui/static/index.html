@@ -802,6 +802,7 @@ async function openOpsRAGLab(tab){
         <button class="orfrunbtn" id="orEvalNaive">▶ Naive floor</button>
         <button class="orfrunbtn" id="orEvalOpsrag">▶ OpsRAG (deterministic)</button>
         <button class="orfrunbtn" id="orEvalDense" style="background:rgba(147,112,219,.18);color:#b39ddb">▶ Dense-RAG (BM25)</button>
+        <button class="orfrunbtn" id="orEvalGraph" style="background:rgba(38,198,218,.18);color:#80deea">▶ Graph SUT (typed-graph retrieval)</button>
         <button class="orfrunbtn" id="orEvalLLM" style="background:rgba(255,167,38,.18);color:#ffb74d">▶ LLM (Opus 4.7)</button>
         <button class="orfrunbtn" id="orEvalReport" style="background:rgba(61,220,151,.14);color:var(--ok);border:1px solid var(--ok)">📊 Full Phase 6 Report (all SUTs)</button>
       </div>
@@ -832,10 +833,11 @@ async function openOpsRAGLab(tab){
   if(te)te.onclick=()=>showTab("eval");
   if(ta)ta.onclick=()=>showTab("ablation");
   const en=document.getElementById("orEvalNaive"),eo=document.getElementById("orEvalOpsrag");
-  const ed=document.getElementById("orEvalDense"),el=document.getElementById("orEvalLLM");
+  const ed=document.getElementById("orEvalDense"),eg=document.getElementById("orEvalGraph"),el=document.getElementById("orEvalLLM");
   if(en)en.onclick=()=>runEvaluation("naive");
   if(eo)eo.onclick=()=>runEvaluation("opsrag");
   if(ed)ed.onclick=()=>runEvaluation("dense");
+  if(eg)eg.onclick=()=>runEvaluation("graph");
   if(el)el.onclick=()=>runEvaluation("llm");
   const er=document.getElementById("orEvalReport");
   if(er)er.onclick=()=>runPhase6Report();
@@ -849,7 +851,7 @@ async function runEvaluation(sutName){
   catch(e){r.innerHTML='<div class="placeholder">eval failed</div>';return;}
   const hl=rep.headline||{};
   const mv=(m,k)=>(m&&m[k]!==null&&m[k]!==undefined)?(typeof m[k]==="number"?m[k].toFixed(3):m[k]):"—";
-  const sutLabel={"naive":"Naive floor","opsrag":"OpsRAG (deterministic)","dense":"Dense-RAG BM25","llm":"LLM Opus 4.7"}[rep.sut||sutName]||sutName.toUpperCase();
+  const sutLabel={"naive":"Naive floor","opsrag":"OpsRAG (deterministic)","dense":"Dense-RAG BM25","graph":"Graph SUT (typed-graph)","llm":"LLM Opus 4.7"}[rep.sut||sutName]||sutName.toUpperCase();
   const cells=`<div class="orgraph" style="background:rgba(54,224,200,.06)"><span class="ogtitle">${sutLabel} · n=${rep.n}</span>
     <span class="ogtype">answer_relevance <b>${mv(hl.answer_relevance,"mean")}</b></span>
     <span class="ogtype">faithfulness <b>${mv(hl.faithfulness,"mean")}</b></span>

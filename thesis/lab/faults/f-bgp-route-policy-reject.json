@@ -1,0 +1,28 @@
+{
+  "id": "f-bgp-route-policy-reject",
+  "title": "BGP session Established but zero prefixes — inbound route-map denies all",
+  "scope": ["bgp", "ebgp", "policy", "route-map"],
+  "symptom": "R2-R3 eBGP session (192.0.2.2) shows Established and non-zero timers but prefix count is 0. CustA has no reachability despite the session being up.",
+  "inject": {
+    "device": "R2",
+    "kind": "frr-config-patch",
+    "patch": [
+      "route-map DENY-ALL deny 10",
+      "route-map DENY-ALL permit 20",
+      "router bgp 65001",
+      " neighbor 192.0.2.2 route-map DENY-ALL in"
+    ],
+    "note": "Applies an inbound route-map that denies all prefixes from R3. Session stays Established (TCP/BGP OK) but every received prefix is discarded."
+  },
+  "expected_evidence": [
+    "show ip bgp neighbors 192.0.2.2",
+    "show route-map"
+  ],
+  "ground_truth": {
+    "root_cause": "inbound route-map DENY-ALL on R2 blocks all prefixes from R3 (192.0.2.2) — session Established but zero routes admitted",
+    "layer": "policy",
+    "fix": "router bgp 65001 / no neighbor 192.0.2.2 route-map DENY-ALL in",
+    "verify": "show ip bgp neighbors 192.0.2.2 shows prefix count > 0 after removing deny route-map"
+  },
+  "provenance": {"source": "thesis/lab/faults/f-bgp-route-policy-reject.json", "authored": true, "confidence": 1.0}
+}
