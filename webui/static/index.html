@@ -300,16 +300,33 @@
      TOOLBAR — secondary actions, low-key
      ============================================================ */
   .toolbar{
-    display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;
-    padding:8px 11px;border-radius:10px;
+    display:flex;flex-wrap:wrap;align-items:center;gap:5px 7px;margin-top:10px;
+    padding:0;border-radius:10px;
     border:1px solid var(--hairline);background:rgba(10,14,28,.45);
+    overflow:hidden;
+  }
+  /* Row 1 — THIS RUN: context actions for the current run */
+  /* Row 2 — LIBRARY: permanent tools */
+  /* The .tbsep acts as full-width row-break between the two rows */
+  .tbrow{
+    display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+    width:100%;padding:7px 11px;
+  }
+  .tbrow:first-child{
+    border-bottom:1px solid var(--hairline);
   }
   .tbgroup{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
-  .tbsep{width:1px;height:18px;background:var(--hairline-2);margin:0 6px}
+  /* tbsep now produces a full-width row break */
+  .tbsep{
+    width:100%;flex-shrink:0;
+    /* height/background handled by .tbrow border-bottom instead */
+    display:none;
+  }
   .toolbar .hist{margin-left:auto}
   .tblabel{
-    font:700 8.5px/1 "Inter",sans-serif;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;
-    align-self:center;margin-right:5px;
+    font:700 9px/1 "Inter",sans-serif;color:var(--muted);text-transform:uppercase;letter-spacing:.13em;
+    white-space:nowrap;padding-right:9px;margin-right:3px;
+    border-right:1px solid var(--hairline-2);
   }
   .tblabel::before{display:none}
 
@@ -971,15 +988,17 @@
     </div>
     <div class="chips" id="chips" style="margin-top:10px"></div>
     <div class="toolbar">
-      <span class="tbgroup" title="This run">
+      <!-- Row 1: THIS RUN — context actions, enabled only after a run -->
+      <div class="tbrow">
         <span class="tblabel">This run</span>
         <button class="minibtn" id="whatifBtn" disabled title="Re-run with one changed constraint, then compare">⤳ What-if</button>
         <button class="minibtn" id="patternBtn" disabled title="Accept this run and distil it into a reusable pattern in memory">★ Save pattern</button>
         <button class="minibtn" id="compareBtn" title="Compare two saved runs side by side">⇄ Compare</button>
         <button class="minibtn" id="shareBtn" disabled title="Open a self-contained shareable HTML report of this run">🔗 Share</button>
-      </span>
-      <span class="tbsep"></span>
-      <span class="tbgroup" title="Reports & library">
+        <select id="history" class="hist" title="Reload a saved run"><option value="">↺ Recent runs…</option></select>
+      </div>
+      <!-- Row 2: LIBRARY — permanent tools always available -->
+      <div class="tbrow">
         <span class="tblabel">Library</span>
         <button class="minibtn" id="blueprintBtn" title="Start from a ready-made engagement blueprint">⊞ Blueprints</button>
         <button class="minibtn" id="examplesBtn" title="Browse the worked-example engagements (reference)">📚 Examples</button>
@@ -989,8 +1008,7 @@
         <button class="minibtn" id="opsragBtn" title="OpsRAG Lab — action-grounded BGP diagnosis: inject a fault, run the synthesiser, see the oracle verdict">🧪 OpsRAG Lab</button>
         <button class="minibtn" id="analyticsBtn" title="Cross-run analytics dashboard">📊 Analytics</button>
         <button class="minibtn" id="inboxBtn" title="Saved-results inbox — bookmark runs with a note">📥 Inbox</button>
-      </span>
-      <select id="history" class="hist" title="Reload a saved run"><option value="">↺ Recent runs…</option></select>
+      </div>
     </div>
   </div>
 
