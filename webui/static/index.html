@@ -751,6 +751,7 @@ async function openOpsRAGLab(tab){
     <button class="ortab${activeTab==="faults"?" on":""}" id="orTabFaults">Fault Library</button>
     <button class="ortab${activeTab==="bench"?" on":""}" id="orTabBench">Benchmark <span class="orbcount">${bm.total||0} Q</span></button>
     <button class="ortab${activeTab==="eval"?" on":""}" id="orTabEval">Evaluation</button>
+    <button class="ortab${activeTab==="ablation"?" on":""}" id="orTabAblation">Phase 5 Ablation</button>
   </div>`;
 
   // Faults panel
@@ -804,25 +805,40 @@ async function openOpsRAGLab(tab){
         <button class="orfrunbtn" id="orEvalLLM" style="background:rgba(255,167,38,.18);color:#ffb74d">▶ LLM (Opus 4.7)</button>
       </div>
       <div id="orEvalResult"></div>
+    </div>
+    <div id="orPanelAblation" style="display:${activeTab==="ablation"?"block":"none"}">
+      <p style="font-size:12px;color:var(--muted);margin:0 0 14px">
+        <b>Phase 5 ablation:</b> execution-gated graph admission vs user-feedback-only.
+        The popularity-bias stream shows that users accept plausible-but-wrong answers —
+        the execution oracle does not. Run either stream to produce the thesis ablation table.
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="orfrunbtn" id="orAblationBias" style="background:rgba(239,83,80,.18);color:#ef9a9a">▶ Popularity-bias stream (n=200)</button>
+        <button class="orfrunbtn" id="orAblationUniform" style="background:rgba(41,182,246,.14);color:#81d4fa">▶ Uniform stream (n=200)</button>
+      </div>
+      <div id="orAblationResult"></div>
     </div></div>`);
   faults.forEach(f=>{const btn=document.getElementById("orbtn-"+f.id);if(btn)btn.onclick=()=>runOpsRAGFault(f.id);});
-  const tf=document.getElementById("orTabFaults"),tb=document.getElementById("orTabBench"),te=document.getElementById("orTabEval");
-  const showTab=which=>{[tf,tb,te].forEach(t=>t&&t.classList.remove("on"));
-    document.getElementById("orPanelFaults").style.display="none";
-    document.getElementById("orPanelBench").style.display="none";
-    document.getElementById("orPanelEval").style.display="none";
-    if(which==="faults"){tf.classList.add("on");document.getElementById("orPanelFaults").style.display="block";}
-    if(which==="bench"){tb.classList.add("on");document.getElementById("orPanelBench").style.display="block";}
-    if(which==="eval"){te.classList.add("on");document.getElementById("orPanelEval").style.display="block";}};
+  const tf=document.getElementById("orTabFaults"),tb=document.getElementById("orTabBench"),te=document.getElementById("orTabEval"),ta=document.getElementById("orTabAblation");
+  const showTab=which=>{[tf,tb,te,ta].forEach(t=>t&&t.classList.remove("on"));
+    ["orPanelFaults","orPanelBench","orPanelEval","orPanelAblation"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none";});
+    if(which==="faults"){tf&&tf.classList.add("on");document.getElementById("orPanelFaults").style.display="block";}
+    if(which==="bench"){tb&&tb.classList.add("on");document.getElementById("orPanelBench").style.display="block";}
+    if(which==="eval"){te&&te.classList.add("on");document.getElementById("orPanelEval").style.display="block";}
+    if(which==="ablation"){ta&&ta.classList.add("on");document.getElementById("orPanelAblation").style.display="block";}};
   if(tf)tf.onclick=()=>showTab("faults");
   if(tb)tb.onclick=()=>showTab("bench");
   if(te)te.onclick=()=>showTab("eval");
+  if(ta)ta.onclick=()=>showTab("ablation");
   const en=document.getElementById("orEvalNaive"),eo=document.getElementById("orEvalOpsrag");
   const ed=document.getElementById("orEvalDense"),el=document.getElementById("orEvalLLM");
   if(en)en.onclick=()=>runEvaluation("naive");
   if(eo)eo.onclick=()=>runEvaluation("opsrag");
   if(ed)ed.onclick=()=>runEvaluation("dense");
-  if(el)el.onclick=()=>runEvaluation("llm");}
+  if(el)el.onclick=()=>runEvaluation("llm");
+  const eab=document.getElementById("orAblationBias"),eau=document.getElementById("orAblationUniform");
+  if(eab)eab.onclick=()=>runAblation("bias");
+  if(eau)eau.onclick=()=>runAblation("uniform");}
 async function runEvaluation(sutName){
   const r=document.getElementById("orEvalResult");
   r.innerHTML='<div class="placeholder">running benchmark sweep…</div>';
@@ -846,6 +862,25 @@ async function runEvaluation(sutName){
     <th style="padding:6px 8px">Category</th><th style="padding:6px 8px">n</th><th style="padding:6px 8px">ans_rel</th><th style="padding:6px 8px">exec</th><th style="padding:6px 8px">dx</th></tr></thead>
     <tbody style="font-family:ui-monospace,Menlo,Consolas,monospace">${catRows}</tbody></table>`;
   r.innerHTML=cells+catTbl;}
+async function runAblation(mode){
+  const r=document.getElementById("orAblationResult");
+  r.innerHTML='<div class="placeholder">running ablation (200 interactions)…</div>';
+  let ab;
+  try{ab=await fetch("/api/opsrag/ablation?n=200&mode="+mode).then(x=>x.json());}
+  catch(e){r.innerHTML='<div class="placeholder">ablation failed</div>';return;}
+  const eg=ab.execution_gated||{},ug=ab.user_gated||{},d=ab.delta||{};
+  const sign=v=>(v>0?"+":"")+v.toFixed(3);
+  const bar=`<div class="orgraph" style="background:rgba(61,220,151,.06)">
+    <span class="ogtitle">Phase 5 Ablation — ${mode==="bias"?"Popularity-bias":"Uniform"} stream · n=200</span>
+    <span class="ogtype" style="background:rgba(61,220,151,.18);color:var(--ok)">Exec-gated coherence <b>${eg.final_coherence}</b></span>
+    <span class="ogtype" style="background:rgba(239,83,80,.18);color:#ef9a9a">User-gated coherence <b>${ug.final_coherence}</b></span>
+    <span class="ogtype" style="background:rgba(255,206,107,.14);color:var(--warn)">Δ coherence <b>${sign(d.coherence||0)}</b></span>
+    <span class="ogtype">Exec admitted <b>${eg.admitted||0}</b></span>
+    <span class="ogtype">User admitted <b>${ug.admitted||0}</b></span>
+    <span class="ogtype" style="color:var(--ok)">Verdict: <b>${ab.verdict||"—"}</b></span>
+  </div>`;
+  const pre=`<pre style="font-size:10.5px;font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--bg2);padding:12px;border-radius:6px;overflow-x:auto;margin-top:12px;white-space:pre-wrap">${(ab.table||"").replace(/</g,"&lt;")}</pre>`;
+  r.innerHTML=bar+pre;}
 async function runOpsRAGFault(faultId){
   const btn=document.getElementById("orbtn-"+faultId);
   const resEl=document.getElementById("orres-"+faultId);

@@ -108,6 +108,9 @@ if "$PY" webui/test_evaluator.py >/tmp/_ev.out 2>&1; then ok "evaluator scores b
 step "Phase 4 LLM synthesiser + Dense-RAG baseline proof (no API key)"
 if "$PY" webui/test_llm_synthesizer.py >/tmp/_llm.out 2>&1; then ok "llm_sut fallback + dense_rag BM25 retrieval + response parser (42 checks)"; else bad "llm synthesiser"; cat /tmp/_llm.out; fi
 
+step "Phase 5 dual-signal feedback loop proof (execution-gated vs user-gated ablation)"
+if "$PY" webui/test_feedback.py >/tmp/_fb.out 2>&1; then ok "exec-gated coherence 1.0 vs user-gated 0.146 under popularity bias (53 checks)"; else bad "feedback loop"; cat /tmp/_fb.out; fi
+
 step "Worked-example reader proof (path-jailed, no API key)"
 if "$PY" webui/test_examples.py >/tmp/_ex.out 2>&1; then ok "examples reader lists+serves, traversal refused"; else bad "examples reader"; cat /tmp/_ex.out; fi
 

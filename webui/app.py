@@ -669,6 +669,25 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/compliance":
             md = compliance.report(parse_qs(u.query).get("problem", [""])[0])
             return self._send(200, "application/json", json.dumps({"markdown": md}).encode())
+        if u.path == "/api/opsrag/ablation":
+            from opsrag import feedback, evaluator
+            qs = parse_qs(u.query)
+            n = int(qs.get("n", ["200"])[0])
+            n = min(max(n, 50), 1000)   # clamp 50–1000
+            mode = qs.get("mode", ["bias"])[0]
+            bm_dir = os.path.join(REPO, "thesis", "benchmark")
+            questions = []
+            for fname in sorted(os.listdir(bm_dir)):
+                if fname.endswith(".json") and fname != "schema.json":
+                    with open(os.path.join(bm_dir, fname), encoding="utf-8") as fh:
+                        questions.extend(json.load(fh))
+            if mode == "uniform":
+                stream = feedback.uniform_stream(questions, evaluator.opsrag_sut, n=n)
+            else:
+                stream = feedback.popularity_bias_stream(questions, evaluator.opsrag_sut, n=n)
+            result = feedback.ablation(stream, step=max(n // 10, 10))
+            result["table"] = feedback.format_ablation_table(result)
+            return self._send(200, "application/json", json.dumps(result).encode())
         if u.path == "/api/opsrag/evaluate":
             from opsrag import evaluator, llm_synthesizer, dense_rag
             bm_dir = os.path.join(REPO, "thesis", "benchmark")
