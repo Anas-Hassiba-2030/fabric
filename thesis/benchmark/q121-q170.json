@@ -1,0 +1,853 @@
+[
+  {
+    "id": "q-121",
+    "category": "route-leak",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "How does RFC 7908 define a BGP route leak, and what are the six distinct route-leak types it enumerates?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 7908 defines a route leak as the propagation of BGP route announcements beyond their intended scope — i.e., an AS re-advertises a route it learned from one neighbor to another neighbor in a direction that violates the valley-free routing principle. The six types are: (1) Hairpin turn with provider — a customer re-advertises a provider route to another provider; (2) Lateral ISP-to-ISP leak — a route learned from a lateral peer is re-advertised to another lateral peer; (3) Leak of internal prefixes — an AS advertises its own internal prefixes beyond its intended scope; (4) Leak from a customer to a provider — a route learned from a customer is re-advertised up to a provider; (5) Re-origination leak — an AS strips AS_PATH and re-originates someone else's prefix; (6) Accidental transit — an AS becomes an unintended transit between two providers.",
+      "layer": "bgp",
+      "commands": ["show bgp summary", "show bgp neighbors <addr> advertised-routes", "show bgp <prefix> detail"],
+      "executable": true,
+      "grounded_in": ["RFC7908 S2", "RFC7908 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7908", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-122",
+    "category": "route-leak",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the BGP Role attribute introduced in RFC 9234, what values can it carry, and what is the OTC (Only-To-Customer) attribute used for?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 9234 defines two new BGP path attributes to prevent route leaks. The BGP Role attribute (type code 9) is exchanged in OPEN messages to signal the local role in a peering relationship: Provider (0), RS (Route Server, 1), RS-Client (2), Customer (3), or Peer (4). If both peers advertise a role and the roles are incompatible, the session is rejected with a NOTIFICATION (Role Mismatch error). The OTC (Only-To-Customer) attribute (type code 35) is an optional transitive 4-byte attribute carrying the AS number of the AS that set it. An AS sets OTC on a route when it sends the route to a customer or peer; any subsequent AS that receives a route with OTC MUST NOT re-advertise it to a provider or lateral peer, enforcing valley-free routing. Routes received with OTC set MUST NOT be propagated to providers.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp <prefix> detail", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC9234 S3", "RFC9234 S4", "RFC9234 S5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc9234", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-123",
+    "category": "route-leak",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "An AS operating as a customer of two providers begins advertising routes it learned from Provider-A to Provider-B, causing both providers to use that AS as transit. How would RFC 9234 Role/OTC attributes prevent this if deployed, and what `show bgp` commands confirm the leak before the fix?",
+    "context": null,
+    "ground_truth": {
+      "answer": "With RFC 9234 deployed: when Provider-A sends a route to the customer AS, it either sets the OTC attribute to its own ASN (if the customer is a Customer role) or the customer sets OTC when it re-advertises to its own customers. When the customer AS then tries to advertise that route to Provider-B, the OTC attribute is present; RFC 9234 S5 mandates that a BGP speaker MUST NOT propagate a route with OTC set to a provider or lateral peer. Provider-B would also reject the route if it sees OTC in an UPDATE from what it classifies as a customer. Without RFC 9234, detect the leak by running 'show bgp <leaked-prefix> detail' on Provider-B and inspecting the AS_PATH — the customer AS will appear as transit. Confirm with 'show bgp neighbors <customer-addr> advertised-routes' on the customer's router to see provider-learned routes being re-advertised upward.",
+      "layer": "bgp",
+      "commands": ["show bgp <prefix> detail", "show bgp neighbors <addr> advertised-routes", "show bgp neighbors <addr> received-routes"],
+      "executable": true,
+      "grounded_in": ["RFC9234 S5", "RFC7908 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc9234", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-124",
+    "category": "route-leak",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A Tier-1 provider notices its traffic toward a well-known CDN prefix is suddenly being routed through an unexpected intermediate AS that is a customer of one of its peers. The AS_PATH seen at the Tier-1 is: 64500 64600 64700 203.0.113.0/24. AS 64600 is a small regional ISP that should only be a customer of AS 64500, not a transit. What type of route leak is this, and how do you detect it programmatically using BGP RIB analysis?",
+    "context": null,
+    "ground_truth": {
+      "answer": "This is a Type-1 route leak (hairpin turn / accidental transit) per RFC 7908 §3.1: AS 64600 learned the CDN prefix from its provider AS 64500 and re-advertised it to another provider or peer who in turn re-advertised to the Tier-1. Detection steps: (1) On the Tier-1 router, run 'show bgp 203.0.113.0/24 detail' to capture the AS_PATH and identify the unexpected transit AS. (2) Compare against the expected AS_PATH from the legitimate CDN origin — the legitimate path should not include AS 64600. (3) Check whether AS 64600 appears as a transit (interior to the AS_PATH, not as origin) for prefixes it does not own. (4) With RFC 9234, look for a missing or unexpected OTC attribute — a leaked route from a provider that was re-advertised upward should carry OTC set to AS 64500, which Provider-B should have rejected. Without RFC 9234, the only detection is AS_PATH anomaly analysis: an AS appearing as transit for address space it doesn't originate is the signature.",
+      "layer": "bgp",
+      "commands": ["show bgp 203.0.113.0/24 detail", "show bgp neighbors <addr> received-routes", "show bgp regexp _64600_"],
+      "executable": true,
+      "grounded_in": ["RFC7908 S3.1", "RFC9234 S5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7908", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-125",
+    "category": "route-leak",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A large national ISP's customer (a medium-sized enterprise with AS 64800) suddenly starts advertising a full BGP table (>900,000 prefixes) to the ISP instead of its usual 5 aggregate prefixes. The ISP's router shows memory utilization jumping sharply. What type of route leak is this, what immediate mitigation does the ISP have, and what long-term fix prevents recurrence?",
+    "context": null,
+    "ground_truth": {
+      "answer": "This is a Type-1/Type-4 route leak (re-advertisement of full table from a multi-homed customer who learned routes from another provider and leaked them upward, or an operator misconfiguration removing the outbound prefix-list). Immediate mitigation: the ISP should have a maximum-prefix limit configured on the session — 'neighbor <addr> maximum-prefix <N> [threshold] [warning-only|restart <interval>]'. If maximum-prefix is set appropriately, the session would have been torn down automatically. If not already set, the operator should manually clear the session and apply an inbound prefix-list or prefix-limit immediately. Long-term fixes: (1) Apply a strict outbound route-map on the customer side allowing only their legitimate prefixes; (2) Set 'neighbor maximum-prefix' on the ISP side to a small number (e.g., 10) with a warning at 80%; (3) Deploy RFC 9234 BGP Role=Customer on the session so OTC is set on routes from the ISP to the customer and the customer's router will refuse to re-advertise those upstream. Investigate with 'show bgp summary' (prefix count spike) and 'show bgp neighbors <customer-addr> received-routes | count'.",
+      "layer": "bgp",
+      "commands": ["show bgp summary", "show bgp neighbors <addr> received-routes | count", "show bgp neighbors <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.2", "RFC7908 S3", "RFC9234 S5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7908", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-126",
+    "category": "large-communities",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "Why were BGP Large Communities (RFC 8092) introduced, and how do they differ structurally from standard BGP communities (RFC 1997)?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Standard BGP communities (RFC 1997) are 4 bytes total: 2 bytes for the AS number and 2 bytes for a locally defined value. When the global BGP community migrated to 4-byte ASNs (RFC 6793), the 2-byte AS field in a standard community could no longer hold a 32-bit ASN without workarounds (e.g., encoding the high and low 16 bits in separate communities). RFC 8092 Large Communities solve this by defining a 12-byte structure: a 4-byte Global Administrator field (holding the full 32-bit ASN), plus two 4-byte Local Data fields (Local Data 1 and Local Data 2). This gives operators full 32-bit ASN space plus two 32-bit operand fields — enabling policies such as 'ASN:action:parameter' without encoding tricks. Large Communities are a new attribute (type code 32) and are NOT backward-compatible with standard communities.",
+      "layer": "bgp",
+      "commands": ["show bgp <prefix> detail", "show bgp community <asn>:<data1>:<data2>"],
+      "executable": true,
+      "grounded_in": ["RFC8092 S1", "RFC8092 S2", "RFC1997 S1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8092", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-127",
+    "category": "large-communities",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "How is a BGP Large Community encoded on the wire and what is its textual representation format as specified in RFC 8092?",
+    "context": null,
+    "ground_truth": {
+      "answer": "On the wire, a BGP Large Community is 12 bytes: a 4-byte Global Administrator (the operator's 32-bit ASN), followed by a 4-byte Local Data Part 1, followed by a 4-byte Local Data Part 2 — all in network byte order (big-endian). Multiple Large Communities are carried in the BGP Large Communities attribute (type code 32), which is an optional, transitive, non-partial attribute. The attribute value is simply the concatenation of one or more 12-byte Large Community tuples. The textual representation is 'GlobalAdministrator:LocalData1:LocalData2', e.g., '65000:1:100' where 65000 is the operator's ASN, 1 might encode the action (e.g., blackhole), and 100 might encode a region. RFC 8092 §4 specifies this canonical text format.",
+      "layer": "bgp",
+      "commands": ["show bgp <prefix> detail", "show bgp large-community <asn>:<val1>:<val2>"],
+      "executable": true,
+      "grounded_in": ["RFC8092 S2", "RFC8092 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8092", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-128",
+    "category": "large-communities",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "Describe three distinct operational use cases for BGP Large Communities and explain why standard communities are insufficient for each when 32-bit ASNs are involved.",
+    "context": null,
+    "ground_truth": {
+      "answer": "Three use cases where Large Communities outperform standard communities with 32-bit ASNs: (1) Regional traffic engineering tagging: an operator with ASN 131072 (a 32-bit ASN) wants to tag routes with 'origin-region=APAC'. A standard community field only has 16 bits for the local value and 16 bits for ASN — ASN 131072 doesn't fit in 16 bits. With Large Community '131072:1:1' (action=tag, region=APAC), the full ASN fits in the Global Administrator field. (2) Blackhole signalling: RFC 7999 defines community 65535:666 for blackholing, but for a 32-bit ASN operator, a Large Community '65000123:666:0' uniquely scopes the blackhole signal to that AS without ambiguity. (3) Peer coloring for selective export: an operator tags routes with their full 32-bit ASN plus a peer-group identifier — e.g., '131072:100:200' means 'learned from peer-group 100 in PoP 200'. Standard communities cannot carry the 32-bit ASN in the AS field. RFC 8195 documents operator community conventions for Large Communities.",
+      "layer": "bgp",
+      "commands": ["show bgp large-community <value>", "show bgp <prefix> detail", "show route-map <name>"],
+      "executable": true,
+      "grounded_in": ["RFC8092 S1", "RFC8195 S2", "RFC7999 S2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8092", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-129",
+    "category": "large-communities",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the relationship between RFC 8092 (Large Communities), RFC 1997 (Standard Communities), and RFC 4360 (Extended Communities) in terms of attribute type codes and transitivity?",
+    "context": null,
+    "ground_truth": {
+      "answer": "All three are optional BGP path attributes but differ in size, type code, and typical use. Standard Communities (RFC 1997) use type code 8, are 4 bytes each (2-byte AS + 2-byte local), and are optional transitive. Extended Communities (RFC 4360) use type code 16, are 8 bytes each with a structured type field enabling sub-typing (e.g., route-target, route-origin for VPNs), and may be transitive or non-transitive depending on the high-order bit of the type octet. Large Communities (RFC 8092) use type code 32, are 12 bytes each (4-byte ASN + two 4-byte local fields), and are optional transitive. Key distinctions: Extended Communities are primarily used for VPN route-targets and route-origins (RFC 4364), EVPN, and QoS marking, while Large Communities are designed for inter-domain policy signalling with 32-bit ASNs. None of these attributes is backward-compatible — a router that does not recognize type code 32 will still forward it (transitive, partial bit set) per RFC 4271 unknown attribute handling.",
+      "layer": "bgp",
+      "commands": ["show bgp <prefix> detail", "show bgp community <value>", "show bgp extcommunity rt <value>"],
+      "executable": true,
+      "grounded_in": ["RFC8092 S2", "RFC1997 S1", "RFC4360 S2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8092", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-130",
+    "category": "large-communities",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "RFC 8195 provides operational guidance for BGP Large Communities. What naming convention and structure does RFC 8195 recommend, and how does a network operator configure an FRR router to match and set Large Communities in a route-map?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 8195 recommends that the Global Administrator field contains the operator's own 32-bit ASN, Local Data 1 encodes a 'function' (e.g., 1=blackhole, 2=do-not-export, 3=graceful-shutdown signal, or operator-defined action codes), and Local Data 2 encodes a parameter (e.g., peer AS, region code, PoP ID). This ASN:function:parameter convention makes Large Communities self-describing. In FRR, match and set are configured in route-maps: to match a Large Community, define a large-community-list first ('bgp large-community-list standard <name> permit <asn>:<ld1>:<ld2>') and then in the route-map use 'match large-community <name>'. To set a Large Community on a route: in the route-map use 'set large-community <asn>:<ld1>:<ld2> additive'. Verify propagation with 'show bgp <prefix> detail' and check the 'Large Community:' line in the output.",
+      "layer": "bgp",
+      "commands": ["show bgp <prefix> detail", "show bgp large-community <asn>:<ld1>:<ld2>", "show route-map <name>"],
+      "executable": true,
+      "grounded_in": ["RFC8195 S2", "RFC8195 S3", "RFC8092 S2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8195", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-131",
+    "category": "as-migration",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What problem does BGP AS migration (RFC 7705) solve, and what are the three key options for the `local-as` command that control AS_PATH manipulation?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 7705 addresses the scenario where a network is migrating from one AS number to another (e.g., after a merger or renumbering) and needs to maintain BGP sessions with external peers that still expect the old ASN — without requiring simultaneous renumbering of all peers. The `local-as <old-asn>` command makes the router present the old ASN to the specified neighbor in OPEN messages and in the AS_PATH it prepends. The three options are: (1) No additional option (default): the router prepends both the new real AS and the old local-as into the AS_PATH (AS_PATH contains both). (2) `no-prepend`: the local-as is presented in OPEN (so the peer sees the old ASN as the peer), but it is NOT prepended into the AS_PATH of outgoing UPDATEs — only the real ASN is in the path. (3) `no-prepend replace-as`: the local-as replaces the real ASN in outgoing AS_PATH — the peer sees only the old ASN in the path, not the new real AS, making the migration transparent to the remote peer.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp neighbors <addr> advertised-routes", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC7705 S3", "RFC7705 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7705", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-132",
+    "category": "as-migration",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "An operator is migrating AS 65100 to AS 65200. Router R1 (now running AS 65200) has an eBGP neighbor R2 that still expects AS 65100. The command `neighbor <R2-addr> local-as 65100 no-prepend replace-as` is applied. What exactly does R1 send in its OPEN message and what does the AS_PATH look like in UPDATE messages sent to R2?",
+    "context": null,
+    "ground_truth": {
+      "answer": "With `local-as 65100 no-prepend replace-as`: (1) OPEN message: R1 sends BGP OPEN to R2 with the My Autonomous System field set to 65100 (the local-as value), so R2 sees AS 65100 as the peer AS — the session establishes because R2 has 'remote-as 65100'. (2) AS_PATH in UPDATEs to R2: when R1 advertises routes originating from AS 65200 (or routes learned from upstream), the `replace-as` option causes 65200 to be replaced by 65100 in the AS_PATH. R2 receives AS_PATH entries containing 65100 (the local-as) not 65200 (the real AS). For routes R1 originates locally, the AS_PATH sent to R2 shows 65100. For routes transiting R1, 65200 is replaced by 65100. R2 also applies loop detection against 65100 (the presented ASN). The migration is transparent to R2: it never sees AS 65200.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp neighbors <addr> advertised-routes", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC7705 S3", "RFC7705 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7705", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-133",
+    "category": "as-migration",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "When is a BGP confederation (RFC 5065) a better solution than local-as (RFC 7705) for AS migration, and when is local-as preferred?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Confederations (RFC 5065) divide a single AS into multiple sub-ASes that use eBGP internally but appear as one AS externally. Local-as (RFC 7705) allows a single router to present an alternate ASN to a specific neighbor. For AS migration: local-as is preferred when the migration is temporary and only a subset of peers need the old ASN during transition — it requires minimal config change (per-neighbor statement) and is transparent to the peer without topology changes. Confederations are better when the network needs a permanent internal AS structure, when there are many routers that need to use the old ASN collectively (not just a per-session workaround), or when the old and new AS need to coexist with full iBGP policy differentiation internally. A key limitation of local-as is that it applies only to the specific neighbor session; a confederation applies to the entire sub-AS. Another consideration: local-as without `replace-as` leaks both ASNs into the AS_PATH, which can cause issues with loop detection at peers; confederations handle this cleanly at the AS boundary.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp confederation peers", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC7705 S3", "RFC5065 S2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7705", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-134",
+    "category": "as-migration",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "After applying `neighbor <addr> local-as 65100` (without no-prepend), an operator notices that the AS_PATH for prefixes arriving at the remote peer contains both 65100 and 65200. The peer has a route-map that rejects any route with AS 65200 in the path. What is the cause and fix?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Without `no-prepend`, the local-as default behavior prepends both the local-as (65100) AND the real AS (65200) into the AS_PATH sent to the neighbor — producing a path like '65100 65200 <origin-path>'. This is by design per RFC 7705 §3: the full double-prepend ensures loop detection works for both ASNs. The remote peer's route-map sees 65200 in the path and rejects it. Fix: add `no-prepend replace-as` to the local-as command — 'neighbor <addr> local-as 65100 no-prepend replace-as'. With replace-as, only 65100 appears in the AS_PATH sent to the peer; 65200 is replaced. After applying, clear the session with 'clear bgp <addr> soft out' and verify with 'show bgp neighbors <addr> advertised-routes' — the AS_PATH should now contain only 65100 and not 65200.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> advertised-routes", "show bgp neighbors <addr>", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC7705 S3", "RFC7705 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7705", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-135",
+    "category": "as-migration",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "How do you detect in `show bgp` output that a neighbor is using `local-as`, and what is the indicator that `replace-as` is active vs. not active?",
+    "context": null,
+    "ground_truth": {
+      "answer": "In FRR/IOS 'show bgp neighbors <addr>' output, when local-as is configured the output shows a line such as: 'Local AS: 65100 no-prepend replace-as' (FRR) or 'Local AS 65100 no-prepend, replace-as' (IOS). Without replace-as, it shows 'Local AS: 65100' or 'Local AS 65100'. The 'remote-as' field shows the real neighbor ASN as configured, while the 'Local AS' field reveals the presented ASN. In 'show bgp summary', the neighbor may show a different ASN in the neighbor table if the display uses the configured remote-as. To confirm replace-as is active, check 'show bgp neighbors <addr> advertised-routes': with replace-as, the AS_PATH contains only the local-as; without it, both the local-as and real AS appear. In IOS: 'show bgp neighbors <addr> | include Local AS' is the quickest check.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp neighbors <addr> advertised-routes", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC7705 S3", "RFC7705 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7705", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-136",
+    "category": "aggregation",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What does the BGP ATOMIC_AGGREGATE attribute signal, which RFC defines it, and what information is lost when it is set?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The ATOMIC_AGGREGATE attribute (type code 6) is a well-known discretionary attribute defined in RFC 4271 §5.1.6. It is attached to an aggregated prefix to signal that the aggregating router has made a route selection from a set of less-specific routes, and that the aggregated route may represent a superset of one or more more-specific prefixes that have been suppressed. When ATOMIC_AGGREGATE is set, the AS_PATH of the aggregate may not fully represent the set of ASes that originated the component more-specific routes — specifically, if the aggregator chooses to form an AS_SEQUENCE aggregate without including AS_SET, the AS_PATH information of the contributing routes is lost. Downstream routers receiving the aggregate with ATOMIC_AGGREGATE cannot determine which specific ASes contributed to it. The attribute itself carries no value; it is a flag. The complementary AGGREGATOR attribute (type code 7) carries the ASN and router-ID of the aggregating router.",
+      "layer": "bgp",
+      "commands": ["show bgp <aggregate-prefix> detail", "show bgp neighbors <addr> advertised-routes"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S5.1.6", "RFC4271 S5.1.7"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-137",
+    "category": "aggregation",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is AS_SET and why did RFC 6472 recommend deprecating it in the context of BGP route aggregation?",
+    "context": null,
+    "ground_truth": {
+      "answer": "AS_SET (AS_PATH segment type 1) is an unordered collection of AS numbers included in the AS_PATH to represent the set of all ASes that contributed to an aggregated route — as opposed to AS_SEQUENCE (type 2), which is an ordered list. When a BGP speaker aggregates multiple more-specific routes from different origin ASes, it may include an AS_SET to preserve the origin AS information: e.g., AS_PATH = {65001 65002 65003} for the aggregate. RFC 6472 recommended against using AS_SET (and AS_CONFED_SET) because: (1) AS_SET complicates RPKI/Route Origin Validation — an ROA can only certify a specific ASN as the origin, but an AS_SET has multiple ASNs making it unclear which ROA applies; (2) AS_SET makes BGPSEC (RFC 8205) path validation impossible since BGPSEC requires an ordered, signed AS_SEQUENCE; (3) the operational utility of AS_SET is limited — routers generally do not make policy decisions based on the unordered set. RFC 6472 recommends using ATOMIC_AGGREGATE without AS_SET and accepting the AS_PATH information loss rather than carrying a misleading or unvalidatable set.",
+      "layer": "bgp",
+      "commands": ["show bgp <prefix> detail", "show bgp aggregate-address"],
+      "executable": true,
+      "grounded_in": ["RFC6472 S1", "RFC6472 S2", "RFC4271 S4.3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc6472", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-138",
+    "category": "aggregation",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "An operator wants to advertise the aggregate 10.0.0.0/16 only when at least one more-specific /24 is present in the RIB, and wants to suppress all contributing /24s from being advertised individually. What BGP aggregation configuration achieves this in FRR, and what is the role of `suppress-map`?",
+    "context": null,
+    "ground_truth": {
+      "answer": "In FRR, configure: 'aggregate-address 10.0.0.0/16 summary-only' under the BGP address-family. The 'summary-only' keyword suppresses advertisement of all more-specific prefixes that fall within 10.0.0.0/16 that are present in the local BGP RIB, and advertises only the aggregate. The aggregate is generated only when at least one more-specific contributing route exists in the RIB (it is conditional). If finer-grained control is needed — suppress only a subset of more-specifics, not all — use a 'suppress-map': define a route-map matching specific prefixes to suppress, then 'aggregate-address 10.0.0.0/16 suppress-map <map-name>'. Prefixes matched by the suppress-map are withdrawn; unmatched more-specifics continue to be advertised. The complementary 'unsuppress-map' can be applied per-neighbor to re-advertise suppressed more-specifics to selected peers: 'neighbor <addr> unsuppress-map <map-name>'. Verify with 'show bgp 10.0.0.0/16 detail' (check ATOMIC_AGGREGATE is set) and 'show bgp neighbors <addr> advertised-routes'.",
+      "layer": "bgp",
+      "commands": ["show bgp 10.0.0.0/16 detail", "show bgp neighbors <addr> advertised-routes", "show bgp aggregate-address"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1.4", "RFC4271 S5.1.6"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-139",
+    "category": "aggregation",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A downstream AS receives the aggregate 192.168.0.0/16 with ATOMIC_AGGREGATE set and AS_PATH showing only the aggregating AS. Operators at the downstream AS want to know which specific origin ASes contributed to this aggregate. Why can't they determine this, and what would have needed to be configured at the aggregating AS to preserve origin information?",
+    "context": null,
+    "ground_truth": {
+      "answer": "When ATOMIC_AGGREGATE is set without AS_SET, the AS_PATH of the aggregate contains only the aggregating AS's path — the origin ASes of the contributing more-specific routes are not preserved. Downstream AS operators cannot reconstruct the set of contributing origin ASes from the aggregate alone. To preserve origin information, the aggregating AS would need to configure 'aggregate-address 192.168.0.0/16 as-set' — this builds an AS_SET from all ASes in the AS_PATHs of the contributing more-specific routes and includes it in the aggregate's AS_PATH (e.g., AS_SEQUENCE: 65100, AS_SET: {65200, 65300}). However, RFC 6472 recommends against using AS_SET because it breaks RPKI Route Origin Validation and BGPSEC. The AGGREGATOR attribute (type code 7), which carries the ASN and BGP router-ID of the aggregating router, identifies WHO aggregated the route but not which ASes contributed. Verify by running 'show bgp 192.168.0.0/16 detail' and inspecting the AS_PATH and Aggregator fields.",
+      "layer": "bgp",
+      "commands": ["show bgp 192.168.0.0/16 detail", "show bgp neighbors <addr> advertised-routes"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S5.1.6", "RFC4271 S5.1.7", "RFC6472 S2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-140",
+    "category": "aggregation",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "An aggregate-address is configured but the aggregate is not being advertised to any BGP neighbor. The more-specific routes exist in the IP routing table. What are the two most common reasons the aggregate fails to generate, and how do you diagnose each?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Two most common reasons an aggregate-address fails to generate: (1) No contributing route in the BGP RIB: the aggregate is only generated when at least one more-specific prefix that falls within the aggregate range exists in the BGP RIB (not just the routing table). If the more-specific routes are learned via OSPF/static and redistributed into BGP, they must be present in 'show bgp' — check 'show bgp' and look for more-specific prefixes within the aggregate range. If they appear only in 'show ip route' but not 'show bgp', the contributing routes are not in BGP. (2) Wrong address-family: the 'aggregate-address' command must be configured under the correct address-family (e.g., 'address-family ipv4 unicast') that matches where the contributing routes live. If configured globally but contributing routes are in a VRF or IPv6 AFI, the aggregate won't generate. Diagnose: run 'show bgp ipv4 unicast' and check for the aggregate with 'a' flag (aggregate), then 'show bgp neighbors <addr> advertised-routes' to confirm it is being sent. Also check 'show bgp aggregate-address' (IOS) or inspect FRR 'show bgp' for the aggregate route with an 'a>' flag.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast", "show bgp neighbors <addr> advertised-routes", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1.4", "RFC4271 S5.1.6"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-141",
+    "category": "add-path-advanced",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "How does BGP ADD-PATH (RFC 7911) encode the path identifier in the NLRI, and what change does this require to NLRI parsing compared to standard BGP UPDATEs?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 7911 ADD-PATH introduces a 4-byte Path Identifier field prepended to each NLRI tuple in the UPDATE message when ADD-PATH is negotiated. In standard BGP (RFC 4271), an NLRI is encoded as a length (1 byte) followed by the prefix bits. With ADD-PATH, the encoding becomes: 4-byte Path-ID (in network byte order) + 1-byte prefix length + prefix bits. The Path-ID is assigned by the sender and is locally significant to the BGP session; the same prefix with different Path-IDs represents distinct paths. This changes NLRI parsing: a receiver that has negotiated ADD-PATH for a given AFI/SAFI MUST parse the 4-byte Path-ID before each length/prefix pair. The Path-ID space is per-session — the same Path-ID value from two different peers does not imply the same path. ADD-PATH is negotiated per AFI/SAFI using a capability code 69 in the BGP OPEN, which lists the AFI, SAFI, and whether the sender can Send, Receive, or both.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> | inc ADD-PATH", "show bgp ipv4 unicast <prefix>"],
+      "executable": true,
+      "grounded_in": ["RFC7911 S3", "RFC7911 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7911", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-142",
+    "category": "add-path-advanced",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "How does ADD-PATH (RFC 7911) allow a Route Reflector to provide a best-path per-client rather than a single best path for all clients, and why does this solve the suboptimal routing problem in RR topologies?",
+    "context": null,
+    "ground_truth": {
+      "answer": "In a standard RR topology, the RR selects a single best path per prefix and reflects only that one path to all clients (RFC 4456). If Client A's optimal path is via peer X and Client B's optimal path is via peer Y, the RR's global best-path (say via X) is sent to both A and B — Client B gets a suboptimal path. With ADD-PATH, the RR can advertise multiple paths for the same prefix to each client using distinct Path-IDs. The RR runs per-client best-path selection (or advertises additional paths beyond the global best) and assigns each a unique Path-ID in the NLRI. Client B receives multiple paths and runs its own best-path selection, choosing the locally optimal one. This eliminates the hidden-path problem where a path known to the RR is never sent to a client because it was not selected as the global best. Configuration: enable ADD-PATH send/receive on RR-to-client sessions and configure 'bgp additional-paths select all' (or 'best N') on the RR. Verify: 'show bgp <prefix>' on a client should show multiple entries with different path-IDs from the RR.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix>", "show bgp neighbors <addr> | inc ADD-PATH", "show bgp neighbors <addr> advertised-routes"],
+      "executable": true,
+      "grounded_in": ["RFC7911 S1", "RFC7911 S5", "RFC4456 S8"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7911", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-143",
+    "category": "add-path-advanced",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "What is the interaction between BGP ADD-PATH and MED when multiple paths with different MEDs exist for the same prefix? Does ADD-PATH change MED comparison rules?",
+    "context": null,
+    "ground_truth": {
+      "answer": "ADD-PATH does not change the MED comparison rules defined in RFC 4271 §9.1.2.2. MED is only comparable between paths from the same neighboring AS (unless 'bgp always-compare-med' is configured). When the RR or speaker selects which additional paths to advertise via ADD-PATH, it may choose the best-path plus additional paths that differ by MED (e.g., the best path from AS 65001 with MED=100 and the best path from AS 65001 with MED=200, or paths from different ASes). Each such path gets a distinct Path-ID in the ADD-PATH NLRI. The receiver that gets multiple ADD-PATH advertisements runs its own full best-path algorithm including MED comparison on the received paths. The net effect is that ADD-PATH exposes paths that differ by MED (or by next-hop, or by AS_PATH) to the client, giving the client the information needed to make a locally optimal decision. If 'bgp additional-paths select all' is configured on the RR, all known paths (including MED variants) are sent with distinct Path-IDs. This can result in the client preferring a path with a lower MED from a neighbor it can reach more directly.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix>", "show bgp neighbors <addr> advertised-routes", "show bgp neighbors <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC7911 S5", "RFC4271 S9.1.2.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7911", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-144",
+    "category": "add-path-advanced",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "What is the relationship between BGP ADD-PATH (RFC 7911) and ECMP (Equal-Cost Multipath) — does ADD-PATH enable ECMP and are they substitutes or complements?",
+    "context": null,
+    "ground_truth": {
+      "answer": "ADD-PATH and ECMP are complementary but distinct mechanisms. ECMP (Equal-Cost Multipath) is a forwarding-plane feature: a router installs multiple next-hops for a prefix in the FIB and load-balances traffic across them. ECMP requires that the multiple paths meet the multipath eligibility criteria (same AS_PATH length, same LOCAL_PREF, same MED from same AS, etc.). ADD-PATH is a control-plane feature: it allows a BGP speaker to advertise multiple distinct paths for a prefix to a neighbor, giving that neighbor the information needed to install ECMP locally or make better route selections. ADD-PATH enables ECMP at the receiver by providing additional paths that would otherwise be hidden (especially behind a Route Reflector). However, ADD-PATH alone does not configure ECMP — the receiver must separately have 'maximum-paths' configured to install multiple next-hops. Conversely, ECMP without ADD-PATH may fail in RR topologies because the RR only reflects one best-path, hiding alternative equal-cost paths. Together: ADD-PATH ensures the control plane propagates all eligible paths; ECMP ensures the forwarding plane uses them.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix>", "show ip route <prefix>", "show bgp neighbors <addr> | inc ADD-PATH"],
+      "executable": true,
+      "grounded_in": ["RFC7911 S1", "RFC4271 S9.1.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7911", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-145",
+    "category": "add-path-advanced",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A BGP peer reports receiving what appear to be duplicate routes for the same prefix — multiple UPDATE messages arriving for the same 10.0.1.0/24 with the same AS_PATH and next-hop but different Path-IDs. The operator did not intend to send duplicates. What ADD-PATH misconfiguration causes this symptom?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Receiving multiple paths with the same AS_PATH and next-hop but different Path-IDs is a symptom of over-advertising when 'bgp additional-paths select all' (or equivalent) is configured on the sender, but the paths being advertised are not genuinely distinct — they are the same path received multiple times (e.g., from multiple RR clients in an iBGP mesh where the same route was reflected from different RRs). The sender assigned a unique Path-ID to each received copy and is sending all of them. Root cause: the sender's ADD-PATH policy is set to advertise all paths without deduplication. Fix: change the ADD-PATH selection policy to 'best N' (e.g., 'bgp additional-paths select best 2') rather than 'all', so only genuinely distinct best paths are sent. Also verify that route-reflector clusters are configured correctly (cluster-IDs and CLUSTER_LIST) so that the RR does not reflect the same path from multiple clients. Diagnose with 'show bgp ipv4 unicast 10.0.1.0/24' on the sender — if multiple entries exist with identical attributes differing only in Path-ID, the deduplication is not happening.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast 10.0.1.0/24", "show bgp neighbors <addr> advertised-routes", "show bgp neighbors <addr> | inc ADD-PATH"],
+      "executable": true,
+      "grounded_in": ["RFC7911 S3", "RFC7911 S5", "RFC4456 S8"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7911", "authored": true, "confidence": 0.92}
+  },
+  {
+    "id": "q-146",
+    "category": "graceful-shutdown",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the GRACEFUL_SHUTDOWN well-known BGP community value defined in RFC 8326, and what is its intended operational purpose?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 8326 defines the GRACEFUL_SHUTDOWN community with the value 65535:0 (using the well-known community format). Its operational purpose is planned maintenance traffic draining: before taking a BGP session or link out of service (e.g., for hardware maintenance, software upgrade, or link decommission), the operator applies the GRACEFUL_SHUTDOWN community to all routes being sent via that session/link. Receiving routers are configured to match this community and set LOCAL_PREF to a very low value (typically 0), causing all other paths to be preferred over the path tagged with GRACEFUL_SHUTDOWN. Traffic is thus steered away from the maintenance link before it goes down, preventing a traffic black-hole. RFC 8326 §5 describes the recommended receiver action: 'set local-preference 0' for routes carrying 65535:0. The sender applies the community and then waits for traffic to drain (typically the BGP route propagation convergence time) before taking the link down.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp <prefix> detail", "show bgp community 65535:0"],
+      "executable": true,
+      "grounded_in": ["RFC8326 S2", "RFC8326 S4", "RFC8326 S5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8326", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-147",
+    "category": "graceful-shutdown",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "Walk through the full operational procedure for draining traffic from an eBGP peering link before planned maintenance using RFC 8326 GRACEFUL_SHUTDOWN, including the sender-side and receiver-side configurations needed.",
+    "context": null,
+    "ground_truth": {
+      "answer": "Sender-side (the router whose link will go down): (1) Apply a route-map outbound on the maintenance session that sets community 65535:0 on all advertised routes. In FRR: 'set community 65535:0 additive' in the route-map. Alternatively, use the vendor command 'bgp graceful-shutdown' (IOS-XR/IOS-XE) which automates this. (2) Apply 'clear bgp <peer-addr> soft out' to re-advertise all routes with the new community. (3) Wait for the propagation convergence window (typically 30–300 seconds depending on network size) so that all downstream routers have re-converged traffic onto alternative paths. (4) Take the link or session down. Receiver-side (all peers that have a session with the maintenance router): configure a community-list matching 65535:0 and a route-map that sets local-preference to 0 for matched routes: 'match community GRACEFUL_SHUTDOWN' → 'set local-preference 0'. Apply this inbound on all eBGP sessions as a best-practice policy so any peer draining traffic is respected automatically. Verify traffic has shifted with 'show bgp community 65535:0' on receiver — routes tagged with GRACEFUL_SHUTDOWN should show LOCAL_PREF 0 and not be selected as best-path.",
+      "layer": "bgp",
+      "commands": ["show bgp community 65535:0", "show bgp neighbors <addr> advertised-routes", "show bgp <prefix> detail"],
+      "executable": true,
+      "grounded_in": ["RFC8326 S4", "RFC8326 S5", "RFC8326 S6"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8326", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-148",
+    "category": "graceful-shutdown",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the fundamental difference between BGP Graceful Shutdown (RFC 8326) and BGP Graceful Restart (RFC 4724)?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGP Graceful Shutdown (RFC 8326) is a planned maintenance procedure: the operator intentionally drains traffic away from a BGP session before intentionally bringing it down. The session and routes go away deliberately; the mechanism ensures traffic continuity during the controlled transition by pre-moving traffic elsewhere via the GRACEFUL_SHUTDOWN community (65535:0) lowering LOCAL_PREF. BGP Graceful Restart (RFC 4724) addresses unplanned events: when a BGP speaker's control plane restarts (e.g., due to process crash or line-card failover), GR allows the forwarding plane to continue using stale routes during the restart window without withdrawing them, so traffic is not dropped during the brief control-plane outage. GR requires the restarting router to signal the GR capability in OPEN (capability code 64) and the peer to retain stale routes for the negotiated restart timer. In summary: Graceful Shutdown = planned, traffic is steered away before session teardown; Graceful Restart = unplanned, stale routes are retained during control-plane recovery to maintain forwarding.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> | inc Graceful", "show bgp neighbors <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC8326 S2", "RFC4724 S1", "RFC4724 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8326", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-149",
+    "category": "graceful-shutdown",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "How does the GRACEFUL_SHUTDOWN community interact with LOCAL_PREF and MED during path selection, and what happens if the receiving router has a route-map that sets LOCAL_PREF to a non-zero value before the GRACEFUL_SHUTDOWN policy is applied?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 8326 §5 specifies that when a router receives a route tagged with community 65535:0, it SHOULD set LOCAL_PREF to 0 for that route. LOCAL_PREF is the first tiebreaker after Weight in the BGP best-path algorithm (RFC 4271 §9.1.2), so a route with LOCAL_PREF 0 will lose to virtually any other path with a higher LOCAL_PREF (default is 100). MED is considered much later in the algorithm and only between paths from the same neighboring AS, so MED does not override the LOCAL_PREF=0 effect. Interaction risk: if the receiving router has an inbound route-map that sets LOCAL_PREF=200 for all routes from that peer (e.g., for a preferred-provider policy), and this route-map runs BEFORE the GRACEFUL_SHUTDOWN community check, the GRACEFUL_SHUTDOWN policy may have no effect — LOCAL_PREF is already 200. The fix: ensure the GRACEFUL_SHUTDOWN community-matching route-map overrides LOCAL_PREF to 0 AFTER any other LOCAL_PREF assignments, or use a route-map with a lower sequence number that checks for 65535:0 first and sets LOCAL_PREF=0 with 'continue' semantics disabled (or uses a 'set local-preference 0' in a terminating entry).",
+      "layer": "bgp",
+      "commands": ["show bgp community 65535:0", "show bgp <prefix> detail", "show route-map <name>"],
+      "executable": true,
+      "grounded_in": ["RFC8326 S5", "RFC4271 S9.1.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8326", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-150",
+    "category": "graceful-shutdown",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "An operator applies the GRACEFUL_SHUTDOWN procedure before planned maintenance, but traffic continues to flow through the maintenance link for several minutes after the community is applied. What are the likely causes and how do you diagnose whether the draining is working?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Likely causes that traffic does not drain: (1) The peer router does not have a GRACEFUL_SHUTDOWN receiver policy — it is not matching community 65535:0 and setting LOCAL_PREF=0. Many operators have not deployed RFC 8326 receiver-side config. Check: 'show bgp <prefix> detail' on the peer — LOCAL_PREF should be 0 for the drained path; if it is still the default (e.g., 100), the peer is not honoring GRACEFUL_SHUTDOWN. (2) The GRACEFUL_SHUTDOWN community is not being sent: verify with 'show bgp neighbors <addr> advertised-routes' on the maintenance router and check that 65535:0 appears in the community field of the advertised routes. (3) Convergence delay: even if the community is being sent and honored, BGP propagation and reconvergence takes time (especially if there are multiple hops of route-reflectors or many iBGP peers to update). The typical recommendation is to wait at least 300 seconds. (4) There is only one path — no alternative path exists for the traffic to move to. Traffic cannot drain if the maintenance link is the only path. Diagnose: 'show bgp community 65535:0' on the receiver, then check 'show ip route <prefix>' to see which next-hop is active.",
+      "layer": "bgp",
+      "commands": ["show bgp community 65535:0", "show bgp neighbors <addr> advertised-routes", "show bgp <prefix> detail"],
+      "executable": true,
+      "grounded_in": ["RFC8326 S4", "RFC8326 S5", "RFC8326 S6"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8326", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-151",
+    "category": "prefix-hijack",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the difference between an exact-prefix BGP hijack and a sub-prefix hijack, and why is a sub-prefix hijack harder to defend against without RPKI?",
+    "context": null,
+    "ground_truth": {
+      "answer": "An exact-prefix hijack occurs when a malicious or misconfigured AS originates a BGP announcement for a prefix (e.g., 192.0.2.0/24) with the same prefix length as the legitimate originator. Routers apply best-path selection; if the hijacker's path is preferred (shorter AS_PATH, higher LOCAL_PREF), traffic is hijacked. However, the legitimate originator's announcement is also present and some routers may still prefer the legitimate path. A sub-prefix hijack originates a more-specific prefix (e.g., 192.0.2.0/25) within the legitimate aggregate. Because BGP longest-prefix-match wins unconditionally over best-path selection, ALL routers that receive the /25 will prefer it over the /24 — regardless of AS_PATH length or other attributes. This makes sub-prefix hijacks more effective and harder to defend without RPKI: even if the legitimate /24 is preferred everywhere it is seen, the /25 wins by longest-match. RPKI (RFC 6811 origin validation) can catch this: if the ROA for 192.0.2.0/24 does not authorize the hijacking AS as origin, and does not cover the /25 length, the /25 from the wrong AS gets an 'Invalid' origin validation state and can be rejected.",
+      "layer": "bgp",
+      "commands": ["show bgp 192.0.2.0/24 detail", "show bgp 192.0.2.0/25 detail", "show bgp rpki prefix 192.0.2.0/25"],
+      "executable": true,
+      "grounded_in": ["RFC6811 S2", "RFC6811 S5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc6811", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-152",
+    "category": "prefix-hijack",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is MOAS (Multiple Origin AS) in BGP, what are the three RPKI origin validation states defined in RFC 6811, and which state would a MOAS route receive?",
+    "context": null,
+    "ground_truth": {
+      "answer": "MOAS (Multiple Origin AS) is a condition where the same prefix is originated (AS_PATH ends at the same prefix but with different origin ASes) by more than one AS simultaneously. It can occur legitimately (e.g., CDN anycast or a multi-homed prefix where both providers originate it) or as a hijack. RFC 6811 defines three origin validation states for a route: (1) Valid — the prefix and its origin AS are covered by a matching ROA with matching or less-specific maxLength. (2) Invalid — a ROA exists that covers the prefix, but the announcing AS does not match any authorized origin AS in any applicable ROA, OR the prefix length exceeds the ROA's maxLength. (3) NotFound (also called Unknown) — no ROA exists that covers the prefix or any less-specific covering prefix. For a MOAS route where the legitimate AS has a ROA but the second AS (the hijacker or unauthorized originator) does not: routes from the unauthorized AS receive state 'Invalid'. Routes from the legitimate AS receive 'Valid'. A router with RPKI-based policy dropping 'Invalid' routes would reject the unauthorized origin.",
+      "layer": "bgp",
+      "commands": ["show bgp rpki prefix <prefix>", "show bgp <prefix> detail", "show bgp rpki table"],
+      "executable": true,
+      "grounded_in": ["RFC6811 S2", "RFC6811 S5", "RFC6811 S6"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc6811", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-153",
+    "category": "prefix-hijack",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "A network operator has a ROA authorizing AS 65100 to announce 203.0.113.0/24 with maxLength /24. An attacker announces 203.0.113.0/25 originating from AS 65999. What RPKI validation state does the /25 receive, and does the /24 ROA protect against this sub-prefix hijack?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The ROA covers 203.0.113.0/24 with maxLength /24 (prefix length 24, maximum prefix length 24). RFC 6811 §2 defines that a route is 'Invalid' if a ROA exists covering the prefix (or a covering supernet) with a maxLength less than the announced prefix length, OR the origin AS does not match. The /25 (prefix length 25) exceeds the ROA maxLength of /24: RFC 6811 §2 states 'if the route's prefix length is greater than the maximum prefix length in the ROA, the route is Invalid.' Therefore, 203.0.113.0/25 from AS 65999 gets validation state 'Invalid' — both because the announcing AS (65999) does not match the authorized AS (65100), AND because the prefix length (25) exceeds the ROA maxLength (24). The /24 ROA DOES protect against this specific sub-prefix hijack because maxLength=/24 means no sub-prefix of /24 is authorized for any AS. If the ROA had maxLength=/25 or higher, the /25 from AS 65100 would be valid, but the /25 from AS 65999 would still be Invalid (wrong origin). Verify: 'show bgp rpki prefix 203.0.113.0/25 detail'.",
+      "layer": "bgp",
+      "commands": ["show bgp rpki prefix 203.0.113.0/25", "show bgp rpki prefix 203.0.113.0/24", "show bgp 203.0.113.0/25 detail"],
+      "executable": true,
+      "grounded_in": ["RFC6811 S2", "RFC6811 S5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc6811", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-154",
+    "category": "prefix-hijack",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "An operator monitoring BGP receives an alert that their prefix 198.51.100.0/24 is being announced by an AS that is not in their organization. What BGP-level indicators would they look for to confirm this is a hijack rather than a legitimate MOAS, and what is the difference in the RPKI validation state if a ROA is in place?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGP-level indicators to confirm a hijack vs. legitimate MOAS: (1) AS_PATH: for a hijack, the origin AS at the end of the AS_PATH is not the legitimate owner's AS. Check 'show bgp 198.51.100.0/24 detail' — the last AS in the AS_PATH should match the legitimate origin. (2) RPKI validation state: if the legitimate operator has a ROA for 198.51.100.0/24 authorizing only their own AS, the hijacked route will show state 'Invalid' (wrong origin AS), while the legitimate route shows 'Valid'. Run 'show bgp rpki prefix 198.51.100.0/24' to see all ROA matches. (3) Multiple paths: 'show bgp 198.51.100.0/24' may show two paths — one from the legitimate AS with 'Valid' state, one from the unauthorized AS with 'Invalid'. (4) Temporal suddenness: if BGP monitoring data shows the unauthorized origin appearing at a specific time with rapid global propagation, this is characteristic of a hijack rather than a planned MOAS. A legitimate MOAS is typically coordinated (the legitimate operator would know about it) and appears in their own IRR records. (5) IRR (Internet Routing Registry) cross-check: the unauthorized origin AS should not have a route object authorizing it to announce the prefix.",
+      "layer": "bgp",
+      "commands": ["show bgp 198.51.100.0/24 detail", "show bgp rpki prefix 198.51.100.0/24", "show bgp rpki table"],
+      "executable": true,
+      "grounded_in": ["RFC6811 S2", "RFC6811 S5", "RFC6811 S6"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc6811", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-155",
+    "category": "prefix-hijack",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "What are the key principles of BGP prefix hijack detection from a monitoring perspective, and how does real-time BGP monitoring differ from RPKI in what it can detect?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGP prefix hijack detection principles from a monitoring perspective: (1) Origin AS deviation: compare the origin AS seen in real-time BGP data against a baseline (known-good AS_PATHs or IRR records). A sudden appearance of a new origin AS for a prefix is a hijack indicator. (2) AS_PATH length anomaly: hijackers often have shorter AS_PATHs to the prefix than the legitimate originator, causing their route to win best-path selection globally. (3) Geographic propagation: a hijack typically propagates from a specific region and spreads; a legitimate announcement is globally consistent from the start. (4) Sub-prefix detection: monitoring can detect new more-specific announcements for address space that the legitimate owner has not announced as more-specifics. Difference from RPKI: RPKI (RFC 6811) validates the origin AS cryptographically against ROA records and can definitively classify routes as Valid/Invalid/NotFound. However, RPKI only validates the origin AS (the last AS in the path), not the full AS_PATH — a hijack where the attacker inserts the legitimate origin AS at the end of a fake path (AS_PATH manipulation) would still pass RPKI origin validation but fail BGPSEC path validation (RFC 8205). Real-time BGP monitoring detects behavioral anomalies (new origins, new more-specifics, AS_PATH changes) faster than RPKI propagation but cannot cryptographically prove validity. RPKI and monitoring are complementary.",
+      "layer": "bgp",
+      "commands": ["show bgp <prefix> detail", "show bgp rpki prefix <prefix>", "show bgp regexp <origin-as>$"],
+      "executable": true,
+      "grounded_in": ["RFC6811 S2", "RFC8205 S1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc6811", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-156",
+    "category": "ttl-security",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "How does GTSM (Generalized TTL Security Mechanism, RFC 5082) protect BGP sessions, and what is the core principle behind its defense against off-path attackers?",
+    "context": null,
+    "ground_truth": {
+      "answer": "GTSM (RFC 5082) works on a simple principle: a directly connected BGP peer is exactly 1 hop away, so the IP TTL of packets sent to it from the peer should arrive with TTL=255 (if the peer sets TTL=255 at the source and there is 1 hop). GTSM configures the local router to require that incoming TCP packets for the BGP session have a TTL greater than or equal to 255 minus the configured 'hop count' (typically 255 for directly connected peers). An off-path attacker attempting to spoof BGP TCP packets cannot set the TTL such that it arrives with a value near 255 — packets from off-path sources traverse multiple hops and arrive with much lower TTLs. The router drops all TCP packets with TTL below the minimum threshold. The implementation requires the BGP speaker to: (1) Set TTL=255 in outgoing packets on the BGP TCP session, and (2) Configure a minimum TTL check on incoming packets. In FRR/IOS: 'neighbor <addr> ttl-security hops <N>' where N=1 for directly connected peers sets the minimum acceptable TTL to 255-1=254.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> | inc TTL", "show bgp neighbors <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC5082 S2", "RFC5082 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5082", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-157",
+    "category": "ttl-security",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "What is the `ttl-security hops N` parameter, how is the minimum TTL calculated from N, and what value of N is appropriate for a directly connected eBGP peer vs. a multihop eBGP peer 3 hops away?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The `neighbor <addr> ttl-security hops N` command configures GTSM. The minimum acceptable TTL for incoming packets is calculated as: minimum_TTL = 255 - N. For a directly connected eBGP peer (1 hop): N=1, minimum_TTL = 254. The peer sends packets with TTL=255; after 1 hop the TTL is decremented to 254 at the local router — exactly at the threshold. For a multihop eBGP peer 3 hops away: N=3, minimum_TTL = 252. The peer sends TTL=255; after 3 hops it arrives as 252 — at the threshold. RFC 5082 §3 notes that N should be set to the maximum expected hop count between the two peers; using a value higher than the actual hop count creates a window where off-path attackers with fewer hops could still spoof (though this is generally a small risk). A critical constraint: GTSM and multihop eBGP (using 'neighbor <addr> ebgp-multihop <N>') must be explicitly coordinated — if GTSM is configured, the ebgp-multihop setting must match or exceed the TTL hop count; some implementations treat them as mutually exclusive without explicit multihop configuration.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> | inc TTL", "show bgp neighbors <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC5082 S3", "RFC5082 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5082", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-158",
+    "category": "ttl-security",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "Why does GTSM (RFC 5082) NOT protect against on-path attackers, and what threat model does it actually defend against?",
+    "context": null,
+    "ground_truth": {
+      "answer": "GTSM defends against off-path attackers who attempt to inject spoofed BGP TCP packets (e.g., RST injection or malformed UPDATE injection) from outside the path between the two BGP peers. An off-path attacker cannot set the IP TTL such that the packet arrives at the target with TTL near 255 — the many routing hops decrement TTL to a value below the GTSM threshold. An on-path attacker (a router or host on the actual network path between the two BGP peers) can simply forward or inject packets with any TTL since they are directly in the path — they can craft a packet with TTL=255 that arrives at the correct threshold. GTSM provides no protection against on-path attackers, man-in-the-middle attacks on the transit links, or compromise of a directly connected network device. GTSM also does not protect against BGP protocol-level attacks that come from a fully established, legitimate BGP session (e.g., a misbehaving or compromised legitimate peer sending malicious UPDATEs). The threat model GTSM defends: remote, off-path IP spoofing attacks against BGP TCP sessions — primarily RST attacks and malformed packet injection from arbitrary internet hosts.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> | inc TTL", "show bgp neighbors <addr>"],
+      "executable": false,
+      "grounded_in": ["RFC5082 S2", "RFC5082 S5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5082", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-159",
+    "category": "ttl-security",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "Can GTSM (`ttl-security hops`) and eBGP multihop (`ebgp-multihop`) be configured simultaneously on the same neighbor, and what happens to the BGP session if GTSM is configured without also setting multihop for a peer 2 hops away?",
+    "context": null,
+    "ground_truth": {
+      "answer": "By default in most implementations (including FRR and IOS), GTSM (ttl-security) and ebgp-multihop are mutually exclusive when the default TTL behavior is assumed. For a directly connected eBGP peer, FRR and IOS send packets with TTL=1 by default (to prevent eBGP packets from traversing the network accidentally). For a multihop eBGP peer (>1 hop), 'ebgp-multihop N' is required to increase the TTL of outgoing packets so they can reach the peer. GTSM sets TTL=255 on outgoing packets; but if ebgp-multihop is NOT configured for a peer 2 hops away, the BGP session fails because the outgoing TTL defaults to 1, and the packets don't reach the peer. Conversely, if ebgp-multihop is set without GTSM, packets traverse with a normal TTL (no GTSM protection). To use GTSM for a 2-hop peer: configure both 'neighbor <addr> ebgp-multihop 2' AND 'neighbor <addr> ttl-security hops 2'. In FRR, 'ttl-security hops N' automatically sets the outgoing TTL to 255 and the minimum incoming TTL to 255-N; 'ebgp-multihop' adjusts the allowed hop count. If GTSM is configured without multihop for a 2-hop peer, the session stays down because the default TTL=1 packets cannot reach the peer 2 hops away.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp neighbors <addr> | inc TTL", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC5082 S3", "RFC5082 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5082", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-160",
+    "category": "ttl-security",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "Compare GTSM (RFC 5082) and TCP-MD5 authentication (RFC 2385) as BGP session protection mechanisms: what does each protect against and what does each NOT protect against?",
+    "context": null,
+    "ground_truth": {
+      "answer": "TCP-MD5 (RFC 2385) authenticates each TCP segment using an MD5 keyed hash over the TCP pseudo-header, sequence number, and segment data. It protects against: (1) Forged/spoofed TCP segments from any source — even on-path attackers who cannot compute the correct MD5 without the shared key; (2) RST injection; (3) Data injection into the stream. It does NOT protect against: an attacker who has obtained the shared key; denial-of-service via high packet rates (each packet is processed to check the MD5 before being dropped); it does not prevent a brute-force key attack (MD5 is weak by modern standards). GTSM (RFC 5082) protects against: off-path attackers who cannot craft packets with TTL near 255. It is computationally cheap (TTL check is in hardware). It does NOT protect against: on-path attackers; attackers on the same LAN segment; it provides no data-integrity guarantee — a packet with the right TTL from a legitimate-looking source is accepted. Combined use: TCP-MD5 + GTSM provides defense-in-depth — GTSM drops off-path spoofed packets cheaply before they burden the MD5 verification; MD5 catches on-path or same-segment attackers who can craft correct-TTL packets but don't have the key. Note: RFC 5925 (TCP Authentication Option, TCP-AO) supersedes RFC 2385 with stronger algorithms but TCP-MD5 remains widely deployed.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> | inc password", "show bgp neighbors <addr> | inc TTL"],
+      "executable": true,
+      "grounded_in": ["RFC5082 S2", "RFC2385 S1", "RFC5925 S1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5082", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-161",
+    "category": "error-handling",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What does RFC 7606 specify as the three possible error-handling behaviors for malformed BGP path attributes, and which behavior does it recommend for most attribute errors?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 7606 (Revised Error Handling for BGP UPDATE Messages) defines three error-handling treatments for malformed BGP UPDATE message attributes: (1) Session Reset: the BGP session is terminated with a NOTIFICATION message. This is the RFC 4271 default behavior for any UPDATE error, but RFC 7606 identifies it as too disruptive for most attribute errors. (2) Treat-as-Withdraw: the specific route(s) in the UPDATE that contain the malformed attribute are treated as if a WITHDRAW was received for those prefixes. The BGP session remains up; only the affected routes are removed from the RIB. This is the preferred behavior for most optional/transitive attribute errors per RFC 7606 §2.1. (3) Attribute Discard: the malformed attribute is silently discarded and the UPDATE is processed without it. Used for optional non-transitive attributes where the attribute is not required for routing correctness. RFC 7606 recommends 'treat-as-withdraw' as the default for most UPDATE attribute errors, reserving session reset only for errors in mandatory attributes (ORIGIN, AS_PATH, NEXT_HOP) where the UPDATE cannot be meaningfully interpreted at all.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp neighbors <addr> | inc Malformed"],
+      "executable": true,
+      "grounded_in": ["RFC7606 S2", "RFC7606 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7606", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-162",
+    "category": "error-handling",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "For each of the following BGP attributes, state whether RFC 7606 prescribes treat-as-withdraw, attribute-discard, or session-reset on malformation: (a) AS_PATH, (b) NEXT_HOP, (c) MULTI_EXIT_DISC (MED), (d) LOCAL_PREF, (e) a vendor-specific optional non-transitive attribute.",
+    "context": null,
+    "ground_truth": {
+      "answer": "Per RFC 7606 §3 and §7: (a) AS_PATH — Malformed AS_PATH (e.g., invalid segment type, odd length) triggers treat-as-withdraw. A totally absent AS_PATH in an eBGP UPDATE is a session-reset condition per RFC 4271 because the UPDATE is unprocessable. RFC 7606 §3 changes the specific AS_PATH encoding error to treat-as-withdraw where the route can be identified. (b) NEXT_HOP — A malformed NEXT_HOP (e.g., wrong length) triggers treat-as-withdraw per RFC 7606 §3. (c) MULTI_EXIT_DISC (MED) — Malformed MED (wrong length) triggers treat-as-withdraw. MED is optional non-transitive; if the attribute is present but malformed, treat-as-withdraw applies. (d) LOCAL_PREF — Malformed LOCAL_PREF (wrong length, or present in eBGP UPDATE where it should not be) triggers treat-as-withdraw. (e) A vendor-specific optional non-transitive attribute (unknown type) — attribute-discard: per RFC 4271 §5 and RFC 7606, unknown optional non-transitive attributes are silently discarded; a malformed known optional non-transitive attribute triggers attribute-discard or treat-as-withdraw depending on specific attribute guidance. The key principle: mandatory attributes (ORIGIN, AS_PATH, NEXT_HOP) in error cause treat-as-withdraw or session-reset; optional non-transitive attributes in error cause attribute-discard.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp neighbors <addr> | inc Malformed", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC7606 S3", "RFC7606 S7", "RFC4271 S6.3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7606", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-163",
+    "category": "error-handling",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "Describe the BGP NOTIFICATION message structure as defined in RFC 4271 §6, and list the Error Code and Error Subcode values that are sent when: (a) a peer sends an OPEN with an unsupported version, and (b) a peer sends an UPDATE with a malformed AS_PATH.",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 4271 §4.5 defines the NOTIFICATION message: a 1-byte Error Code, 1-byte Error Subcode, and variable-length Data field carrying additional diagnostic information. Error Codes and Subcodes: (a) Unsupported BGP version in OPEN: Error Code 2 (OPEN Message Error), Error Subcode 1 (Unsupported Version Number). The Data field carries the 2-byte highest supported version number. The session is terminated after sending this NOTIFICATION. (b) Malformed AS_PATH in UPDATE: Error Code 3 (UPDATE Message Error), Error Subcode 11 (Malformed AS_PATH). Per RFC 4271 §6.3, if the AS_PATH attribute is malformed (invalid segment type, incorrect length), the receiver sends this NOTIFICATION and closes the session. Note: RFC 7606 modifies this behavior — for some AS_PATH errors, treat-as-withdraw is preferred over session reset, meaning the NOTIFICATION for AS_PATH errors may not always be sent in RFC 7606-compliant implementations. The full Error Code space includes: Code 1 (Message Header Error), Code 2 (OPEN Error), Code 3 (UPDATE Error), Code 4 (Hold Timer Expired), Code 5 (FSM Error), Code 6 (CEASE), Code 7 (ROUTE-REFRESH Message Error, RFC 7313).",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp neighbors <addr> | inc Notification"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S4.5", "RFC4271 S6.2", "RFC4271 S6.3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-164",
+    "category": "error-handling",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is Enhanced Route Refresh (RFC 7313), how does it differ from standard Route Refresh (RFC 2918), and what error handling does it add?",
+    "context": null,
+    "group": "error-handling",
+    "ground_truth": {
+      "answer": "Standard Route Refresh (RFC 2918) allows a BGP speaker to request that a peer re-advertise all routes for a given AFI/SAFI by sending a ROUTE-REFRESH message. The peer re-sends its entire Adj-RIB-Out for that AFI/SAFI in a series of UPDATE messages. However, the receiver has no way to know when the re-advertisement is complete — there is no end-of-RIB marker for a Route Refresh. Enhanced Route Refresh (RFC 7313) adds two new ROUTE-REFRESH message subtypes: (1) BoRR (Beginning of Route Refresh) — sent before the peer starts re-advertising, marking the start of the refresh. (2) EoRR (End of Route Refresh) — sent after the peer has re-advertised all routes, marking the end. The receiver can use BoRR/EoRR to bracket the re-advertisement and safely remove stale routes after EoRR is received. RFC 7313 also adds error handling: Error Code 7 (ROUTE-REFRESH Message Error) with subcode values for malformed ROUTE-REFRESH messages. The BoRR and EoRR use reserved message subtype values (1 and 2 respectively) in the ROUTE-REFRESH message. Capability code 70 is used to negotiate Enhanced Route Refresh in OPEN.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> | inc Route Refresh", "show bgp neighbors <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC7313 S2", "RFC7313 S3", "RFC2918 S1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7313", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-165",
+    "category": "error-handling",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A BGP session resets every few hours with a NOTIFICATION: Error Code 3 (UPDATE Message Error), Subcode 9 (Invalid Network Field). The peer is sending prefixes that include a host route with an inconsistent prefix length. How does RFC 4271 define this error and what is the likely misconfiguration?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 4271 §6.3 defines Error Code 3 (UPDATE Message Error), Subcode 9 (Invalid Network Field): this error is triggered when the NLRI field in an UPDATE contains an IP prefix where the prefix bits beyond the stated prefix length are not zero (i.e., host bits are set in the prefix field). For example, advertising 10.0.1.1/24 (host bits set) instead of 10.0.1.0/24 violates RFC 4271's requirement that NLRI prefixes must have all host bits zeroed. The likely misconfiguration: the sending router is advertising a network statement or redistribute route that uses an interface address (e.g., 10.0.1.1/24 interface IP) directly as an NLRI without masking the host bits. Some BGP implementations accept this silently, but a strict RFC 4271 implementation will send a NOTIFICATION and reset the session. Fix: on the sending router, ensure all advertised prefixes have their host bits cleared — use the exact network address, not an interface IP. In FRR/IOS, the 'network' statement automatically masks host bits, but redistributed routes from connected interfaces may carry the interface IP. Investigate: capture the BGP UPDATE that triggers the reset and identify the malformed NLRI; on FRR 'show bgp neighbors <addr>' will show the last NOTIFICATION received.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp neighbors <addr> | inc Notification", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S6.3", "RFC4271 S4.3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-166",
+    "category": "multipath-advanced",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "List the exact conditions that must be satisfied for two BGP paths to be multipath-eligible (i.e., both can be installed in the FIB simultaneously) under the default BGP multipath rules.",
+    "context": null,
+    "ground_truth": {
+      "answer": "Under default BGP multipath rules (RFC 4271 §9.1.2 and vendor implementations), two paths are multipath-eligible only when they are equal on all tiebreakers up to and including MED. The conditions that must match: (1) Weight (Cisco-specific, not in RFC — must be equal, typically 0). (2) LOCAL_PREF must be equal. (3) AS_PATH length must be equal (same number of AS hops). (4) Origin type must be equal (IGP=i, EGP=e, Incomplete=?). (5) MED must be equal — but only if both paths were received from the same neighboring AS (RFC 4271 §9.1.2.2); if 'bgp always-compare-med' is configured, MED is compared across all ASes. (6) The IGP cost to the next-hop must be equal (for iBGP paths — same cost to reach the BGP next-hop). (7) For eBGP multipath specifically: the paths must be from the same neighbor AS (unless 'multipath-relax' / 'bgp bestpath as-path multipath-relax' is configured). (8) Router-ID and cluster-list length are NOT required to match for multipath (they are tiebreakers after multipath would have been selected). If all these conditions are met, 'maximum-paths N' allows up to N paths to be installed.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix>", "show ip route <prefix>", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1.2", "RFC4271 S9.1.2.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-167",
+    "category": "multipath-advanced",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "What does `bgp bestpath as-path multipath-relax` (multipath-relax) do, when should it be configured, and what is the risk of enabling it?",
+    "context": null,
+    "ground_truth": {
+      "answer": "By default, eBGP multipath requires that all candidate paths originate from the same neighboring AS — paths from AS 65001 and paths from AS 65002 are not multipath-eligible even if all other attributes (LOCAL_PREF, AS_PATH length, MED) are equal. The 'bgp bestpath as-path multipath-relax' command (FRR) / 'bgp bestpath as-path multipath-relax' (IOS) removes the same-neighbor-AS constraint from eBGP multipath eligibility: paths from different neighboring ASes can be installed simultaneously in the FIB, as long as the AS_PATH lengths are equal. When to use: in exchange peering environments (IXP) where an operator has multiple eBGP peers at an exchange and wants to load-balance across them even though they are different ASes; or in multi-homed scenarios where the same prefix arrives from two different upstream providers with equal-length AS paths. Risk: without the same-AS constraint, multipath may install a path to a provider whose route is actually less optimal (e.g., the equal-length AS_PATH traverses a much higher-latency AS). Traffic may flow through suboptimal providers. Also, if MED comparison is not normalized across ASes, different MEDs may not be compared (each AS compares MED only among its own paths) leading to unpredictable load distribution.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix>", "show ip route <prefix>", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1.2", "RFC4271 S9.1.2.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-168",
+    "category": "multipath-advanced",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "Why may a Route Reflector (RFC 4456) fail to advertise all multipath-eligible paths to its clients, and what is the standard solution for ensuring RR clients can achieve ECMP?",
+    "context": null,
+    "ground_truth": {
+      "answer": "A Route Reflector selects a single best-path per prefix and reflects only that one path to all clients (RFC 4456 §8). Even if the RR itself has multiple equally-good paths (e.g., two paths via different next-hops with equal LOCAL_PREF, AS_PATH, and MED), it reflects only the best-path winner (decided by the final tiebreakers: router-ID or originator-ID). The client receives only one next-hop and cannot install multiple equal-cost paths in its FIB — it has no knowledge of the other paths. This breaks ECMP on the client. Standard solutions: (1) BGP ADD-PATH (RFC 7911): configure the RR to advertise multiple paths per prefix to clients using distinct Path-IDs. The client receives all N paths and can install them as ECMP. (2) Multiple RRs in different clusters: if two RRs each reflect a different best-path (because they have different IGP paths to the same next-hops), a client with sessions to both RRs may receive both paths — but this depends on RR topology and is not guaranteed. (3) Hierarchical RR design with per-cluster best-path: does not fully solve the problem without ADD-PATH. The correct and scalable solution is ADD-PATH on RR-to-client sessions combined with 'maximum-paths' on the client.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix>", "show bgp neighbors <addr> | inc ADD-PATH", "show ip route <prefix>"],
+      "executable": true,
+      "grounded_in": ["RFC4456 S8", "RFC7911 S1", "RFC4271 S9.1.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4456", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-169",
+    "category": "multipath-advanced",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is BGP Unequal-Cost Multipath (UCMP) and how does it differ conceptually from standard equal-cost BGP multipath?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Standard BGP Equal-Cost Multipath (ECMP) installs multiple paths in the FIB only when the paths are equal on all multipath-eligibility attributes (same LOCAL_PREF, same AS_PATH length, same MED, etc.) and distributes traffic equally (or close to equally) across the installed next-hops. BGP Unequal-Cost Multipath (UCMP) extends this by allowing paths with different metrics (e.g., different IGP costs to the BGP next-hop, or paths with different bandwidths) to be installed simultaneously, with traffic distributed proportionally to their relative weights rather than equally. For example, if one path has an IGP cost of 10 and another has a cost of 20, UCMP would assign twice the traffic to the lower-cost path. UCMP is not standardized in the BGP RFC suite (RFC 4271 does not define it); it is a vendor extension. In implementations that support it (such as some IOS-XR or SR-based deployments), UCMP weights are derived from link bandwidths or IGP metrics and programmed into the hardware forwarding table. UCMP requires hardware support for weighted load-balancing in the FIB.",
+      "layer": "bgp",
+      "commands": ["show ip route <prefix>", "show bgp ipv4 unicast <prefix>", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.91}
+  },
+  {
+    "id": "q-170",
+    "category": "multipath-advanced",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A network operator expects ECMP across two eBGP paths for prefix 10.10.0.0/16 from two different upstream providers (AS 65001 and AS 65002), both with equal AS_PATH lengths and LOCAL_PREF. Only one path is being installed in the FIB. What are the likely causes and what commands diagnose each?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Likely causes that only one eBGP path is installed despite equal attributes: (1) 'maximum-paths' not configured or set to 1: by default BGP installs only 1 path. Check 'show bgp ipv4 unicast <prefix>' — if only one path appears with '>' (best), configure 'maximum-paths 2' (eBGP) under the address-family. (2) Different neighboring AS without multipath-relax: eBGP multipath by default requires both paths to be from the same neighbor AS. AS 65001 ≠ AS 65002, so they are NOT multipath-eligible. Fix: configure 'bgp bestpath as-path multipath-relax'. Diagnose: 'show bgp ipv4 unicast 10.10.0.0/16' — if two paths appear with '>' (best) and '*' (valid) but only one next-hop in 'show ip route 10.10.0.0/16', the issue is the neighbor-AS constraint. (3) Different MEDs from different ASes: if AS 65001 sends MED=100 and AS 65002 sends MED=200, and 'bgp always-compare-med' is not enabled, MEDs from different ASes are not compared and the path with the lower MED from each AS may not resolve correctly. (4) Different IGP costs to the next-hops: even with all BGP attributes equal, if the IGP cost to next-hop-1 differs from next-hop-2, some implementations may not install both. Check 'show ip route <next-hop-1>' and 'show ip route <next-hop-2>' to compare IGP metrics.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast 10.10.0.0/16", "show ip route 10.10.0.0/16", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1.2", "RFC4271 S9.1.2.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.93}
+  }
+]
