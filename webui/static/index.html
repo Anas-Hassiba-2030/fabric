@@ -580,7 +580,31 @@
   /* ============================================================
      WORKSPACE — deliverable + live activity
      ============================================================ */
-  .workspace{display:grid;grid-template-columns:1.62fr 1fr;gap:15px;min-height:0}
+  .workspace{
+    position:fixed;left:20px;right:20px;bottom:20px;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
+    z-index:60;pointer-events:none;
+    transform:translateY(calc(100% + 50px));opacity:0;
+    transition:transform .42s cubic-bezier(.22,.68,0,1.10),opacity .30s ease;
+  }
+  .workspace.fp-show{transform:translateY(0);opacity:1;}
+  .workspace > .card{pointer-events:all;}
+  .workspace .detailcard{
+    width:min(460px,42vw);max-height:340px;display:flex;flex-direction:column;
+    box-shadow:0 14px 44px rgba(24,30,42,.20),0 2px 10px rgba(24,30,42,.10);
+  }
+  .workspace .logcard{
+    width:min(320px,32vw);max-height:220px;display:flex;flex-direction:column;
+    box-shadow:0 14px 44px rgba(0,0,0,.36),0 2px 10px rgba(0,0,0,.22);
+  }
+  .fphide{
+    background:transparent;border:0;color:var(--grey-soft);
+    font-size:14px;cursor:pointer;padding:2px 7px;line-height:1;
+    border-radius:2px;margin-left:6px;transition:background .15s,color .15s;
+  }
+  .fphide:hover{color:var(--burgundy);background:var(--burgundy-tint);}
+  .logcard .fphide{color:rgba(245,239,228,.42);}
+  .logcard .fphide:hover{color:var(--cream);background:rgba(245,239,228,.10);}
   .detailcard{min-height:0}
   .detail{overflow:auto;flex:1;padding-right:6px}
   .detail::-webkit-scrollbar{width:8px}
@@ -685,51 +709,6 @@
   .log::-webkit-scrollbar-thumb{background:rgba(245,239,228,.15);border-radius:9px}
   .log .l{white-space:pre-wrap;word-break:break-word;padding:1px 0;animation:fade .22s ease}
   .log .s{color:var(--gold-soft);font-weight:500}
-
-  /* ============================================================
-     FLOATING LIVE-STATUS PANEL — slides up from bottom-right
-     during a run; hidden when idle.
-     ============================================================ */
-  .floatpanel{
-    position:fixed;bottom:20px;right:20px;width:290px;
-    background:var(--ink);border:1px solid rgba(217,205,183,.18);
-    border-radius:3px;box-shadow:0 12px 40px rgba(0,0,0,.40),0 2px 8px rgba(0,0,0,.20);
-    z-index:1000;display:flex;flex-direction:column;
-    transform:translateY(calc(100% + 32px));opacity:0;
-    transition:transform .38s cubic-bezier(.22,.68,0,1.15),opacity .28s ease;
-    pointer-events:none;
-  }
-  .floatpanel.fp-visible{transform:translateY(0);opacity:1;pointer-events:all;}
-  .floatpanel.fp-done{border-color:rgba(74,98,86,.35);}
-  .floatpanel.fp-done .fp-stage{color:var(--sage-soft);}
-  .fp-head{
-    display:flex;align-items:center;gap:8px;
-    padding:8px 10px 7px;border-bottom:1px solid rgba(217,205,183,.10);
-  }
-  .fp-stage{
-    font-family:var(--mono);font-size:10px;color:var(--gold-soft);
-    letter-spacing:.06em;text-transform:uppercase;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;
-  }
-  .fp-btns{display:flex;gap:5px;flex-shrink:0;}
-  .fp-btn{
-    background:rgba(245,239,228,.06);border:1px solid rgba(217,205,183,.18);
-    color:rgba(245,239,228,.72);
-    font-family:var(--mono);font-size:9px;letter-spacing:.07em;text-transform:uppercase;
-    padding:3px 8px;border-radius:2px;cursor:pointer;
-    transition:background .15s,color .15s;line-height:1.4;
-  }
-  .fp-btn:hover{background:rgba(245,239,228,.14);color:var(--cream);}
-  .fp-close{color:rgba(245,239,228,.38);}
-  .fp-close:hover{color:rgba(245,239,228,.72);}
-  .fp-body{
-    font-family:var(--mono);font-size:10.5px;line-height:1.62;
-    color:rgba(245,239,228,.60);padding:8px 10px 10px;
-    min-height:52px;max-height:88px;overflow:hidden;
-    display:flex;flex-direction:column;justify-content:flex-end;
-  }
-  .fp-body .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0;}
-  .fp-body .s{color:var(--gold-soft);font-weight:500;}
 
   .placeholder{
     color:var(--grey);display:grid;place-items:center;height:100%;text-align:center;font-size:13px;
@@ -1102,7 +1081,8 @@
     </div>
     <div class="workspace">
       <div class="card detailcard"><p class="ct"><span class="k">Deliverable</span>
-        <button class="exp" id="expDetail" title="Expand the deliverable">⤢ <span class="lab">EXPAND</span></button></p>
+        <button class="exp" id="expDetail" title="Expand the deliverable">⤢ <span class="lab">EXPAND</span></button>
+        <button class="fphide" data-hide="workspace" title="Hide">✕</button></p>
         <div class="detail" id="detail"><div class="placeholder"><div class="gs">
           <div class="gstitle">Welcome to WRATH</div>
           <div class="gssub">State a network problem; the orchestrator decomposes it, routes specialist agents, runs the gates (Critic red-teams every design, the Validator audits every config), and converges on a grounded, customer-ready solution.</div>
@@ -1114,21 +1094,11 @@
           <div class="gshint"><span class="pv pv-real">REAL</span> a gate ran · <span class="pv pv-live">LIVE</span> Opus · <span class="pv pv-demo">DEMO</span> representative — full tour in <b>❔ How it works</b>.</div>
         </div></div></div></div>
       <div class="card logcard"><p class="ct"><span class="k">Live activity</span>
-        <button class="exp" id="expLog" title="Expand the live activity log">⤢ <span class="lab">EXPAND</span></button></p>
+        <button class="exp" id="expLog" title="Expand the live activity log">⤢ <span class="lab">EXPAND</span></button>
+        <button class="fphide" data-hide="workspace" title="Hide">✕</button></p>
         <div class="log" id="log"></div></div>
     </div>
   </div>
-</div>
-<!-- Floating live-status panel: hidden at rest, slides up during runs -->
-<div class="floatpanel" id="floatPanel">
-  <div class="fp-head">
-    <span class="fp-stage" id="fpStage">● initializing…</span>
-    <div class="fp-btns">
-      <button class="fp-btn" id="fpExpand" title="Expand live activity log">↗ Expand</button>
-      <button class="fp-btn fp-close" id="fpClose" title="Hide panel">✕</button>
-    </div>
-  </div>
-  <div class="fp-body" id="fpBody"></div>
 </div>
 <div class="modal" id="modal">
   <div class="sheet">
@@ -1295,11 +1265,9 @@ function setEdge(i,state){if(i<0)return;edgeState[i]=state;drawEdges();}
 function setStage(id,status){const n=$("#n-"+id);if(!n)return;const idx=order.indexOf(id);
   n.classList.remove("idle","run","done");n.classList.add(status==="running"?"run":status);const b=n.querySelector(".b");
   if(status==="running"){b.textContent="";if(idx>0)setEdge(idx-1,"live");if(autoFollow)showDetail(id,true);
-    n.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"});
-    const fps=$("#fpStage");if(fps)fps.textContent="● "+id;}
+    n.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"});}
   if(status==="done"){b.textContent=n.classList.contains("gate")?"⚑":"✓";if(idx>0)setEdge(idx-1,"done");}}
-function logLine(t,stage){const l=$("#log");const d=document.createElement("div");d.className="l";d.innerHTML=(stage&&stage!=="_"?`<span class="s">[${stage}]</span> `:"")+t.replace(/&/g,"&amp;").replace(/</g,"&lt;");l.appendChild(d);l.scrollTop=l.scrollHeight;
-  const fb=$("#fpBody");if(fb){const fc=d.cloneNode(true);fb.appendChild(fc);while(fb.children.length>4)fb.removeChild(fb.firstChild);}}
+function logLine(t,stage){const l=$("#log");const d=document.createElement("div");d.className="l";d.innerHTML=(stage&&stage!=="_"?`<span class="s">[${stage}]</span> `:"")+t.replace(/&/g,"&amp;").replace(/</g,"&lt;");l.appendChild(d);l.scrollTop=l.scrollHeight;}
 function showGround(m){grounds[m.stage]=m;const g=$("#g-"+m.stage);if(g){g.textContent={grounded:"grounded",flagged:"verify",blocked:"blocked"}[m.status];g.className="g show "+m.status;}if(selected===m.stage)showDetail(m.stage);}
 function groundHtml(g){if(!g)return"";const lbl={grounded:"✓ Grounded — every claim checked",flagged:"⚠ Needs verification",blocked:"⛔ Blocked — unverified claim"}[g.status];const mk={verified:"✅",PASS:"✅",flag:"⚠",BLOCKED:"⛔",FAIL:"⛔"};
   const items=(g.checks||[]).map(c=>{const it=c.url?`<a href="${c.url}" target="_blank" rel="noopener" style="color:var(--accent2);text-decoration:underline">${c.item}</a>`:`<b>${c.item}</b>`;return `<li>${mk[c.verdict]||"•"} ${it} — ${c.note}</li>`;}).join("");
@@ -1330,7 +1298,7 @@ function onReject(m){const g=$("#n-"+m.gate);if(g){g.classList.add("reject");set
 function savePrefs(){try{localStorage.setItem("wrathPrefs",JSON.stringify({problem:$("#problem").value,live:LIVE,intensity:$("#critic").value}));}catch(e){}}
 async function run(){if(running)return;const problem=$("#problem").value.trim();if(!problem){$("#problem").focus();return;}savePrefs();
   running=true;$("#runBtn").disabled=true;$("#runBtn").textContent="● Running…";$("#log").innerHTML="";$("#detail").innerHTML='<div class="placeholder">Booting orchestrator…</div>';
-  const fp=$("#floatPanel");if(fp){fp.classList.remove("fp-done");fp.classList.add("fp-visible");$("#fpStage").textContent="● initializing…";$("#fpBody").innerHTML="";}
+  document.querySelector(".workspace")?.classList.add("fp-show");
   document.querySelector(".orchpill")?.classList.add("running");$("#orchLive").textContent="routing live";
   let res;try{res=await fetch(withTok("/api/run"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({problem,mode:LIVE?"live":"demo",intensity:$("#critic").value})});}catch(e){logLine("connection failed: "+e);return finish();}
   if(res.status===401){const t=await askInput("This console requires an access token","paste your token");if(t){localStorage.setItem("wrathTok",t);}running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";if(t)return run();return finish();}
@@ -1350,7 +1318,6 @@ async function run(){if(running)return;const problem=$("#problem").value.trim();
 function finish(){running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";
   $("#exportBtn").disabled=!order.some(s=>outputs[s]);$("#orchLive").textContent="idle";
   document.querySelector(".orchpill")?.classList.remove("running");
-  const fp=$("#floatPanel");if(fp&&fp.classList.contains("fp-visible")){fp.classList.add("fp-done");const fps=$("#fpStage");if(fps)fps.textContent="✓ Run complete";setTimeout(()=>fp.classList.remove("fp-visible"),6000);}
   $("#whatifBtn").disabled=!lastSavedId;$("#patternBtn").disabled=!lastSavedId;$("#shareBtn").disabled=!lastSavedId;
   if(pendingFork&&lastSavedId&&lastSavedId!==pendingFork.base){const a=pendingFork.base,b=lastSavedId;pendingFork=null;setTimeout(()=>openCompareUI(a,b),350);}}
 function exportRun(){if(!order.length)return;let md_="# WRATH run\n\n**Problem:** "+($("#problem").value||"")+"\n\n";
@@ -1360,6 +1327,7 @@ function exportRun(){if(!order.length)return;let md_="# WRATH run\n\n**Problem:*
 async function loadHistory(){try{const runs=await(await fetch(withTok("/api/runs"))).json();const h=$("#history");h.innerHTML='<option value="">↺ Recent runs ('+runs.length+')…</option>'+runs.map(r=>`<option value="${r.id}">${(r.problem||"").slice(0,40)} · ${r.mode}</option>`).join("");}catch(e){}}
 async function openSaved(id){if(!id)return;let rec;try{rec=await(await fetch(withTok("/api/run?id="+id))).json();}catch(e){return;}if(!rec||!rec.stages)return;
   runMode=rec.mode||"demo";currentProblem=rec.problem||"";buildPipeline(rec.stages);autoFollow=false;lastSavedId=id;$("#whatifBtn").disabled=false;$("#patternBtn").disabled=false;$("#shareBtn").disabled=false;
+  document.querySelector(".workspace")?.classList.add("fp-show");
   setTimeout(()=>{order.forEach((sid,i)=>{const n=$("#n-"+sid);if(n){n.classList.remove("idle","run");n.classList.add("done");const b=n.querySelector(".b");if(b)b.textContent=n.classList.contains("gate")?"⚑":"✓";}if(i>0)setEdge(i-1,"done");});
     Object.entries(rec.deliverables||{}).forEach(([sid,o])=>{outputs[sid]=o;});
     Object.entries(rec.grounding||{}).forEach(([sid,g])=>showGround({stage:sid,status:g.status,checks:g.checks}));
@@ -1727,8 +1695,7 @@ let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(draw
   $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;$("#exportBtn").onclick=exportRun;
   $("#history").onchange=e=>openSaved(e.target.value);
   $("#expDetail").onclick=expandDetail;$("#expLog").onclick=expandLog;$("#modalClose").onclick=closeModal;
-  const fpExp=$("#fpExpand");if(fpExp)fpExp.onclick=expandLog;
-  const fpCl=$("#fpClose");if(fpCl)fpCl.onclick=()=>$("#floatPanel")?.classList.remove("fp-visible");
+  document.querySelectorAll(".fphide").forEach(b=>b.onclick=()=>document.querySelector(".workspace")?.classList.remove("fp-show"));
   $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;$("#examplesBtn").onclick=openExamples;$("#patternBtn").onclick=savePattern;
   $("#helpBtn").onclick=openHelp;
   const gsRun=$("#gsRun");if(gsRun)gsRun.onclick=()=>{if(!$("#problem").value)$("#problem").value="Design an SR-MPLS core for a 3-DC service provider, multi-vendor; HLD + BoM + CTO one-pager.";$("#problem").focus();};
