@@ -1,0 +1,512 @@
+[
+  {
+    "id": "q-001",
+    "category": "session-establishment",
+    "difficulty": "diagnose",
+    "fault_id": "f-bgp-wrong-remote-as",
+    "question": "On R2, the eBGP session toward 192.0.2.2 stays in Active state and never reaches Established. The neighbor is configured with remote-as 65999. What is the root cause and how do you fix it?",
+    "context": "R2 output:\nBGP neighbor is 192.0.2.2, remote AS 65999\n  BGP state = Active\n  Configured remote-as: 65999\n  Peer actual AS: 65010",
+    "ground_truth": {
+      "answer": "remote-as mismatch on R2 toward R3 (configured wrong, peer is 65010)",
+      "layer": "bgp",
+      "commands": ["show bgp summary", "show ip bgp neighbors 192.0.2.2"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S6.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "thesis/lab/faults/f-bgp-wrong-remote-as.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-002",
+    "category": "session-establishment",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What BGP state immediately precedes Established in the BGP finite-state machine, and what triggers the transition?",
+    "context": null,
+    "ground_truth": {
+      "answer": "OpenConfirm. The local speaker sends OPEN, receives a valid OPEN from the peer, and sends KEEPALIVE. On receiving KEEPALIVE from the peer, it transitions to Established.",
+      "layer": "bgp",
+      "commands": ["show ip bgp neighbors <addr>"],
+      "executable": false,
+      "grounded_in": ["RFC4271 S8.2.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.98}
+  },
+  {
+    "id": "q-003",
+    "category": "security",
+    "difficulty": "diagnose",
+    "fault_id": "f-bgp-md5-mismatch",
+    "question": "BGP peer 192.0.2.2 cycles between Active and Idle continuously. No BGP OPEN message is ever seen in a packet capture. TCP SYNs are sent but no SYN-ACK arrives. What is the most likely root cause?",
+    "context": "R2 output:\nBGP neighbor is 192.0.2.2, remote AS 65010\n  BGP state = Idle\n  TCP-MD5 password: set",
+    "ground_truth": {
+      "answer": "TCP-MD5 password mismatch on R2<->R3 — TCP segments fail authentication, BGP never establishes",
+      "layer": "tcp-auth",
+      "commands": ["show ip bgp neighbors 192.0.2.2", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC2385", "RFC4271 S5.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "thesis/lab/faults/f-bgp-md5-mismatch.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-004",
+    "category": "mtu-path",
+    "difficulty": "diagnose",
+    "fault_id": "f-bgp-mtu-mismatch",
+    "question": "eBGP session between R2 and R3 establishes but resets every few minutes. Small prefixes propagate normally; routes with many communities or long AS_PATHs are never received. Interface eth2 on R2 shows MTU 1500. What is the root cause?",
+    "context": "R2 show interface eth2:\neth2 is up, line protocol is up\n  Internet address 192.0.2.1/31\n  MTU 1500 bytes",
+    "ground_truth": {
+      "answer": "MTU mismatch on the R2<->R3 link (1500 vs 9000) — large BGP UPDATEs are dropped, session resets",
+      "layer": "link",
+      "commands": ["show interface eth2", "show ip bgp neighbors 192.0.2.2"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S4", "RFC1191"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "thesis/lab/faults/f-bgp-mtu-mismatch.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-005",
+    "category": "rr-reflector",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "In iBGP, why is a route reflector needed in large AS deployments, and what attribute does the RR add to reflected routes?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Full-mesh iBGP requires n*(n-1)/2 sessions — unscalable. A route reflector breaks the iBGP split-horizon rule: it re-advertises iBGP-learned routes to its clients. It adds ORIGINATOR_ID (the originating router's RID) and CLUSTER_LIST (the list of RR clusters traversed) to prevent loops.",
+      "layer": "bgp",
+      "commands": ["show bgp summary", "show ip bgp <prefix>"],
+      "executable": false,
+      "grounded_in": ["RFC4456 S4", "RFC4456 S8"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4456", "authored": true, "confidence": 0.98}
+  },
+  {
+    "id": "q-006",
+    "category": "session-establishment",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "Two routers both have BGP configured to connect to each other. Both have higher router-IDs than the other. Which one becomes the TCP session initiator (active side) and which is the listener?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The router with the higher BGP router-ID becomes the TCP listener (passive); the router with the lower RID initiates (active). If both attempt simultaneously, the router with the higher RID wins the collision-resolution and the other drops its connection.",
+      "layer": "bgp",
+      "commands": ["show ip bgp neighbors <addr>"],
+      "executable": false,
+      "grounded_in": ["RFC4271 S8.2.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-007",
+    "category": "security",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "You need to configure TCP-MD5 authentication on an eBGP session. The peer does not yet have a password configured. What state will your BGP session be in and why?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The session will stay in Idle or Active. TCP SYN packets from your side carry the MD5 option; the peer, which has no password, will either silently discard SYNs with unknown TCP options (common) or RST the connection. BGP never reaches OPEN because TCP cannot complete the three-way handshake.",
+      "layer": "tcp-auth",
+      "commands": ["show ip bgp neighbors <addr>", "debug ip tcp transactions"],
+      "executable": true,
+      "grounded_in": ["RFC2385 S2", "RFC4271 S5.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc2385", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-008",
+    "category": "as-path",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A route that should be received from an eBGP peer is not in the BGP table. The peer confirms it is advertising it. The local router's `show ip bgp neighbors <peer> received-routes` shows the prefix, but it is not in `show ip bgp`. What is the most likely cause?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The route is being rejected by an inbound route-map or prefix-list, or the AS_PATH contains the local AS number (loop detection per RFC 4271 S9.1.2). Check `show ip bgp neighbors <peer> received-routes` vs `show ip bgp neighbors <peer> routes` and inspect any inbound route-map applied to the session.",
+      "layer": "policy",
+      "commands": ["show ip bgp neighbors <peer> received-routes", "show ip bgp neighbors <peer> routes", "show route-map"],
+      "executable": false,
+      "grounded_in": ["RFC4271 S9.1.2", "RFC4271 S5.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.9}
+  },
+  {
+    "id": "q-009",
+    "category": "address-family",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What capability must be exchanged in BGP OPEN to carry IPv6 prefixes over an IPv4 TCP session?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Multiprotocol Extensions for BGP (MP-BGP) — the Multiprotocol capability (Capability Code 1) with AFI=2 (IPv6), SAFI=1 (unicast). Defined in RFC 4760.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp ipv6 unicast summary"],
+      "executable": false,
+      "grounded_in": ["RFC4760 S2", "RFC4760 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4760", "authored": true, "confidence": 0.98}
+  },
+  {
+    "id": "q-010",
+    "category": "session-establishment",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "An eBGP session between a Cisco IOS-XR router and an FRRouting router will not establish. Both show BGP state = Active. Capture shows OPEN messages are exchanged but immediately followed by NOTIFICATION with error code 2 (OPEN Message Error), subcode 4 (Unsupported Optional Parameter). What should you check?",
+    "context": null,
+    "ground_truth": {
+      "answer": "One side is advertising an optional capability in OPEN that the other does not recognise and does not treat as gracefully-ignorable. Common culprits: a non-standard or vendor-specific capability code. Check `show bgp neighbors` for capability negotiation; disable the offending capability or align vendor software versions.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "debug bgp neighbor <addr> events"],
+      "executable": false,
+      "grounded_in": ["RFC4271 S6.2", "RFC5492 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5492", "authored": true, "confidence": 0.9}
+  },
+  {
+    "id": "q-011",
+    "category": "graceful-restart",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What problem does BGP Graceful Restart (RFC 4724) solve, and what is the role of the 'restart time' in the Graceful Restart capability?",
+    "context": null,
+    "ground_truth": {
+      "answer": "GR allows a BGP speaker that undergoes a control-plane restart (process crash, ISSU) to retain its forwarding state while its peer holds the stale routes. The Restart Time (field in the GR capability) is the maximum time in seconds the peer will wait before purging the stale RIB entries. If the session is not re-established within that window, stale routes are withdrawn.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp summary"],
+      "executable": false,
+      "grounded_in": ["RFC4724 S3", "RFC4724 S4.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4724", "authored": true, "confidence": 0.97}
+  },
+  {
+    "id": "q-012",
+    "category": "communities",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "You apply `neighbor X send-community` on one router but not on the other. Will communities be forwarded to that peer? What is the default behaviour?",
+    "context": null,
+    "ground_truth": {
+      "answer": "No. By default BGP does not send the COMMUNITY attribute to any peer. The `send-community` statement (or its equivalent on each platform) must be explicitly configured for each neighbor. Without it, the COMMUNITY attribute is stripped before the UPDATE is sent to that peer.",
+      "layer": "policy",
+      "commands": ["show bgp neighbors <addr>", "show ip bgp <prefix>"],
+      "executable": false,
+      "grounded_in": ["RFC1997 S5", "RFC4271 S5.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc1997", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-013",
+    "category": "operational",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A BGP session that has been Established for weeks suddenly goes to Idle with notification error code 6 (Cease), subcode 2 (Administrative Shutdown). What happened?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The peer (or local router) performed an administrative shutdown — either `neighbor X shutdown` was applied, or a maintenance event triggered it. This is a clean, operator-initiated teardown, not a fault. Check NMS/syslog for who applied the shutdown and when.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show log | include BGP"],
+      "executable": false,
+      "grounded_in": ["RFC4271 S6.7", "RFC8203 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8203", "authored": true, "confidence": 0.97}
+  },
+  {
+    "id": "q-014",
+    "category": "multipath",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "You have two eBGP paths to the same prefix from two different providers. Only one path is installed in the RIB. What must be configured to load-balance across both?",
+    "context": null,
+    "ground_truth": {
+      "answer": "`maximum-paths <n>` under the BGP address-family. This relaxes the BGP best-path selection to allow multiple equal-cost eBGP paths (same AS_PATH length and MED) to be installed simultaneously. The paths still must pass the tiebreaks up to the point where only the router-ID would decide.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix>", "show ip route <prefix>"],
+      "executable": false,
+      "grounded_in": ["RFC4271 S9.1.2.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.9}
+  },
+  {
+    "id": "q-015",
+    "category": "session-establishment",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "An eBGP session sends NOTIFICATION error code 2 (OPEN Message Error), subcode 2 (Unsupported Version Number). What does this mean?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The local router advertised a BGP version number in the OPEN message that the remote peer does not support. In practice this almost always means one side is running BGP version 3 (very old) while the other expects version 4. Check software versions on both sides; the NOTIFICATION carries the highest version number the sender supports.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show version"],
+      "executable": false,
+      "grounded_in": ["RFC4271 S6.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.97}
+  },
+  {
+    "id": "q-016",
+    "category": "bfd",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What advantage does BFD give over BGP's own keepalive/hold-timer mechanism for failure detection?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BFD operates at sub-second granularity (typically 10-300ms intervals) independent of BGP. BGP hold timers are typically 90s (3x30s keepalive). BFD detects link or forwarding-plane failures far faster, enabling BGP to withdraw routes before traffic black-holes for a full hold-timer interval.",
+      "layer": "bgp",
+      "commands": ["show bfd neighbors", "show bgp neighbors <addr>"],
+      "executable": false,
+      "grounded_in": ["RFC5880 S1", "RFC5882 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5880", "authored": true, "confidence": 0.97}
+  },
+  {
+    "id": "q-017",
+    "category": "route-policy",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "After applying an inbound route-map that sets LOCAL_PREF 200 on all routes from an eBGP peer, the routes are in the BGP table but LOCAL_PREF is still 100. What is likely wrong?",
+    "context": null,
+    "ground_truth": {
+      "answer": "LOCAL_PREF is an iBGP attribute — it is only meaningful within the local AS and is not carried in eBGP UPDATEs by default. Setting it via an inbound route-map on an eBGP session works but only affects routes when they are re-advertised to iBGP peers. If the eBGP learned route still shows LOCAL_PREF 100, the route-map may not be applied to the correct peer, or a `clear ip bgp <peer> soft in` is needed to reprocess received routes.",
+      "layer": "policy",
+      "commands": ["show ip bgp <prefix>", "show route-map", "show bgp neighbors <addr> policy"],
+      "executable": false,
+      "grounded_in": ["RFC4271 S5.1.5"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.9}
+  },
+  {
+    "id": "q-018",
+    "category": "confederation",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is a BGP confederation and when would you use it instead of a route reflector?",
+    "context": null,
+    "ground_truth": {
+      "answer": "A confederation splits a large AS into sub-ASes; iBGP full-mesh is maintained within each sub-AS, and eBGP-like sessions run between sub-ASes (but with the confederation's external AS number hidden from peers outside). Use it when you want more control over policy between sub-ASes than RR provides, or when the topology does not cluster naturally. RR is simpler; confederation is preferred in large, policy-rich ASes.",
+      "layer": "bgp",
+      "commands": ["show bgp summary", "show bgp neighbors <addr>"],
+      "executable": false,
+      "grounded_in": ["RFC5065 S2", "RFC5065 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5065", "authored": true, "confidence": 0.97}
+  },
+  {
+    "id": "q-019",
+    "category": "addpath",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What does BGP ADD-PATH (RFC 7911) allow that standard BGP does not, and what problem does it solve for route reflectors?",
+    "context": null,
+    "ground_truth": {
+      "answer": "ADD-PATH allows a BGP speaker to advertise multiple paths for the same NLRI (prefix) to a single peer, each identified by a path identifier. In a standard RR setup, the RR only reflects its best path — if that path disappears, clients must wait for the RR to converge before they learn an alternate. With ADD-PATH, the RR can pre-populate clients with backup paths, reducing convergence time.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp ipv4 unicast <prefix>"],
+      "executable": false,
+      "grounded_in": ["RFC7911 S1", "RFC7911 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7911", "authored": true, "confidence": 0.97}
+  },
+  {
+    "id": "q-020",
+    "category": "session-establishment",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "You configure `neighbor 10.0.0.1 ttl-security hops 1` on a Cisco router. The eBGP peer at 10.0.0.1 does not support GTSM. What will happen to the session and how do you fix it?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The session will fail. TTL-security (GTSM — RFC 5082) sets the expected minimum TTL on incoming BGP packets to 254 (255 minus hops). If the peer sends BGP TCP SYNs with TTL 255 but does not decrement correctly, or if the peer does not support GTSM and sends the default TTL of 1 for eBGP, the local router drops the packets. Fix: disable ttl-security on one side, or configure GTSM on the peer.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "debug ip bgp <addr> events"],
+      "executable": false,
+      "grounded_in": ["RFC5082 S3", "RFC4271 S5.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5082", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-021",
+    "category": "operational",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "You need to drain traffic from a BGP router for maintenance without dropping sessions. What BGP mechanism allows this and what communities or attributes are involved?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGP Graceful Shutdown (RFC 8326): set the GRACEFUL_SHUTDOWN community (65535:0) on all routes being advertised out before shutting down. Peers that receive this community should reduce LOCAL_PREF to 0, making the routes least-preferred and causing traffic to shift to alternate paths before the router goes offline. Alternatively use `neighbor X shutdown graceful <seconds>` which automates this.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show ip bgp community 65535:0"],
+      "executable": false,
+      "grounded_in": ["RFC8326 S2", "RFC8326 S4.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc8326", "authored": true, "confidence": 0.97}
+  },
+  {
+    "id": "q-022",
+    "category": "mtu-path",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "PMTUD is broken on the path between two eBGP routers. How does this manifest in BGP behaviour and what is the practical workaround?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Large BGP UPDATE messages (with many prefixes or long AS_PATHs) exceed the PMTU and are silently dropped; the session periodically resets when updates cannot get through. ICMP 'fragmentation needed' messages are also dropped. Workaround: set `ip tcp adjust-mss 1452` (or equivalent) on the interface to reduce TCP MSS so BGP UPDATE segments fit within the actual path MTU, or manually set the interface MTU to match the path MTU.",
+      "layer": "link",
+      "commands": ["show interface <name>", "show ip bgp neighbors <addr>"],
+      "executable": false,
+      "grounded_in": ["RFC1191 S3", "RFC4271 S4.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc1191", "authored": true, "confidence": 0.9}
+  },
+  {
+    "id": "q-023",
+    "category": "as-path",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A route is being advertised by your eBGP peer with AS_PATH containing your own AS number. What happens and why?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Your router drops the route (does not install it in the RIB or re-advertise it). RFC 4271 mandates that a BGP speaker MUST not install or use a route whose AS_PATH contains the local AS number — this is the primary iBGP/eBGP loop-prevention mechanism. The route appears in `received-routes` but not in `bgp table` or `routes` for that neighbor.",
+      "layer": "bgp",
+      "commands": ["show ip bgp neighbors <peer> received-routes", "show ip bgp <prefix>"],
+      "executable": false,
+      "grounded_in": ["RFC4271 S9.1.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.98}
+  },
+  {
+    "id": "q-024",
+    "category": "rr-reflector",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A route reflector is reflecting a prefix to its clients but the NEXT_HOP attribute still points to an eBGP peer's address that is not reachable from the client's VRF. Clients are not installing the route. What is the fix?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The RR must change the NEXT_HOP to its own loopback (or an address reachable by clients) for iBGP-reflected routes. Use `neighbor <client> next-hop-self` on the RR, or configure the eBGP peer to set NEXT_HOP to the RR's loopback via a route-map. Alternatively use recursive next-hop resolution if the eBGP next-hop is reachable via IGP on the client.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix>", "show bgp neighbors <rr-addr>"],
+      "executable": false,
+      "grounded_in": ["RFC4456 S5", "RFC4271 S5.1.3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4456", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-025",
+    "category": "session-establishment",
+    "difficulty": "diagnose",
+    "fault_id": "f-bgp-wrong-remote-as",
+    "question": "On FRRouting R2, `show bgp summary` shows peer 192.0.2.2 in state Active with remote-as 65999. `show ip bgp neighbors 192.0.2.2` shows Peer actual AS: 65010. Write the FRR config commands to fix this.",
+    "context": "router bgp 65001\n neighbor 192.0.2.2 remote-as 65999",
+    "ground_truth": {
+      "answer": "router bgp 65001\n no neighbor 192.0.2.2 remote-as 65999\n neighbor 192.0.2.2 remote-as 65010",
+      "layer": "bgp",
+      "commands": ["show bgp summary", "show ip bgp neighbors 192.0.2.2"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S6.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "thesis/lab/faults/f-bgp-wrong-remote-as.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-026",
+    "category": "security",
+    "difficulty": "apply",
+    "fault_id": "f-bgp-md5-mismatch",
+    "question": "FRRouting R2 has `neighbor 192.0.2.2 password wrong-key-here`. R3 has no password configured. Write the two config commands to remove the password on R2 and restore the session.",
+    "context": "router bgp 65001\n neighbor 192.0.2.2 password wrong-key-here",
+    "ground_truth": {
+      "answer": "router bgp 65001\n no neighbor 192.0.2.2 password",
+      "layer": "tcp-auth",
+      "commands": ["show ip bgp neighbors 192.0.2.2", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC2385 S2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "thesis/lab/faults/f-bgp-md5-mismatch.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-027",
+    "category": "mtu-path",
+    "difficulty": "apply",
+    "fault_id": "f-bgp-mtu-mismatch",
+    "question": "R2 eth2 has MTU 1500; R3 eth1 has MTU 9000. The BGP session resets every few minutes. Write the FRR interface command on R2 to fix the MTU and state how you verify the session stabilises.",
+    "context": "interface eth2\n ip mtu 1500",
+    "ground_truth": {
+      "answer": "interface eth2\n ip mtu 9000\nVerify: show bgp summary (192.0.2.2 transitions to Established, prefix count >0 after 5 minutes with no resets).",
+      "layer": "link",
+      "commands": ["show interface eth2", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S4", "RFC1191"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "thesis/lab/faults/f-bgp-mtu-mismatch.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-028",
+    "category": "operational",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "After a software upgrade on R2, the iBGP session to R1 is Established but no prefixes are received from R1. `show bgp neighbors R1` shows `0 accepted prefixes`. What is the first thing to check?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Check whether the Maximum Prefix limit on the session has been hit (`show bgp neighbors <addr>` will show 'exceeded maximum prefix limit'). Also verify: (1) inbound route-map filters, (2) whether `soft-reconfiguration inbound` or route refresh is needed after the upgrade, and (3) whether the session required a `clear bgp <peer> soft in` to reprocess routes that arrived during the upgrade window.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp summary", "show route-map"],
+      "executable": false,
+      "grounded_in": ["RFC4271 S9.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.88}
+  },
+  {
+    "id": "q-029",
+    "category": "route-policy",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "You want to prefer routes learned from eBGP peer A over those from eBGP peer B for the same prefix. Both have identical AS_PATH length and MED. What is the cleanest BGP mechanism and which attribute do you set?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Set LOCAL_PREF via an inbound route-map on the session with peer A to a higher value (e.g. 200) than the default (100). LOCAL_PREF is the first tiebreaker after weight in Cisco, and after the standard path preference in FRR. It propagates to all iBGP peers within the AS, consistently preferring routes from A network-wide.",
+      "layer": "policy",
+      "commands": ["show ip bgp <prefix>", "show route-map"],
+      "executable": false,
+      "grounded_in": ["RFC4271 S5.1.5", "RFC4271 S9.1.2.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-030",
+    "category": "session-establishment",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A BGP NOTIFICATION with error code 3 (UPDATE Message Error), subcode 1 (Malformed Attribute List) is received. What class of problem does this indicate and how do you begin to isolate it?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The peer sent a BGP UPDATE with a malformed or unrecognised attribute structure — typically a software bug, version mismatch, or a corrupted UPDATE caused by a middlebox. Start by capturing the session with Wireshark to inspect the raw UPDATE, enable `debug bgp updates` on the receiving router, and check if the issue is reproducible with a specific prefix or peer. Upgrade software on both sides as first remediation.",
+      "layer": "bgp",
+      "commands": ["debug bgp updates", "show bgp neighbors <addr>"],
+      "executable": false,
+      "grounded_in": ["RFC4271 S6.3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.95}
+  }
+]

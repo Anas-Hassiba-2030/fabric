@@ -1,0 +1,31 @@
+{
+  "_comment": "OpsRAG benchmark question schema — every question in the ~200-question BGP dataset follows this shape.",
+  "version": "1.0",
+  "fields": {
+    "id":          "string — unique, format q-NNN",
+    "category":    "string — one of: session-establishment | route-policy | security | mtu-path | as-path | address-family | rr-reflector | graceful-restart | multipath | addpath | bfd | confederation | communities | operational",
+    "difficulty":  "string — one of: recall | apply | diagnose",
+    "fault_id":    "string | null — links to thesis/lab/faults/<id>.json if this question maps to a seeded fault",
+    "question":    "string — the plain-language question posed to the system under test",
+    "context":     "string | null — optional network context (topology, config snippet, show output) supplied as RAG input",
+    "ground_truth": {
+      "answer":         "string — the correct answer / root cause / fix",
+      "layer":          "string — bgp | link | tcp-auth | policy | igp | control-plane",
+      "commands":       "list[string] — the show commands an operator would run to diagnose/verify",
+      "executable":     "boolean — true if the answer can be verified by running a command against a sandbox",
+      "grounded_in":    "list[string] — RFC numbers / vendor docs that back this answer"
+    },
+    "evaluation": {
+      "rag_answer_relevance":   "float 0-1 — filled by RAGAs at eval time",
+      "rag_faithfulness":       "float 0-1",
+      "rag_context_relevance":  "float 0-1",
+      "executability":          "boolean | null — filled by oracle at eval time",
+      "diagnosis_correct":      "boolean | null — filled by oracle at eval time"
+    },
+    "provenance": {
+      "source":    "string — which doc / fault file this came from",
+      "authored":  "boolean",
+      "confidence":"float 0-1"
+    }
+  }
+}

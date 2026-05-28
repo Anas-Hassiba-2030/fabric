@@ -356,6 +356,23 @@
     background:rgba(255,255,255,.03);border:1px solid var(--brd)}
   .orfrc b{color:var(--muted);font-size:10.5px;letter-spacing:.4px;text-transform:uppercase}
   .orftag-bgp{color:#6ea8ff}.orftag-link{color:var(--warn)}.orftag-tcp-auth{color:#c084fc}
+  /* OpsRAG tabs */
+  .ortabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--brd);padding-bottom:10px}
+  .ortab{background:none;border:1px solid var(--brd);border-radius:9px;color:var(--muted);
+    font-size:12px;font-weight:600;padding:5px 14px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:7px}
+  .ortab:hover{color:var(--ink);border-color:var(--brd2)}
+  .ortab.on{background:rgba(110,168,255,.12);border-color:var(--accent);color:var(--accent)}
+  .orbcount{font-size:10px;background:rgba(54,224,200,.15);color:var(--accent2);padding:1px 7px;border-radius:20px;font-weight:800}
+  /* Benchmark question rows */
+  .orbqlist{display:flex;flex-direction:column;gap:10px}
+  .orbqrow{border:1px solid var(--brd);border-radius:12px;padding:12px 14px}
+  .orbqhdr{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:7px}
+  .orbqid{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;color:var(--muted);
+    background:rgba(255,255,255,.05);padding:2px 8px;border-radius:6px;border:1px solid var(--brd2)}
+  .orbqdiff{font-size:10px;font-weight:700;letter-spacing:.4px}
+  .orbqtext{font-size:13px;color:var(--ink);line-height:1.5;margin-bottom:8px}
+  .orbqans{font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:5px}
+  .orbqsrc{font-size:10px;color:rgba(180,200,232,.45);font-family:ui-monospace,Menlo,Consolas,monospace}
 </style>
 </head>
 <body>
@@ -716,16 +733,26 @@ async function downloadTopologyPng(){
     img.onerror=()=>{URL.revokeObjectURL(u);window.open(svgUrl,"_blank");};
     img.src=u;
   }catch(e){window.open(svgUrl,"_blank");}}
-async function openOpsRAGLab(){
-  let faults=[],graph={};
-  try{[faults,graph]=await Promise.all([
+async function openOpsRAGLab(tab){
+  let faults=[],graph={},bm={};
+  try{[faults,graph,bm]=await Promise.all([
     fetch("/api/opsrag/faults").then(r=>r.json()),
-    fetch("/api/opsrag/graph").then(r=>r.json())
+    fetch("/api/opsrag/graph").then(r=>r.json()),
+    fetch("/api/opsrag/benchmark").then(r=>r.json())
   ]);}catch(e){}
   const byType=graph.by_type||{};
   const typeOrder=["Concept","Runbook","Command","Configuration","Symptom","RootCause"];
   const typeBadges=typeOrder.filter(t=>byType[t]>0).map(t=>`<span class="ogtype">${t} <b>${byType[t]}</b></span>`).join("");
-  const graphHtml=`<div class="orgraph"><span class="ogtitle">Typed knowledge graph (bootstrapped from WRATH memory)</span>${typeBadges}<span class="ogedge">${graph.edges||0} edges</span></div>`;
+  const graphHtml=`<div class="orgraph"><span class="ogtitle">Typed knowledge graph</span>${typeBadges}<span class="ogedge">${graph.edges||0} edges</span></div>`;
+
+  // Tabs
+  const activeTab=tab||"faults";
+  const tabBar=`<div class="ortabs">
+    <button class="ortab${activeTab==="faults"?" on":""}" id="orTabFaults">Fault Library</button>
+    <button class="ortab${activeTab==="bench"?" on":""}" id="orTabBench">Benchmark <span class="orbcount">${bm.total||0} Q</span></button>
+  </div>`;
+
+  // Faults panel
   const scopeColor=s=>s==="bgp"?"orftag-bgp":s==="link"?"orftag-link":s==="tcp-auth"?"orftag-tcp-auth":"";
   const faultHtml=faults.map(f=>{
     const scopes=(f.scope||[]).map(s=>`<span class="orfscope ${scopeColor(s)}">${s}</span>`).join("");
@@ -736,10 +763,41 @@ async function openOpsRAGLab(){
       <button class="orfrunbtn" id="orbtn-${f.id}">▶ Run Loop</button>
       <div class="orfresult" id="orres-${f.id}"></div>
     </div>`;}).join("");
-  openModal("🧪 OpsRAG Lab",`<p style="font-size:12px;color:var(--muted);margin:0 0 14px">
-    Inject a seeded BGP fault, run the deterministic synthesiser, watch the execution oracle score the result — <b>no Docker required</b>.</p>
-    ${graphHtml}${faultHtml}`);
-  faults.forEach(f=>{const btn=document.getElementById("orbtn-"+f.id);if(btn)btn.onclick=()=>runOpsRAGFault(f.id);});}
+
+  // Benchmark panel
+  const cats=bm.by_category||{};
+  const catBadges=Object.entries(cats).sort((a,b)=>b[1]-a[1])
+    .map(([c,n])=>`<span class="ogtype" style="font-size:10px">${c} <b>${n}</b></span>`).join("");
+  const bmStats=`<div class="orgraph" style="margin-bottom:14px">
+    <span class="ogtitle">Benchmark stats</span>
+    <span class="ogtype" style="background:rgba(61,220,151,.14);color:var(--ok)">${bm.total||0} questions</span>
+    <span class="ogtype" style="background:rgba(255,206,107,.12);color:var(--warn)">${bm.executable_count||0} executable</span>
+    ${catBadges}
+  </div>`;
+  const diffColor=d=>d==="recall"?"color:#6ea8ff":d==="apply"?"color:var(--warn)":"color:#c084fc";
+  const bmRows=(bm.questions||[]).slice(0,30).map(q=>`<div class="orbqrow">
+    <div class="orbqhdr">
+      <span class="orbqid">${q.id}</span>
+      <span class="orfscope">${q.category}</span>
+      <span class="orbqdiff" style="${diffColor(q.difficulty)}">${q.difficulty}</span>
+      ${q.ground_truth.executable?'<span class="orfvok" style="font-size:10px">⚡ executable</span>':''}
+    </div>
+    <div class="orbqtext">${q.question.replace(/</g,"&lt;")}</div>
+    <div class="orbqans"><b>Ground truth:</b> ${q.ground_truth.answer.replace(/</g,"&lt;")}</div>
+    <div class="orbqsrc">${(q.ground_truth.grounded_in||[]).join(" · ")}</div>
+  </div>`).join("");
+
+  openModal("🧪 OpsRAG Lab",`<p style="font-size:12px;color:var(--muted);margin:0 0 12px">
+    Action-grounded BGP retrieval benchmark — inject faults, synthesise runbooks, score with the execution oracle. <b>No Docker required.</b></p>
+    ${graphHtml}${tabBar}
+    <div id="orPanelFaults" style="display:${activeTab==="faults"?"block":"none"}">${faultHtml}</div>
+    <div id="orPanelBench" style="display:${activeTab==="bench"?"block":"none"}">${bmStats}<div class="orbqlist">${bmRows}
+      ${(bm.total||0)>30?`<div style="font-size:11px;color:var(--muted);padding:10px 0">…${(bm.total||0)-30} more questions in thesis/benchmark/</div>`:""}
+    </div></div>`);
+  faults.forEach(f=>{const btn=document.getElementById("orbtn-"+f.id);if(btn)btn.onclick=()=>runOpsRAGFault(f.id);});
+  const tf=document.getElementById("orTabFaults"),tb=document.getElementById("orTabBench");
+  if(tf)tf.onclick=()=>{tf.classList.add("on");tb.classList.remove("on");document.getElementById("orPanelFaults").style.display="block";document.getElementById("orPanelBench").style.display="none";};
+  if(tb)tb.onclick=()=>{tb.classList.add("on");tf.classList.remove("on");document.getElementById("orPanelFaults").style.display="none";document.getElementById("orPanelBench").style.display="block";};}
 async function runOpsRAGFault(faultId){
   const btn=document.getElementById("orbtn-"+faultId);
   const resEl=document.getElementById("orres-"+faultId);

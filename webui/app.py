@@ -669,6 +669,23 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/compliance":
             md = compliance.report(parse_qs(u.query).get("problem", [""])[0])
             return self._send(200, "application/json", json.dumps({"markdown": md}).encode())
+        if u.path == "/api/opsrag/benchmark":
+            bm_dir = os.path.join(REPO, "thesis", "benchmark")
+            questions = []
+            for fname in sorted(os.listdir(bm_dir)):
+                if fname.endswith(".json") and fname != "schema.json":
+                    with open(os.path.join(bm_dir, fname), encoding="utf-8") as fh:
+                        questions.extend(json.load(fh))
+            cats = {}
+            for q in questions:
+                cats[q.get("category", "?")] = cats.get(q.get("category", "?"), 0) + 1
+            exec_count = sum(1 for q in questions if q.get("ground_truth", {}).get("executable"))
+            return self._send(200, "application/json", json.dumps({
+                "total": len(questions),
+                "by_category": cats,
+                "executable_count": exec_count,
+                "questions": questions,
+            }).encode())
         if u.path == "/api/opsrag/faults":
             faults_dir = os.path.join(REPO, "thesis", "lab", "faults")
             faults = []
