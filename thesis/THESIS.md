@@ -13,6 +13,11 @@ Master of Science in Network Engineering / Computer Science
 > **Artefact availability:** All code, benchmark data, and results are available at
 > `https://github.com/Anas-Hassiba-2030/fabric` (branch `csirt-guard-enforcement`).
 > Replication instructions: `thesis/REPLICATION.md`. Test suite: `bash run_tests.sh` (no API key required).
+>
+> **System map:** A complete, cold-readable architecture walkthrough lives at `SYSTEM.md` in the
+> repo root — typed schema, all 16 specialist subagents, oracle and grammar-gate contracts, 5 SUTs,
+> test coverage map, and 10 system invariants. Read it alongside this thesis to verify any claim
+> against the running code.
 
 ---
 

@@ -8,6 +8,10 @@ problem, routes it across specialist subagents, and converges on a validated, cu
 
 Owner: **Kamal Hassiba** — Network / Solution Architect (CCIE #17453, SP & R&S).
 
+> **New here?** Read **[`SYSTEM.md`](SYSTEM.md)** first — a single, cold-readable system map
+> covering both WRATH (the orchestrator) and OpsRAG (the thesis layer): architecture, all 16
+> subagents, schema, gates, SUTs, 3 end-to-end data flows, test coverage, file index, invariants.
+
 ---
 
 ## How to run it
@@ -45,6 +49,7 @@ a **headless CLI** — `python webui/cli.py "<problem>"` — for CI/scripts. See
 ## What's here
 
 ```
+SYSTEM.md            ← START HERE: full system map (11 sections, cold-readable)
 CLAUDE.md            ← THE ORCHESTRATOR (operative): house rules, routing, gate rules, defenses
 README.md            ← this file
 .claude/
