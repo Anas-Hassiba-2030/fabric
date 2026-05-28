@@ -20,7 +20,7 @@ emits prose, can't be re-grounded") with running code that the supervisor can ru
 
 ---
 
-## Phase 1 — OpsRAG kernel 🟡 IN PROGRESS
+## Phase 1 — OpsRAG kernel ✅ DONE
 Lift WRATH's working memory into a formally typed graph, define the sandbox + fault library, and
 deliver an end-to-end loop that runs without Docker so the rest of the work can be wired and tested.
 
@@ -37,17 +37,33 @@ plan + the reframed abstract for the proposal.
 
 ---
 
-## Phase 2 — Sandbox bring-up + first executed runbook ⬜ NEXT
-On a host with Docker + Containerlab installed:
+## Phase 2-A — Simulator-driven action-grounded loop ✅ DONE
+Same loop, no Docker host required, so the rest of the thesis is not blocked.
+- ✅ `webui/opsrag/sim.py` — deterministic mini-FRR with `baseline_state()` + `apply_fault()` +
+  `exec_cmd()`. Reproduces the three seeded faults (wrong remote-as, MTU mismatch, TCP-MD5
+  mismatch) with realistic FRR-like stdout.
+- ✅ `webui/opsrag/synthesizer.py` — baseline runbook synthesiser: symptom → discovery commands →
+  signal match → typed runbook with `concluded_root_cause`. The LLM-driven version replaces only
+  the inference step in Phase 4; the contract stays.
+- ✅ `webui/opsrag/oracle.py` — runs the runbook against the simulated state, returns
+  `{executable, evidence_hit, diagnosis_correct, command_outputs}`. Diagnosis match is exact-after-
+  normalisation OR ≥70% key-token overlap (tolerates phrasing drift from an LLM synth).
+- ✅ `webui/test_opsrag.py` extended: the full sim → synth → oracle loop closes on **every** seeded
+  fault; a non-diagnostic runbook is honestly rejected. **32 deterministic checks ALL GREEN.**
+
+## Phase 2-B — Real Containerlab + FRR validation ⬜ NEXT (one-day job on a Docker host)
 - Deploy `topo-bgp.clab.yml`; verify all three FRR nodes start, OSPF underlay + iBGP RR work in the clean state.
-- Inject `f-bgp-wrong-remote-as.json`; confirm symptom appears.
+- Inject each of the three seeded faults via the patch in `inject`; confirm symptom appears.
 - Run the WRATH troubleshooter against the live sandbox (the netstate MCP source is swapped from
   static snapshot to a `containerlab inspect` adapter, via `WRATH_NETSTATE_URL`).
-- Confirm the generated runbook executes against the sandbox and the oracle returns
-  `{executable: true, diagnosis_correct: true}` end-to-end on the wrong-remote-as fault.
+- Assert oracle returns the **same** `{executable, diagnosis_correct}` as the simulator on each
+  fault. Any disagreement is a `sim.py` bug to fix, not a research result.
+- See `thesis/lab/SETUP.md` for three concrete real-software paths (Containerlab, Mininet,
+  Linux network namespaces) — promotion target is whichever the host supports.
 
-**Exit criterion:** one fault, one runbook, one verified diagnosis — the **action-grounded loop** working
-on a real virtual network. This is the thesis's "killer demo."
+**Exit criterion:** every seeded fault scores identically on `_real_execute` and `_simulate`. The
+action-grounded loop is then proven on real software, and the simulator becomes the cheap
+oracle for the benchmark sweep (Phase 6).
 
 ---
 
@@ -112,7 +128,11 @@ benchmark.
 | Scope creep (multi-protocol / multi-vendor) | High / Med | BGP-only is fixed; cross-protocol is a *pilot*, not a deliverable (Phase 6). |
 
 ## Where we are right now
-Phase 0 done. **Phase 1 essentially complete in this push** (schema + bootstrap + oracle + lab + corpus + tests).
-The next concrete piece of work is Phase 2's bring-up of the Containerlab sandbox on a real Docker host
-and wiring `wrath-netstate`'s loader to read from `containerlab inspect` — about a day's work once a
-Docker host is available.
+Phase 0 ✅. Phase 1 ✅. **Phase 2-A ✅** — the action-grounded loop is closed end-to-end on every
+seeded fault without any host requirements (`python webui/test_opsrag.py` proves it). The next
+concrete piece of work is **Phase 2-B**: stand up `topo-bgp.clab.yml` on a Docker (or Mininet, or
+netns) host and assert oracle-equivalence with the simulator — about a day's work, gated by
+host availability and not by anything in the thesis itself.
+
+Master's-level scope + the trim list (vs PhD-shaped work) is documented in `thesis/MASTERS.md`.
+Three real-software paths to a Phase 2-B sandbox are in `thesis/lab/SETUP.md`.

@@ -14,12 +14,11 @@ Stdlib-parseable (`json` is in the standard library), so the harness and tests w
 extra dependency. The Containerlab spec itself is YAML because that is what `containerlab` parses;
 our Python code does not read it.
 
-## How to bring it up (on a host with Docker + Containerlab)
-```bash
-sudo containerlab deploy   -t thesis/lab/topo-bgp.clab.yml
-sudo containerlab inspect  -t thesis/lab/topo-bgp.clab.yml
-sudo containerlab destroy  -t thesis/lab/topo-bgp.clab.yml
-```
+## How to bring it up
+Three real-software paths (Containerlab + Docker, Mininet + FRR, FRR in Linux namespaces) plus the
+deterministic in-repo simulator are documented in [SETUP.md](SETUP.md). Pick whichever matches the
+host. The simulator is what `python webui/test_opsrag.py` already exercises today — no host
+required.
 
 ## How the oracle uses it
 `webui/opsrag/oracle.py::execute_runbook(fault, runbook)`:

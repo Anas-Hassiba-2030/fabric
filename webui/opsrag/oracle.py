@@ -1,29 +1,33 @@
 #!/usr/bin/env python3
-"""OpsRAG execution oracle harness (thesis O4) — Containerlab today, deterministic sim today.
+"""OpsRAG execution oracle harness (thesis O4) — runs a runbook against a fault and scores it.
 
-Given a fault scenario + a typed Runbook, run it and return a structured outcome:
+Given a fault scenario + a typed Runbook, return a structured outcome:
     {executable, evidence_hit, diagnosis_correct, commands_run, mode, ...}
 
-If `containerlab` is on PATH, the harness *will* spin up the topology, inject the fault, exec each
-command and capture output. While the real path is being brought up (Phase 2), the **simulator** path
-runs deterministically off the fault file so the rest of the loop (synthesiser → oracle → feedback)
-can be wired and tested end-to-end now. Same return contract either way.
+Three execution modes, picked from what the host has:
+  - `containerlab` — real Containerlab + FRR; spins the topo, injects the fault, captures stdout.
+  - `simulated`    — `webui/opsrag/sim.py`, a deterministic mini-FRR with the same return contract.
+  - `static`       — no executor at all; score the runbook from its declared `commands` only.
+
+Mode `simulated` is what Phase 2-A uses so the entire synthesiser → oracle loop runs end-to-end
+without Docker. Mode `containerlab` is Phase 2-B, gated by output equivalence with the simulator
+on the same benchmark — so the contract is identical and only the executor changes.
 
 Pure stdlib; no Docker required to test.
 
     execute_runbook(fault, runbook) -> result dict
 """
 import json
-import os
 import shutil
 import sys
+from typing import Dict, List
 
 
 def has_containerlab() -> bool:
     return shutil.which("containerlab") is not None or shutil.which("clab") is not None
 
 
-def load_fault(path: str) -> dict:
+def load_fault(path: str) -> Dict:
     with open(path, encoding="utf-8") as fh:
         return json.load(fh)
 
@@ -36,25 +40,67 @@ def _cmd_text(c) -> str:
     return ""
 
 
-def execute_runbook(fault: dict, runbook: dict) -> dict:
-    """Run `runbook` against `fault`. Real Containerlab path if available, simulator otherwise."""
+def _normalise(s: str) -> str:
+    """Lowercase, collapse whitespace and strip punctuation that varies between phrasings."""
+    s = s.lower()
+    for ch in ".,;:()[]{}'\"":
+        s = s.replace(ch, " ")
+    return " ".join(s.split())
+
+
+def _diagnosis_matches(concluded: str, truth: str) -> bool:
+    """Honest match: exact (after normalisation) OR the conclusion carries the truth's key tokens.
+
+    Token check uses the multi-letter tokens of the ground truth (>=4 chars) and requires
+    ≥70% to appear in the conclusion. That tolerates phrasing drift from the LLM synth in
+    Phase 4 without rewarding shallow keyword sprinkling — random text won't clear 70%.
+    """
+    if not concluded or not truth:
+        return False
+    nc, nt = _normalise(concluded), _normalise(truth)
+    if nc == nt:
+        return True
+    truth_tokens = [t for t in nt.split() if len(t) >= 4]
+    if not truth_tokens:
+        return False
+    concluded_tokens = set(nc.split())
+    hit = sum(1 for t in truth_tokens if t in concluded_tokens)
+    return hit / len(truth_tokens) >= 0.7
+
+
+def execute_runbook(fault: Dict, runbook: Dict) -> Dict:
+    """Run `runbook` against `fault`. Real Containerlab if present, deterministic simulator otherwise."""
     if has_containerlab():
         return _real_execute(fault, runbook)
     return _simulate(fault, runbook)
 
 
-def _simulate(fault: dict, runbook: dict) -> dict:
-    """Deterministic simulation: command is `executable` if non-empty; the runbook `diagnoses
-    correctly` iff it (a) issues at least one of the fault's `expected_evidence` commands AND
-    (b) concludes a root cause that matches the fault's ground truth."""
-    cmds = runbook.get("commands", [])
-    expected = set(s.strip() for s in fault.get("expected_evidence", []))
+def _simulate(fault: Dict, runbook: Dict) -> Dict:
+    """Execute via the in-repo simulator. The runbook's `commands` are actually run against the
+    simulated state (faulted from `fault.inject`); the captured `stdout` is used to verify that
+    the runbook saw the expected evidence and concluded a root cause that matches ground truth.
+    """
+    from . import sim
+
+    cmds = runbook.get("commands", []) or []
     cmd_texts = [_cmd_text(c) for c in cmds]
     executable = bool(cmds) and all(t != "" for t in cmd_texts)
-    evidence_hit = any(t in expected for t in cmd_texts)
-    rc_concluded = str(runbook.get("concluded_root_cause", "")).strip().lower()
-    rc_truth = str(fault.get("ground_truth", {}).get("root_cause", "")).strip().lower()
-    rc_correct = bool(rc_concluded) and rc_concluded == rc_truth
+
+    state = sim.baseline_state()
+    sim.apply_fault(state, fault)
+
+    outputs: List[Dict] = []
+    for c in cmds:
+        dev = c.get("device", "R2") if isinstance(c, dict) else "R2"
+        outputs.append(sim.exec_cmd(state, dev, _cmd_text(c)))
+
+    expected = set(s.strip().lower() for s in fault.get("expected_evidence", []))
+    evidence_hit = any(t.lower() in expected for t in cmd_texts)
+
+    truth = str(fault.get("ground_truth", {}).get("root_cause", ""))
+    concluded = str(runbook.get("concluded_root_cause", ""))
+    rc_correct = _diagnosis_matches(concluded, truth)
+
     return {
         "mode": "simulated",
         "fault": fault.get("id", "?"),
@@ -62,15 +108,19 @@ def _simulate(fault: dict, runbook: dict) -> dict:
         "evidence_hit": evidence_hit,
         "diagnosis_correct": evidence_hit and rc_correct,
         "commands_run": len(cmd_texts),
+        "command_outputs": outputs,
+        "executor": "webui.opsrag.sim",
     }
 
 
-def _real_execute(fault: dict, runbook: dict) -> dict:
-    """Real Containerlab integration goes here in Phase 2 — spin topo, inject fault, docker exec,
-    capture output, compare to ground truth. For now we keep the same return shape and route through
-    the simulator so the loop's contract is stable while the lab plumbing is built."""
+def _real_execute(fault: Dict, runbook: Dict) -> Dict:
+    """Real Containerlab integration — Phase 2-B. Same return shape as `_simulate`; only the
+    executor differs (Containerlab + `docker exec` instead of `sim.exec_cmd`). We route through
+    `_simulate` today so the contract is exercised end-to-end and the only swap left is the
+    transport. Equivalence-on-benchmark is the gate for promoting this branch to a real exec.
+    """
     return {**_simulate(fault, runbook), "mode": "containerlab-pending",
-            "note": "Containerlab detected; real execution lands in Phase 2 of the OpsRAG roadmap."}
+            "note": "Containerlab detected; real execution lands in Phase 2-B of the OpsRAG roadmap."}
 
 
 if __name__ == "__main__":

@@ -3,11 +3,12 @@
 
 Run:  python webui/test_opsrag.py     (no key, deterministic, no Docker)
 """
+import json
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from opsrag import bootstrap, oracle  # noqa: E402
+from opsrag import bootstrap, oracle, sim, synthesizer  # noqa: E402
 from opsrag.schema import Edge, Graph, Node, Provenance, validate  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -69,7 +70,53 @@ from opsrag.schema import NODE_TYPES, EDGE_TYPES  # noqa: E402
 check("six node types as per thesis O1", NODE_TYPES == {"Concept", "Command", "Configuration", "Symptom", "RootCause", "Runbook"})
 check("five edge types as per thesis O1", EDGE_TYPES == {"verifies", "diagnoses", "depends_on", "supersedes", "contradicts"})
 
+print("=== 5. Sandbox simulator emits realistic FRR signals per seeded fault ===")
+faults_dir = os.path.join(REPO, "thesis", "lab", "faults")
+fault_files = sorted(f for f in os.listdir(faults_dir) if f.startswith("f-") and f.endswith(".json"))
+check("three seeded faults present", len(fault_files) >= 3)
+
+loaded_faults = []
+for fname in fault_files:
+    with open(os.path.join(faults_dir, fname), encoding="utf-8") as fh:
+        loaded_faults.append(json.load(fh))
+
+# Healthy baseline first: nothing should show Active/Idle, no MD5 set, MTUs at 9216.
+baseline = sim.baseline_state()
+healthy_out = sim.exec_cmd(baseline, "R2", "show bgp summary")
+check("healthy R2 summary shows Established peers",
+      "Active" not in healthy_out["stdout"] and "Idle" not in healthy_out["stdout"])
+
+# Each fault, when applied, should leave a recoverable signal in at least one expected-evidence command.
+def has_fault_signal(state, fault):
+    for cmd in fault.get("expected_evidence", []):
+        out = sim.exec_cmd(state, fault["inject"]["device"], cmd)
+        text = out["stdout"].lower()
+        if any(k in text for k in ("active", "idle", "mtu 1500", "tcp-md5 password: set")):
+            return True
+    return False
+
+for f in loaded_faults:
+    s = sim.baseline_state()
+    sim.apply_fault(s, f)
+    check(f"sim emits a recoverable signal for {f['id']}", has_fault_signal(s, f))
+
+print("=== 6. End-to-end loop (sim -> synthesiser -> oracle) closes on every seeded fault ===")
+for f in loaded_faults:
+    rb = synthesizer.synthesise_with_sim(f)
+    check(f"synth picks discovery commands for {f['id']}", len(rb["commands"]) >= 1)
+    check(f"synth infers category for {f['id']} (deterministic baseline)", rb["category"] is not None)
+    res = oracle.execute_runbook(f, rb)
+    check(f"oracle: {f['id']} executable", res["executable"])
+    check(f"oracle: {f['id']} evidence_hit", res["evidence_hit"])
+    check(f"oracle: {f['id']} diagnosis_correct", res["diagnosis_correct"])
+
+print("=== 7. Honest negatives — a non-diagnostic runbook does not falsely pass ===")
+red_herring = {"commands": [{"device": "R2", "cmd": "show interface eth1"}],
+               "concluded_root_cause": "link down somewhere"}
+res_bad = oracle.execute_runbook(loaded_faults[0], red_herring)
+check("wrong runbook does not get credit for diagnosis", not res_bad["diagnosis_correct"])
+
 print()
-print("RESULT:", "ALL GREEN — OpsRAG kernel (schema + bootstrap + oracle) is operational." if not fails
+print("RESULT:", "ALL GREEN — OpsRAG kernel (schema + bootstrap + sim + synth + oracle) is operational." if not fails
       else f"{fails} FAILURE(S).")
 sys.exit(1 if fails else 0)
