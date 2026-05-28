@@ -898,5 +898,6 @@ If any invariant breaks, something is wrong. `run_tests.sh` verifies invariants 
 
 ---
 
-*This document was last updated to reflect the state of commit `f5c169e` on branch
-`csirt-guard-enforcement`. Run `git log --oneline -5` to see the most recent changes.*
+*This document tracks the live state of the `csirt-guard-enforcement` branch.
+Run `git log --oneline -10` to see the most recent commits. All invariants in §11
+verified against the running code on every audit pass.*
