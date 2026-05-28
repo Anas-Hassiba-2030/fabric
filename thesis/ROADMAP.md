@@ -174,7 +174,7 @@ popularity-bias drift (Δ coherence = +0.854 over 200-interaction simulation).
 ## Phase 6 — Benchmark + evaluation 🟡 IN PROGRESS
 
 **Built (this push):**
-- ✅ Benchmark at **170 questions** across 32 categories (target: 200; q171-q200 in progress).
+- ✅ Benchmark at **200 questions** across 38 categories — target reached.
 - ✅ `webui/opsrag/phase6_report.py` — publication-ready evaluation report:
   - `run_all_suts()` — runs all 4 SUTs (naive / dense-RAG / OpsRAG / LLM) in <1 second.
   - `build_table2()` — headline comparison with **Welch's t-test + Cohen's d** (stdlib only).
@@ -195,7 +195,7 @@ Table 3: OpsRAG Δexec vs Dense-RAG = **+1.000** on most categories (graph ablat
 Table 4: OpsRAG recall=0.862 / apply=0.839 / diagnose=0.930.
 
 **Still to do (for publication-quality Phase 6):**
-- ✅ Benchmark to 200 questions (q171-q200 pending).
+- ✅ Benchmark at 200 questions across 38 categories.
 - Live LLM sweep with `ANTHROPIC_API_KEY` — replace fallback row with real LLM numbers.
 - RAGAs LLM judge swap-in (Phase 6 swap point) — fix the token-Jaccard answer_relevance
   limitation that underscores OpsRAG relative to naive (OpsRAG returns empty for non-fault
