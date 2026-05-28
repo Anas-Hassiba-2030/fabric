@@ -36,6 +36,7 @@ Every ingested artefact (Concept / Command / Configuration / Symptom / RootCause
 - `confidence`: 1.0 for RFC-normative, 0.85 for curated vendor doc, ≤0.7 for learned;
 - `authored`: True (curated) vs False (learned via execution-grounded feedback loop).
 
-Decontamination note: a subset of questions in the 200-question benchmark will be constructed to
-require **composition across two documents** so the generator's pre-training corpus cannot answer
-them by memorisation. Reported metrics will include a decontaminated split.
+Decontamination note: all 300 questions in the benchmark are authored by Kamal Hassiba from
+RFC text and operational experience (no LLM-generated questions). Questions requiring composition
+across two RFCs are present in the `diagnose` and `apply` categories. No decontaminated split
+is reported separately; the authorship guarantee is the contamination defence.

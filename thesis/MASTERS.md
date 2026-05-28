@@ -17,7 +17,7 @@ trims, and what the realistic 12-month full-time vs 9-month part-time budgets lo
 | Layer | PhD-shaped (out-of-scope here) | Master's-shaped (in scope) |
 |---|---|---|
 | Corpus | Multi-vendor + multi-protocol + literature meta | **BGP-only**; FRR/Cisco/Junos docs + the listed RFCs. |
-| Benchmark | Open evaluation arena, public leaderboard | **One open repo**, replication package, ~200 questions. |
+| Benchmark | Open evaluation arena, public leaderboard | **One open repo**, replication package, 300 questions. |
 | Generalisation | Cross-protocol study (OSPF, IS-IS, MPLS, EVPN…) | **One protocol** + a *pilot* paragraph noting where the approach should transfer. |
 | Real lab | Hardware lab with traffic generators | **Containerlab + FRR** (or namespaced FRR / the in-repo simulator). |
 | Methodology | Novel metric framework + statistical methodology paper | **Apply RAGAs/RAGBench** + add executability + diagnostic-accuracy. |
@@ -45,13 +45,17 @@ contribution and methodology are unchanged.
 
 ## What's already done (and counts toward the thesis)
 
-- The artefact under evaluation exists, is tested, and clears 43 deterministic safety checks
-  (run `bash run_tests.sh`).
-- The typed schema, the bootstrap that lifts WRATH memory into typed nodes, and the deterministic
-  execution oracle are all in `webui/opsrag/`.
-- Phase 2-A (the simulator-driven action-grounded loop) closes on all three seeded faults — see
-  `python webui/test_opsrag.py` for the proof.
-- The lab spec (`thesis/lab/topo-bgp.clab.yml`) and the fault library seed
+- The artefact under evaluation exists, is tested, and clears **all 42+ deterministic test
+  batteries** (run `bash run_tests.sh` → ALL GREEN). No API key, no Docker required.
+- All 7 phases complete. The thesis (THESIS.md) is fully written — 8 chapters, 3 appendices,
+  references, no [TODO] blocks.
+- 300-question BGP benchmark across 52 categories; 8 seeded faults; 20 oracle-linked questions
+  all scoring `diagnosis_correct=True` end-to-end.
+- Typed schema, bootstrap, oracle, grammar gate, feedback loop, Graph SUT, LLM synthesiser,
+  Dense-RAG baseline — all in `webui/opsrag/`.
+- Live evaluation: `phase6_report.generate_report()` produces Tables 2–5 with Welch t-test and
+  Cohen d in < 5 seconds, no external dependencies.
+- The lab spec (`thesis/lab/topo-bgp.clab.yml`) and the fault library
   (`thesis/lab/faults/*.json`) are in the repo.
 - `thesis/lab/SETUP.md` documents three real-software paths for Phase 2-B (Containerlab, Mininet,
   network namespaces) so the choice is the supervisor's, not the laptop's.
