@@ -402,7 +402,9 @@ def build_table5(bm_dir: str = _BM_DIR) -> Dict:
                     questions.extend(json.load(fh))
 
         stream = feedback.popularity_bias_stream(
-            questions, graph_sut.graph_sut, n=200, rng_seed=99
+            questions, graph_sut.graph_sut, n=200,
+            popular_fraction=0.3, popular_wrong_rate=0.7, popular_accept_rate=0.9,
+            rng_seed=99,
         )
         result = feedback.ablation(stream, step=20)
         return {

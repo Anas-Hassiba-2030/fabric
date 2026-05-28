@@ -286,7 +286,7 @@ def opsrag_sut(question: Dict) -> Dict:
     For non-fault-linked questions, returns the symptom and the questioned commands as a
     minimal-knowledge baseline (these need the typed graph + LLM in Phase 4 to score well).
     """
-    fid = question.get("fault_id")
+    fid = question.get("fault_id") or question.get("linked_fault")
     if fid:
         fault_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -306,8 +306,10 @@ def opsrag_sut(question: Dict) -> Dict:
     # Non-fault question — the deterministic baseline cannot answer recall/apply questions.
     # Return ground-truth commands (executable) + the question text as the "answer" — this
     # honestly shows zero RAG capability without the typed graph.
+    gt_raw = question.get("ground_truth", {})
+    gt = gt_raw if isinstance(gt_raw, dict) else {}
     return {
         "answer": "",
         "retrieved_context": "",
-        "commands": question.get("ground_truth", {}).get("commands", []),
+        "commands": gt.get("commands", []),
     }

@@ -38,9 +38,9 @@ SUT                             ans_rel  exec_rate   diag_acc      n
 --------------------------------------------------------------------
 Naive floor                       0.085      0.000      0.000    300
 Dense-RAG (BM25)                  0.056      0.000      0.000    300
-OpsRAG (deterministic)             0.045      0.623      0.800    300
-Graph SUT (typed-graph retrieval)  0.124      1.000      1.000    300
-LLM (Opus 4.7 / fallback)         0.045      0.623      0.800    300
+OpsRAG (deterministic)            0.058      0.637      1.000    300
+Graph SUT (typed-graph retrieval)    0.124      1.000      1.000    300
+LLM (Opus 4.7 / fallback)         0.058      0.637      1.000    300
 ```
 
 ### Table 3 — Per-category ablation
@@ -67,13 +67,23 @@ print(r['text']['table4'])
 
 ### Table 5 — Feedback-loop ablation
 
-```bash
-python3 webui/test_feedback.py
-# Look for:
-#   exec-gated coherence: 1.000
-#   user-gated coherence: 0.146
-#   Δ coherence:         +0.854
+```python
+# Uses the Graph SUT (best performer) with canonical thesis params
+python3 -c "
+import sys; sys.path.insert(0, 'webui')
+from opsrag import phase6_report
+r = phase6_report.generate_report()
+print(r['text']['table5'])
+"
+# Expected:
+#   Final coherence   1.000   0.144   +0.856
+#   Verdict: execution-gated dominates
 ```
+
+The `test_feedback.py` suite (53 checks ALL GREEN) uses a simplified stream
+(`opsrag_sut`, popular_fraction=0.50) to prove the ablation machinery works;
+the canonical Table 5 numbers come from `generate_report()` which uses the
+Graph SUT with popular_fraction=0.3, wrong_rate=0.7, accept_rate=0.9, seed=99.
 
 ### Grammar gate (Phase 4 exit criterion)
 
@@ -167,7 +177,7 @@ Repeat for any fault in `thesis/lab/faults/`.
 
 ```python
 import sys, json, os; sys.path.insert(0, 'webui')
-from opsrag import feedback, evaluator
+from opsrag import feedback, graph_sut
 
 bm_dir = "thesis/benchmark"
 qs = []
@@ -176,17 +186,17 @@ for fn in sorted(os.listdir(bm_dir)):
         with open(os.path.join(bm_dir, fn)) as fh:
             qs.extend(json.load(fh))
 
-# Popularity-bias stream (the hard test)
+# Popularity-bias stream — Graph SUT, canonical thesis params
 stream = feedback.popularity_bias_stream(
-    qs, evaluator.opsrag_sut, n=200,
+    qs, graph_sut.graph_sut, n=200,
     popular_fraction=0.3, popular_wrong_rate=0.7, popular_accept_rate=0.9,
     rng_seed=99,
 )
 result = feedback.ablation(stream, step=20)
 print(feedback.format_ablation_table(result))
 # exec_gated coherence: 1.000
-# user_gated coherence: 0.146
-# Δ: +0.854
+# user_gated coherence: 0.144
+# Δ: +0.856
 ```
 
 ---
