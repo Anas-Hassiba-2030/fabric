@@ -290,6 +290,78 @@ def test_cache():
 
 
 # ---------------------------------------------------------------------------
+# 12. New concept categories (Phase 7 — 52 concepts total)
+# ---------------------------------------------------------------------------
+
+def test_new_concepts():
+    """Verify Phase 7 concept additions: as-path-loop, local-preference, 12 new categories."""
+    new_cats = [
+        "as-path-loop", "local-preference",
+        "ibgp-scaling", "bgp-timers", "peer-groups", "prefix-filter",
+        "bgp-attributes", "network-import", "bgp-convergence", "rib-fib",
+        "weight-policy", "bgp-monitoring", "bgp-multihop-advanced", "bgp-capacity",
+    ]
+    concepts = gs._CONCEPTS
+    missing = [c for c in new_cats if c not in concepts]
+    check(len(missing) == 0, f"all 14 new concept categories present (missing: {missing})")
+    check(len(concepts) >= 50, f"total concepts >= 50 ({len(concepts)} found)")
+
+    # Spot-check retrieval quality for two new categories
+    gs.invalidate_index()
+    q_lp = {
+        "id": "test-lp-01",
+        "question": "An inbound route-map on the iBGP session to the route reflector sets local-preference 50. How does this affect path selection?",
+        "category": "local-preference",
+        "difficulty": "apply",
+        "ground_truth": {"answer": "local-preference", "commands": []},
+    }
+    resp_lp = gs.graph_sut(q_lp)
+    check(
+        "local-preference" in resp_lp["answer"].lower() or "local-pref" in resp_lp["answer"].lower(),
+        f"local-preference concept promoted (answer: {resp_lp['answer'][:80]!r})"
+    )
+
+    q_asp = {
+        "id": "test-asp-01",
+        "question": "R2 receives a BGP UPDATE but the prefix is silently discarded despite the session being Established. Own AS appears in AS_PATH.",
+        "category": "as-path-loop",
+        "difficulty": "diagnose",
+        "ground_truth": {"answer": "AS_PATH loop", "commands": []},
+    }
+    resp_asp = gs.graph_sut(q_asp)
+    check(
+        "as_path" in resp_asp["answer"].lower() or "loop" in resp_asp["answer"].lower() or "as 65001" in resp_asp["answer"].lower(),
+        f"as-path-loop concept promoted (answer: {resp_asp['answer'][:80]!r})"
+    )
+
+    q_rib = {
+        "id": "test-rib-01",
+        "question": "What is the difference between BGP Adj-RIB-In, Loc-RIB, and Adj-RIB-Out?",
+        "category": "rib-fib",
+        "difficulty": "recall",
+        "ground_truth": {"answer": "Adj-RIB-In", "commands": []},
+    }
+    resp_rib = gs.graph_sut(q_rib)
+    check(
+        "rib" in resp_rib["answer"].lower(),
+        f"rib-fib concept promoted (answer: {resp_rib['answer'][:80]!r})"
+    )
+
+    q_cap = {
+        "id": "test-cap-01",
+        "question": "How does maximum-prefix protect a BGP router from a peer advertising too many routes?",
+        "category": "bgp-capacity",
+        "difficulty": "recall",
+        "ground_truth": {"answer": "maximum-prefix", "commands": []},
+    }
+    resp_cap = gs.graph_sut(q_cap)
+    check(
+        "maximum-prefix" in resp_cap["answer"].lower() or "prefix" in resp_cap["answer"].lower(),
+        f"bgp-capacity concept promoted (answer: {resp_cap['answer'][:80]!r})"
+    )
+
+
+# ---------------------------------------------------------------------------
 # Run all tests
 # ---------------------------------------------------------------------------
 
@@ -317,6 +389,8 @@ if __name__ == "__main__":
     test_executability()
     print("--- cache ---")
     test_cache()
+    print("--- new concepts (Phase 7) ---")
+    test_new_concepts()
 
     total = _PASS + _FAIL
     print(f"\n{total} checks: {_PASS} PASS, {_FAIL} FAIL")

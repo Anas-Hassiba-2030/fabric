@@ -152,12 +152,6 @@ _CONCEPTS: Dict[str, str] = {
         "Applied inbound or outbound on BGP neighbors. show route-map, show ip bgp policy. "
         "Local preference: higher wins within iBGP (default 100). MED: lower wins between iBGP paths from the same AS."
     ),
-    "multivendor": (
-        "BGP interoperability: RFC 4271 defines the protocol; vendor-specific optional capabilities may differ. "
-        "OPEN message capability negotiation: unknown optional capabilities treated as non-fatal if Optional and "
-        "Transitive bits set correctly (RFC 5492). FRR, IOS-XE, IOS-XR, NX-OS, JunOS all support core BGP; "
-        "SR, ADD-PATH, and Flowspec capabilities require explicit configuration on both sides."
-    ),
     "ospf-underlay": (
         "OSPF underlay for BGP overlay: OSPFv2 (RFC 2328) or OSPFv3 (RFC 5340) distributes loopback "
         "reachability. Not-So-Stubby Area (NSSA, RFC 3101) allows external routes in stub-like areas. "
@@ -271,6 +265,122 @@ _CONCEPTS: Dict[str, str] = {
         "FRRouting: bgp <asn> / neighbor / address-family. "
         "Vendor differences in ADD-PATH, SR-Policy, and Flowspec capability defaults."
     ),
+    "as-path-loop": (
+        "AS_PATH loop detection (RFC 4271 §9.1.2): eBGP speaker discards UPDATE if its own AS number "
+        "appears anywhere in the AS_PATH attribute. This prevents routing loops in eBGP. "
+        "The prefix is silently dropped — no NOTIFICATION is sent, the BGP session remains Established. "
+        "Diagnosis: show ip bgp neighbors <peer> shows 'AS_PATH loop detected' or prefix count mismatch. "
+        "Root cause: peer re-advertising routes it learned from your AS (route leak or misconfigured policy on the peer). "
+        "Fix: correct the peer's outbound route policy to suppress routes originated in your AS."
+    ),
+    "local-preference": (
+        "BGP local-preference (RFC 4271 §5.1.5): well-known discretionary attribute, iBGP only. "
+        "Higher local-preference preferred. Default value 100. Scope: propagated to all iBGP peers, "
+        "not sent to eBGP neighbors. Used to influence egress traffic: set higher local-pref on preferred exit path. "
+        "Inbound route-map on iBGP session: if SET-LOW-LOCPREF is applied to the wrong session (iBGP to RR instead "
+        "of eBGP to peer), routes from the RR appear worse than direct eBGP paths, causing unexpected traffic path. "
+        "Verify: show ip bgp neighbors <rr-ip> | include route-map; show route-map; show ip bgp <prefix>."
+    ),
+    "ibgp-scaling": (
+        "iBGP scaling: full mesh requires n*(n-1)/2 sessions — impractical beyond ~10 routers. "
+        "Solutions: Route Reflector (RFC 4456) or Confederation (RFC 5065). "
+        "RR: clients peer only with RR; RR reflects routes adding ORIGINATOR_ID and CLUSTER_LIST. "
+        "Confederation: AS split into sub-ASes; inter-sub-AS uses confederation-eBGP rules. "
+        "CLUSTER_LIST prevents RR reflection loops. Route reflector placement affects convergence time. "
+        "show bgp neighbors | include cluster; show bgp summary for session counts."
+    ),
+    "bgp-timers": (
+        "BGP timers: hold time (default 90s) negotiated in OPEN — minimum of the two peers is used. "
+        "Keepalive interval = hold_time / 3 (default 30s). Connect-retry timer: how long to wait before "
+        "retrying TCP connection (default 120s). Min-route-advertisement interval (MRAI): minimum time between "
+        "successive UPDATE messages for the same prefix (default 30s eBGP, 5s iBGP). "
+        "Aggressive timers (e.g. hold=10s, keepalive=3s) can cause session flaps under load. "
+        "BFD provides sub-second detection without aggressive BGP timers. "
+        "neighbor <addr> timers <keepalive> <hold>. show ip bgp neighbors | include hold."
+    ),
+    "peer-groups": (
+        "BGP peer-groups: a named template applied to multiple neighbors sharing the same policies. "
+        "All members inherit peer-group configuration: remote-as, update-source, route-map, filter-list, etc. "
+        "Peer-group members share outbound UPDATE processing — improves scalability for large numbers of peers. "
+        "FRR: neighbor <pg-name> peer-group / neighbor <addr> peer-group <pg-name>. "
+        "show ip bgp peer-group lists members and inherited configuration. "
+        "Policy change on peer-group requires soft-reset of all member sessions."
+    ),
+    "prefix-filter": (
+        "BGP prefix filtering: prefix-list, distribute-list, and filter-list control route advertisement. "
+        "Prefix-list: match on exact prefix or prefix range (ge/le operators). "
+        "ip prefix-list <name> permit 10.0.0.0/8 le 24 permits all /8 to /24 prefixes in 10/8. "
+        "AS-path access-list: regex match on AS_PATH. distribute-list: uses standard ACL. "
+        "Applied inbound or outbound: neighbor <addr> prefix-list <name> in|out. "
+        "show ip bgp neighbors <addr> received-routes vs advertised-routes to verify filter effect."
+    ),
+    "bgp-attributes": (
+        "BGP path attributes (RFC 4271 §5): Well-known mandatory: ORIGIN, AS_PATH, NEXT_HOP. "
+        "Well-known discretionary: LOCAL_PREF, ATOMIC_AGGREGATE. Optional transitive: AGGREGATOR, COMMUNITY. "
+        "Optional non-transitive: MED (MULTI_EXIT_DISC), ORIGINATOR_ID, CLUSTER_LIST. "
+        "Path selection order (RFC 4271 §9.1.2): highest local-pref → shortest AS_PATH → lowest origin → "
+        "lowest MED (same AS) → eBGP > iBGP → lowest IGP cost to next-hop → lowest BGP router-ID. "
+        "Weight (Cisco proprietary): highest wins, not propagated. show ip bgp <prefix> shows all attributes."
+    ),
+    "network-import": (
+        "BGP network import: the 'network' statement imports a prefix into BGP if it exists in the RIB. "
+        "'redistribute connected/static' imports all connected/static routes — apply route-map to filter. "
+        "Conditional advertisement: 'network backdoor' marks a prefix as iBGP-like (prefer IGP). "
+        "Maximum-prefix safeguard: neighbor <addr> maximum-prefix <N> prevents BGP table explosion. "
+        "default-originate: advertise default route to peer. "
+        "show ip bgp shows network origin as 'i' (IGP from network command) vs 'e' (eBGP) vs '?' (incomplete)."
+    ),
+    "bgp-convergence": (
+        "BGP convergence factors: MRAI (Min-Route-Advertisement Interval, default 30s eBGP) limits UPDATE rate. "
+        "BGP PIC (Prefix Independent Convergence): pre-installs backup next-hop in FIB for <50ms switchover. "
+        "ADD-PATH (RFC 7911) through RR exposes multiple paths, enabling faster failover. "
+        "BFD integration: sub-second failure detection triggers BGP withdrawal immediately. "
+        "Dampening (RFC 2439) delays reconvergence for flapping prefixes — avoid for critical prefixes. "
+        "IGP fast-reroute (TI-LFA) protects BGP next-hops before BGP reconverges."
+    ),
+    "rib-fib": (
+        "BGP RIB (Routing Information Base) vs FIB (Forwarding Information Base): "
+        "BGP maintains Adj-RIB-In (received from each peer), Loc-RIB (best path per prefix), Adj-RIB-Out (sent to each peer). "
+        "Best path from Loc-RIB installed into the system RIB (ip routing table). "
+        "CEF (Cisco Express Forwarding) or Linux FIB downloads RIB entries into hardware for fast switching. "
+        "BGP next-hop must be resolved in RIB; if not, BGP path is inactive (next-hop unreachable). "
+        "show ip bgp: * best, > valid, i iBGP. show ip route vs show ip bgp to compare RIB and BGP table."
+    ),
+    "weight-policy": (
+        "BGP weight (Cisco proprietary, not in RFC 4271): highest weight preferred, local to the router. "
+        "Set via neighbor <addr> weight <0-65535> or route-map set weight. Default: routes from neighbor=0, self-originated=32768. "
+        "Weight overrides all other path attributes in Cisco path selection. Not propagated to any peer. "
+        "Use case: prefer one upstream for all traffic from a single router. "
+        "AS_PATH prepending (standard): prepend own AS to outgoing UPDATE to make path appear longer to peer, "
+        "influencing inbound traffic from the remote side. neighbor <addr> route-map prepend out."
+    ),
+    "bgp-monitoring": (
+        "BGP session monitoring: show bgp summary shows all neighbor states and prefix counts. "
+        "show ip bgp neighbors <addr> shows detailed state: hold time, keepalive, capabilities, "
+        "message counters (open/update/keepalive/notification), last reset reason. "
+        "debug ip bgp events / debug ip bgp updates — use with care in production. "
+        "BMP (RFC 7854): stream real-time BGP messages to collector without impact on forwarding. "
+        "Syslog messages: %BGP-5-ADJCHANGE captures every session up/down event. "
+        "SNMP: bgpPeerState, bgpPeerFsmEstablishedTransitions in RFC 4273 MIB."
+    ),
+    "bgp-multihop-advanced": (
+        "eBGP multihop (RFC 4271 §8.2): by default eBGP sessions require directly connected peers (TTL=1). "
+        "ebgp-multihop N increases TTL to N, allowing loopback-to-loopback sessions through intermediate hops. "
+        "Loopback peering provides session stability: physical interface failure does not drop session if "
+        "loopback remains reachable via alternate path. Requires IGP reachability to peer's loopback. "
+        "update-source loopback0 selects the correct source IP. "
+        "FRR: neighbor <loopback-ip> ebgp-multihop <N> / neighbor <loopback-ip> update-source <lo>. "
+        "show ip bgp neighbors | include External BGP neighbor."
+    ),
+    "bgp-capacity": (
+        "BGP table capacity and scaling: internet full table ~900k IPv4 + ~180k IPv6 routes (2024). "
+        "maximum-prefix limit per neighbor prevents table explosion from misbehaving peers. "
+        "BGP table-version increments on each topology change; high version churn indicates instability. "
+        "Memory: each BGP path entry consumes ~200-500 bytes. show bgp memory (IOS-XR) / show bgp summary. "
+        "Per-neighbor prefix limits: neighbor <addr> maximum-prefix <N> [warning-only]. "
+        "BGP graceful restart retains forwarding during control-plane restart, preventing full table flush. "
+        "Route reflector scalability: thousands of clients, single-process BGP table."
+    ),
 }
 
 # Category aliases: some benchmark categories map to the same concept paragraph.
@@ -278,6 +388,9 @@ _CAT_ALIAS: Dict[str, str] = {
     "addpath": "add-path-advanced",
     "multipath": "multipath-advanced",
     "operational-tools": "operational",
+    "local-pref-override": "local-preference",
+    "as-path-loop-detection": "as-path-loop",
+    "bgp-multihop": "bgp-multihop-advanced",
 }
 
 
