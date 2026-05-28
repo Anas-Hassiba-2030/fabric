@@ -62,6 +62,7 @@ run("read-only network-state loader proof", [sys.executable, "webui/test_netstat
 run("pipeline integrity proof", [sys.executable, "webui/test_agents.py"])
 run("opsrag kernel proof", [sys.executable, "webui/test_opsrag.py"])
 run("opsrag typed ingestion proof", [sys.executable, "webui/test_ingest.py"])
+run("opsrag benchmark evaluator proof", [sys.executable, "webui/test_evaluator.py"])
 run("worked-example reader proof", [sys.executable, "webui/test_examples.py"])
 run("critic-intensity dial proof", [sys.executable, "webui/test_criticism.py"])
 run("audience reframing proof", [sys.executable, "webui/test_audience.py"])

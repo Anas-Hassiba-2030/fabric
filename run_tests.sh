@@ -102,6 +102,9 @@ if "$PY" webui/test_opsrag.py >/tmp/_or.out 2>&1; then ok "opsrag schema + boots
 step "OpsRAG typed ingestion proof (Phase 3 foundation, no API key)"
 if "$PY" webui/test_ingest.py >/tmp/_ing.out 2>&1; then ok "ingest extractors (CLI + RFC -> typed nodes, idempotent merge)"; else bad "opsrag ingest"; cat /tmp/_ing.out; fi
 
+step "OpsRAG evaluator proof (RAGAs-shape + executability + diagnostic accuracy)"
+if "$PY" webui/test_evaluator.py >/tmp/_ev.out 2>&1; then ok "evaluator scores benchmark; opsrag beats naive floor"; else bad "opsrag evaluator"; cat /tmp/_ev.out; fi
+
 step "Worked-example reader proof (path-jailed, no API key)"
 if "$PY" webui/test_examples.py >/tmp/_ex.out 2>&1; then ok "examples reader lists+serves, traversal refused"; else bad "examples reader"; cat /tmp/_ex.out; fi
 

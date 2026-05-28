@@ -67,14 +67,43 @@ oracle for the benchmark sweep (Phase 6).
 
 ---
 
-## Phase 3 — Typed ingestion over BGP corpus ⬜
-- CLI-aware extractor (parses FRR/IOS/Junos `show` and `router bgp` syntax into `Command` and `Configuration` nodes).
-- RFC-aware extractor (normative vs informative passages → `Concept` and `RootCause` candidates).
-- Concept extractor for definitional prose.
-- Strong **dense-RAG baseline** with the same generator (the "generic RAG" comparator for RQ1).
+## Phase 3 — Typed ingestion over BGP corpus 🟡 IN PROGRESS
+**Built (this push):**
+- ✅ `webui/opsrag/ingest.py` — CLI extractor (FRR/IOS/Junos `show` + `router bgp` → typed
+  `Command` + `Configuration` nodes) + RFC extractor (normative prose → `Concept` + `RootCause`
+  candidates) + link inferer (verifies / depends_on edges).
+- ✅ Idempotent merge into `Graph`; learned nodes flagged `authored=false` to distinguish them
+  from curated artefacts.
+- ✅ `webui/test_ingest.py` — 16 checks proving the contract holds.
+
+**Still to do:** sweep the actual RFC PDFs + FRR/Cisco/Junos docs into the graph, ship a
+**dense-RAG baseline** comparator (same generator over flat chunks), and report the first paired
+benchmark v1 metrics.
 
 **Exit criterion:** the typed graph holds the BGP corpus; baseline RAG runs over the same corpus; first
-benchmark v1 (50 questions, paired metric distributions) reported.
+benchmark v1 (50+ questions, paired metric distributions) reported.
+
+---
+
+## Phase 3.5 — Benchmark + evaluator scaffold ✅ DONE (this push)
+The academically novel evaluation methodology, built once and reused by every later experiment.
+- ✅ `thesis/benchmark/schema.json` — formal contract every benchmark question follows.
+- ✅ `thesis/benchmark/q001-q070.json` — **70 grounded BGP questions** across 14 categories
+  (session-establishment, security, mtu-path, rr-reflector, address-family, communities,
+  graceful-restart, ADD-PATH, BFD, RPKI, EVPN, VPNv4, BGP-LS, operational, …). Every question
+  cites a real RFC; 7 are oracle-executable.
+- ✅ `webui/opsrag/evaluator.py` — RAGAs-shape metrics (answer_relevance, faithfulness,
+  context_relevance) **plus** the OpsRAG contribution: `executability` (every emitted command is
+  syntactically valid) and `diagnostic_accuracy` (sim+oracle scores the runbook). Headline +
+  per-category + per-difficulty buckets.
+- ✅ Reference SUTs: `naive_sut` (the floor — echoes the question) and `opsrag_sut` (the
+  Phase-2A deterministic synth). The contract `sut(question) → {answer, retrieved_context,
+  commands}` is what Phase 4's LLM synth and the dense-RAG comparator will both plug into.
+- ✅ `webui/test_evaluator.py` — 24 checks proving the harness produces every metric column,
+  buckets total to n, and the OpsRAG SUT beats the naive floor (current headline:
+  **executability_rate 0.986**, **diagnostic_accuracy 1.0** on the fault-linked subset).
+- ✅ OpsRAG Lab UI got an "Evaluation" tab — run either SUT against the live benchmark and
+  see the headline + per-category breakdown in one click.
 
 ---
 

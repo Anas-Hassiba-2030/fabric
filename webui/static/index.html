@@ -750,6 +750,7 @@ async function openOpsRAGLab(tab){
   const tabBar=`<div class="ortabs">
     <button class="ortab${activeTab==="faults"?" on":""}" id="orTabFaults">Fault Library</button>
     <button class="ortab${activeTab==="bench"?" on":""}" id="orTabBench">Benchmark <span class="orbcount">${bm.total||0} Q</span></button>
+    <button class="ortab${activeTab==="eval"?" on":""}" id="orTabEval">Evaluation</button>
   </div>`;
 
   // Faults panel
@@ -793,11 +794,52 @@ async function openOpsRAGLab(tab){
     <div id="orPanelFaults" style="display:${activeTab==="faults"?"block":"none"}">${faultHtml}</div>
     <div id="orPanelBench" style="display:${activeTab==="bench"?"block":"none"}">${bmStats}<div class="orbqlist">${bmRows}
       ${(bm.total||0)>30?`<div style="font-size:11px;color:var(--muted);padding:10px 0">…${(bm.total||0)-30} more questions in thesis/benchmark/</div>`:""}
+    </div></div>
+    <div id="orPanelEval" style="display:${activeTab==="eval"?"block":"none"}">
+      <p style="font-size:12px;color:var(--muted);margin:0 0 14px">Score a system-under-test against the full benchmark with RAGAs-shape metrics (answer_relevance, faithfulness, context_relevance) <b>+ action-grounded metrics (executability, diagnostic accuracy)</b> — the two metrics RAGAs does not provide.</p>
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <button class="orfrunbtn" id="orEvalNaive">▶ Run naive baseline</button>
+        <button class="orfrunbtn" id="orEvalOpsrag">▶ Run OpsRAG baseline</button>
+      </div>
+      <div id="orEvalResult"></div>
     </div></div>`);
   faults.forEach(f=>{const btn=document.getElementById("orbtn-"+f.id);if(btn)btn.onclick=()=>runOpsRAGFault(f.id);});
-  const tf=document.getElementById("orTabFaults"),tb=document.getElementById("orTabBench");
-  if(tf)tf.onclick=()=>{tf.classList.add("on");tb.classList.remove("on");document.getElementById("orPanelFaults").style.display="block";document.getElementById("orPanelBench").style.display="none";};
-  if(tb)tb.onclick=()=>{tb.classList.add("on");tf.classList.remove("on");document.getElementById("orPanelFaults").style.display="none";document.getElementById("orPanelBench").style.display="block";};}
+  const tf=document.getElementById("orTabFaults"),tb=document.getElementById("orTabBench"),te=document.getElementById("orTabEval");
+  const showTab=which=>{[tf,tb,te].forEach(t=>t&&t.classList.remove("on"));
+    document.getElementById("orPanelFaults").style.display="none";
+    document.getElementById("orPanelBench").style.display="none";
+    document.getElementById("orPanelEval").style.display="none";
+    if(which==="faults"){tf.classList.add("on");document.getElementById("orPanelFaults").style.display="block";}
+    if(which==="bench"){tb.classList.add("on");document.getElementById("orPanelBench").style.display="block";}
+    if(which==="eval"){te.classList.add("on");document.getElementById("orPanelEval").style.display="block";}};
+  if(tf)tf.onclick=()=>showTab("faults");
+  if(tb)tb.onclick=()=>showTab("bench");
+  if(te)te.onclick=()=>showTab("eval");
+  const en=document.getElementById("orEvalNaive"),eo=document.getElementById("orEvalOpsrag");
+  if(en)en.onclick=()=>runEvaluation("naive");
+  if(eo)eo.onclick=()=>runEvaluation("opsrag");}
+async function runEvaluation(sutName){
+  const r=document.getElementById("orEvalResult");
+  r.innerHTML='<div class="placeholder">running benchmark sweep…</div>';
+  let rep;try{rep=await fetch("/api/opsrag/evaluate?sut="+sutName).then(x=>x.json());}
+  catch(e){r.innerHTML='<div class="placeholder">eval failed</div>';return;}
+  const hl=rep.headline||{};
+  const mv=(m,k)=>(m&&m[k]!==null&&m[k]!==undefined)?(typeof m[k]==="number"?m[k].toFixed(3):m[k]):"—";
+  const cells=`<div class="orgraph" style="background:rgba(54,224,200,.06)"><span class="ogtitle">${sutName.toUpperCase()} headline · n=${rep.n}</span>
+    <span class="ogtype">answer_relevance <b>${mv(hl.answer_relevance,"mean")}</b></span>
+    <span class="ogtype">faithfulness <b>${mv(hl.faithfulness,"mean")}</b></span>
+    <span class="ogtype">context_relevance <b>${mv(hl.context_relevance,"mean")}</b></span>
+    <span class="ogtype" style="background:rgba(255,206,107,.16);color:var(--warn)">executability_rate <b>${(hl.executability_rate||0).toFixed(3)}</b></span>
+    <span class="ogtype" style="background:rgba(61,220,151,.16);color:var(--ok)">diagnostic_accuracy <b>${mv(hl,"diagnostic_accuracy")}</b></span></div>`;
+  // Per-category breakdown
+  const catRows=Object.entries(rep.by_category||{}).sort((a,b)=>b[1].n-a[1].n).map(([cat,bk])=>{
+    return `<tr><td>${cat}</td><td>${bk.n}</td><td>${mv(bk.answer_relevance,"mean")}</td><td>${(bk.executability_rate||0).toFixed(3)}</td><td>${mv(bk,"diagnostic_accuracy")}</td></tr>`;
+  }).join("");
+  const catTbl=`<h3 style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:18px 0 8px">By category</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="border-bottom:1px solid var(--brd);text-align:left;color:var(--muted)">
+    <th style="padding:6px 8px">Category</th><th style="padding:6px 8px">n</th><th style="padding:6px 8px">ans_rel</th><th style="padding:6px 8px">exec</th><th style="padding:6px 8px">dx</th></tr></thead>
+    <tbody style="font-family:ui-monospace,Menlo,Consolas,monospace">${catRows}</tbody></table>`;
+  r.innerHTML=cells+catTbl;}
 async function runOpsRAGFault(faultId){
   const btn=document.getElementById("orbtn-"+faultId);
   const resEl=document.getElementById("orres-"+faultId);
