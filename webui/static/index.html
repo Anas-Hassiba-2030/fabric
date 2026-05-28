@@ -803,6 +803,7 @@ async function openOpsRAGLab(tab){
         <button class="orfrunbtn" id="orEvalOpsrag">▶ OpsRAG (deterministic)</button>
         <button class="orfrunbtn" id="orEvalDense" style="background:rgba(147,112,219,.18);color:#b39ddb">▶ Dense-RAG (BM25)</button>
         <button class="orfrunbtn" id="orEvalLLM" style="background:rgba(255,167,38,.18);color:#ffb74d">▶ LLM (Opus 4.7)</button>
+        <button class="orfrunbtn" id="orEvalReport" style="background:rgba(61,220,151,.14);color:var(--ok);border:1px solid var(--ok)">📊 Full Phase 6 Report (all SUTs)</button>
       </div>
       <div id="orEvalResult"></div>
     </div>
@@ -836,6 +837,8 @@ async function openOpsRAGLab(tab){
   if(eo)eo.onclick=()=>runEvaluation("opsrag");
   if(ed)ed.onclick=()=>runEvaluation("dense");
   if(el)el.onclick=()=>runEvaluation("llm");
+  const er=document.getElementById("orEvalReport");
+  if(er)er.onclick=()=>runPhase6Report();
   const eab=document.getElementById("orAblationBias"),eau=document.getElementById("orAblationUniform");
   if(eab)eab.onclick=()=>runAblation("bias");
   if(eau)eau.onclick=()=>runAblation("uniform");}
@@ -862,6 +865,26 @@ async function runEvaluation(sutName){
     <th style="padding:6px 8px">Category</th><th style="padding:6px 8px">n</th><th style="padding:6px 8px">ans_rel</th><th style="padding:6px 8px">exec</th><th style="padding:6px 8px">dx</th></tr></thead>
     <tbody style="font-family:ui-monospace,Menlo,Consolas,monospace">${catRows}</tbody></table>`;
   r.innerHTML=cells+catTbl;}
+async function runPhase6Report(){
+  const r=document.getElementById("orEvalResult");
+  r.innerHTML='<div class="placeholder">generating Phase 6 report (all 4 SUTs × 170 questions)…</div>';
+  let rep;
+  try{rep=await fetch("/api/opsrag/report").then(x=>x.json());}
+  catch(e){r.innerHTML='<div class="placeholder">report failed</div>';return;}
+  const mv=v=>v!==null&&v!==undefined?Number(v).toFixed(3):"—";
+  const t2rows=Object.entries(rep.table2?.rows||{}).map(([sut,row])=>`<tr>
+    <td>${row.label}</td><td>${row.n}</td>
+    <td>${mv((row.answer_relevance||{}).mean)}</td>
+    <td><b>${mv(row.executability_rate)}</b></td>
+    <td><b>${mv(row.diagnostic_accuracy)}</b></td></tr>`).join("");
+  const tbl=`<h3 style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:14px 0 8px">Table 2 — Headline (n=${rep.n_questions} questions)</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px">
+    <thead><tr style="border-bottom:1px solid var(--brd);color:var(--muted);text-align:left">
+    <th style="padding:5px 8px">SUT</th><th style="padding:5px 8px">n</th><th style="padding:5px 8px">ans_rel</th>
+    <th style="padding:5px 8px;color:var(--warn)">exec_rate</th><th style="padding:5px 8px;color:var(--ok)">diag_acc</th></tr></thead>
+    <tbody style="font-family:ui-monospace,Menlo,Consolas,monospace">${t2rows}</tbody></table>`;
+  const pre=`<pre style="font-size:10px;background:var(--bg2);padding:12px;border-radius:6px;margin-top:14px;overflow-x:auto;white-space:pre-wrap">${((rep.text||{}).table3||"").replace(/</g,"&lt;")}</pre>`;
+  r.innerHTML=tbl+pre;}
 async function runAblation(mode){
   const r=document.getElementById("orAblationResult");
   r.innerHTML='<div class="placeholder">running ablation (200 interactions)…</div>';

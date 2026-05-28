@@ -114,6 +114,9 @@ if "$PY" webui/test_grammar_gate.py >/tmp/_gg.out 2>&1; then ok "grammar gate: 2
 step "Phase 5 dual-signal feedback loop proof (execution-gated vs user-gated ablation)"
 if "$PY" webui/test_feedback.py >/tmp/_fb.out 2>&1; then ok "exec-gated coherence 1.0 vs user-gated 0.146 under popularity bias (53 checks)"; else bad "feedback loop"; cat /tmp/_fb.out; fi
 
+step "Phase 6 comparative evaluation report (Welch t-test, Cohen d, Tables 2-4)"
+if "$PY" webui/test_phase6.py >/tmp/_p6.out 2>&1; then ok "Tables 2-4 generated; OpsRAG exec>naive p<0.001 (53 checks)"; else bad "phase 6 report"; cat /tmp/_p6.out; fi
+
 step "Worked-example reader proof (path-jailed, no API key)"
 if "$PY" webui/test_examples.py >/tmp/_ex.out 2>&1; then ok "examples reader lists+serves, traversal refused"; else bad "examples reader"; cat /tmp/_ex.out; fi
 

@@ -669,6 +669,10 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/compliance":
             md = compliance.report(parse_qs(u.query).get("problem", [""])[0])
             return self._send(200, "application/json", json.dumps({"markdown": md}).encode())
+        if u.path == "/api/opsrag/report":
+            from opsrag import phase6_report
+            report = phase6_report.generate_report(os.path.join(REPO, "thesis", "benchmark"))
+            return self._send(200, "application/json", json.dumps(report).encode())
         if u.path == "/api/opsrag/ablation":
             from opsrag import feedback, evaluator
             qs = parse_qs(u.query)

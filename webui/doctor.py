@@ -66,6 +66,7 @@ run("opsrag benchmark evaluator proof", [sys.executable, "webui/test_evaluator.p
 run("phase-4 llm synthesiser + dense-rag baseline proof", [sys.executable, "webui/test_llm_synthesizer.py"])
 run("phase-4 cli grammar gate proof", [sys.executable, "webui/test_grammar_gate.py"])
 run("phase-5 dual-signal feedback loop ablation proof", [sys.executable, "webui/test_feedback.py"])
+run("phase-6 comparative evaluation report proof", [sys.executable, "webui/test_phase6.py"])
 run("worked-example reader proof", [sys.executable, "webui/test_examples.py"])
 run("critic-intensity dial proof", [sys.executable, "webui/test_criticism.py"])
 run("audience reframing proof", [sys.executable, "webui/test_audience.py"])
