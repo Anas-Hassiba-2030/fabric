@@ -1,0 +1,2 @@
+# No third-party dependencies — pure Python stdlib.
+# This file exists so Railway's builder recognises the project as Python.
