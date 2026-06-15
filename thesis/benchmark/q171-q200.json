@@ -1,0 +1,512 @@
+[
+  {
+    "id": "q-171",
+    "category": "nexthop-tracking",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is BGP Next-Hop Tracking (NHT) and how does it allow BGP to react to IGP next-hop changes without triggering a full BGP RIB recompute?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGP Next-Hop Tracking (NHT) is an event-driven mechanism by which the BGP process registers with the RIB (Routing Information Base) or the IGP to receive notifications whenever the reachability or metric of a BGP next-hop address changes. Instead of periodically scanning the entire BGP RIB to check whether next-hops remain reachable — which is expensive at large table sizes — NHT allows BGP to receive a targeted callback from the RIB each time a registered next-hop's IGP route is installed, withdrawn, or has its metric changed. On receiving the callback, BGP re-evaluates only the prefixes whose next-hop changed, re-runs best-path selection for those prefixes, and updates the FIB accordingly. This is contrast to the legacy poll-based approach where a periodic scanner walked the entire BGP table. RFC 4271 §9.1.2 specifies that a BGP speaker must re-run best-path selection when next-hop reachability changes; NHT is the event-driven implementation of that requirement.",
+      "layer": "bgp",
+      "commands": ["show bgp nexthop", "show bgp nexthop detail", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-172",
+    "category": "nexthop-tracking",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What does `show bgp nexthop` display on an FRR or IOS router, and how do you interpret the 'Valid', 'IGP metric', and 'Registered' fields in its output?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The `show bgp nexthop` command displays the BGP next-hop tracking table — the set of next-hop addresses that BGP has registered with the RIB for change notification. Key fields: 'Valid' indicates whether the next-hop address is currently reachable in the RIB (a next-hop that is not valid causes all BGP prefixes using it to be marked as not best and withdrawn from the FIB). 'IGP metric' shows the cost of the IGP route to the next-hop, which BGP uses in the MULTI_EXIT_DISC comparison and in next-hop reachability decisions. 'Registered' indicates whether BGP has successfully registered with the RIB for event-driven notification on that next-hop; if a next-hop appears in the BGP table but is not registered, NHT will not fire callbacks for it. 'Paths' or 'Ref count' shows how many BGP paths depend on this next-hop entry. On FRR, `show bgp nexthop detail` adds the list of affected prefixes per next-hop entry.",
+      "layer": "bgp",
+      "commands": ["show bgp nexthop", "show bgp nexthop detail"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-173",
+    "category": "nexthop-tracking",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "What is the `nexthop trigger delay` (or `bgp nexthop trigger delay`) configuration, why does it exist, and what are the trade-offs of setting it very low versus very high?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The `nexthop trigger delay` (configured as `bgp nexthop trigger delay <milliseconds>` in FRR or `bgp nexthop trigger delay <seconds>` on IOS) is a hold-down timer that batches NHT callback events before BGP processes them. When a next-hop change event fires, instead of immediately re-running best-path selection BGP waits for the configured delay period, accumulating additional events, and then processes all queued changes in a single pass. This prevents a rapid series of IGP metric fluctuations (e.g., during an SPF reconvergence) from triggering repeated best-path and FIB updates — known as churn amplification. Setting the delay very low (e.g., 0 ms) maximizes convergence speed at the cost of higher CPU load during IGP instability, as each micro-event triggers a full BGP scan of affected prefixes. Setting it very high (e.g., several seconds) reduces CPU load but delays BGP convergence after a genuine next-hop failure or improvement. The recommended range is typically 100-500 ms, balancing responsiveness with stability.",
+      "layer": "bgp",
+      "commands": ["show bgp nexthop", "show bgp nexthop detail", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.92}
+  },
+  {
+    "id": "q-174",
+    "category": "nexthop-tracking",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "How does BGP Next-Hop Tracking interact with recursive next-hop resolution? Describe the resolution chain for an eBGP route whose advertised next-hop is not directly connected.",
+    "context": null,
+    "ground_truth": {
+      "answer": "Recursive next-hop resolution is the process by which BGP resolves a multi-hop next-hop address to a directly connected (link-layer) next-hop through one or more intermediate lookups in the RIB. For an eBGP route whose NEXT_HOP attribute (RFC 4271 §5.1.3) points to an address that is not on a directly connected subnet, BGP performs a recursive lookup: it looks up the NEXT_HOP in the RIB, finds an IGP route covering it, then looks up that IGP route's own next-hop if necessary, repeating until a connected or static route is found. NHT registers callbacks at every level of the recursion chain. If any intermediate hop in the chain changes — for example, the IGP route covering the eBGP next-hop's /24 is replaced by a more-specific /32 with a different outgoing interface — NHT fires a callback for all BGP prefixes depending on that next-hop, triggering re-resolution and FIB update. This means a single IGP change can cascade NHT events for large numbers of BGP prefixes that share a common recursive resolver. `show bgp nexthop detail` shows the resolved interface and the resolution depth.",
+      "layer": "bgp",
+      "commands": ["show bgp nexthop detail", "show bgp <prefix> detail", "show ip route <nexthop-addr>"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1.2", "RFC4271 S5.1.3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-175",
+    "category": "nexthop-tracking",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A router running BGP with NHT enabled shows several prefixes in `show bgp ipv4 unicast` as 'not best' with reason 'nexthop not reachable', but `show ip route` shows the next-hop address is present in the RIB. What are the likely causes and how do you diagnose this?",
+    "context": null,
+    "ground_truth": {
+      "answer": "A mismatch where the RIB has a route to the next-hop but BGP still marks it unreachable has several possible causes: (1) NHT registration failure — the BGP process attempted to register the next-hop with the RIB but the registration did not complete or was dropped; check `show bgp nexthop detail` and confirm the next-hop shows 'Registered: yes' and 'Valid: yes'. (2) Next-hop resolution resolves to a route BGP does not consider acceptable — e.g., the next-hop resolves only via a default route (0.0.0.0/0) and the router has `bgp disable-connected-check` off or the platform disallows resolution via default for eBGP next-hops. (3) Next-hop falls into an address family that is not active for NHT — for example, an IPv4-mapped IPv6 next-hop with IPv6 NHT disabled. (4) Stale NHT state after a process restart — BGP's NHT table has not been refreshed; clearing with `clear bgp * soft` may resolve it. Run `show bgp nexthop` to check the 'Valid' and 'IGP metric' fields, and `show bgp <prefix> detail` to read the exact reason the path is non-best. Also check `show bgp nexthop detail` for the 'Resolved via' line to identify which RIB entry BGP is resolving against.",
+      "layer": "bgp",
+      "commands": ["show bgp nexthop", "show bgp nexthop detail", "show bgp ipv4 unicast <prefix> detail", "show ip route <nexthop-addr>"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.92}
+  },
+  {
+    "id": "q-176",
+    "category": "bgp-dampening",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "Describe the route flap dampening mechanics defined in RFC 2439: what is the penalty, half-life, suppress limit, and reuse limit, and how does a route transition from suppressed back to advertised?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 2439 defines route flap dampening as a mechanism to reduce BGP instability caused by repeatedly withdrawn and re-advertised routes. Mechanics: (1) Penalty — each time a route is withdrawn (flap), a fixed penalty value (default 1000) is added to a per-route figure-of-merit. When the route is re-advertised, a smaller penalty (default 0, but implementations may add a partial penalty on announcement too) may apply. (2) Half-life — the penalty decays exponentially over time; the half-life parameter (default 15 minutes) defines the time for the accumulated penalty to halve. (3) Suppress limit — when the accumulated penalty exceeds the suppress limit (default 2000), the route is suppressed: it is withheld from BGP advertisements even though the router has learned it. (4) Reuse limit — once a suppressed route's penalty decays below the reuse limit (default 750), the route is unsuppressed and re-advertised. The maximum suppress time caps how long a route can stay suppressed regardless of penalty. The decay occurs continuously based on the elapsed time since the last event using the formula: penalty = penalty * e^(-t/halflife/ln2).",
+      "layer": "bgp",
+      "commands": ["show bgp dampening flap-statistics", "show bgp dampening dampened-paths", "show bgp <prefix> detail"],
+      "executable": true,
+      "grounded_in": ["RFC2439 S2", "RFC2439 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc2439", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-177",
+    "category": "bgp-dampening",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "RFC 7196 recommends against deploying BGP route flap dampening for eBGP in the modern Internet. What are its main arguments, and what does it say should replace dampening?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 7196 (an Informational RFC titled 'Making Route Flap Dampening Usable') documents that classic RFC 2439 dampening parameters are too aggressive for the modern Internet and cause more harm than good. Its main arguments against untuned dampening: (1) Modern prefix flaps are usually brief convergence events lasting seconds, not persistent instability; suppressing a route for 30-60 minutes after a brief flap causes prolonged reachability loss that far outweighs the stability benefit. (2) The default RFC 2439 parameters (half-life=15m, suppress=2000, reuse=750, max-suppress=60m) will suppress a prefix after only two flaps and keep it suppressed for up to an hour — disproportionate to the disruption caused. (3) Dampening penalizes the victim of a link failure, not the cause. RFC 7196 recommends: if dampening is used at all, use highly relaxed parameters (e.g., half-life=1m, suppress=6000, reuse=3000, max-suppress=4m) so only persistently flapping routes are suppressed and suppression lifts quickly. For most deployments, RFC 7196 recommends relying instead on MRAI (Minimum Route Advertisement Interval, RFC 4271 §9.2.1.1) to naturally rate-limit BGP updates.",
+      "layer": "bgp",
+      "commands": ["show bgp dampening parameters", "show bgp dampening flap-statistics"],
+      "executable": true,
+      "grounded_in": ["RFC7196 S2", "RFC7196 S4", "RFC4271 S9.2.1.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7196", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-178",
+    "category": "bgp-dampening",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "What does `show bgp dampening flap-statistics` output, and how do you use `clear bgp dampening` to un-suppress a specific suppressed prefix?",
+    "context": null,
+    "ground_truth": {
+      "answer": "`show bgp dampening flap-statistics` displays per-prefix dampening state for routes that have accumulated a penalty. Key fields: the prefix, the peer from which it was received, the accumulated penalty value, the number of flaps counted, the current state (history, dampened/suppressed, or reuse-pending), the time the route has been suppressed, and the estimated time until the penalty decays below the reuse limit. A 'dampened' or 'd' flag in the state column indicates the route is currently suppressed and not being advertised. `clear bgp dampening` (without arguments) clears dampening state for all prefixes, immediately un-suppressing all dampened routes and resetting all penalties to zero — use with caution on large tables. `clear bgp dampening <prefix>` clears dampening only for the specified prefix, allowing selective unsuppression. After clearing, the router re-advertises the unsuppressed routes and resets their penalty counters; flap counting starts fresh. Verify with `show bgp <prefix> detail` after clearing to confirm the 'd' flag is gone and the prefix is active in the RIB.",
+      "layer": "bgp",
+      "commands": ["show bgp dampening flap-statistics", "show bgp dampening dampened-paths", "clear bgp dampening", "show bgp <prefix> detail"],
+      "executable": true,
+      "grounded_in": ["RFC2439 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc2439", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-179",
+    "category": "bgp-dampening",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "If a route is both RPKI Invalid (per RFC 6811) and dampened (per RFC 2439), in what order do these two mechanisms suppress the prefix, and which takes precedence in a typical BGP implementation?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RPKI origin validation state (RFC 6811) and route flap dampening (RFC 2439) are orthogonal mechanisms that operate at different points in the BGP decision pipeline. RPKI validation assigns a state of Valid, NotFound, or Invalid based on Route Origin Authorizations (ROAs); RFC 6811 §5 recommends that Invalid routes be treated as not best (or dropped, depending on local policy) during best-path selection — this is applied before or during the BGP decision process. Route flap dampening applies to routes that would otherwise be advertised after best-path: if a route's accumulated penalty exceeds the suppress limit, it is withheld from outbound advertisements regardless of its RPKI state. In practice, RPKI Invalid routes that are configured to be rejected (via a local policy dropping Invalids) will never accumulate flap penalties because they are filtered before entering the BGP RIB. If Invalid routes are permitted but marked with a lower local preference, they can still flap and accumulate dampening penalties independently. The two mechanisms are additive suppressors: an Invalid route can be simultaneously rejected by RPKI policy and suppressed by dampening, with RPKI typically acting earlier in the pipeline.",
+      "layer": "bgp",
+      "commands": ["show bgp <prefix> detail", "show bgp dampening dampened-paths", "show bgp rpki table"],
+      "executable": true,
+      "grounded_in": ["RFC6811 S5", "RFC2439 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc6811", "authored": true, "confidence": 0.92}
+  },
+  {
+    "id": "q-180",
+    "category": "bgp-dampening",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "An operator notices that a specific customer prefix (192.0.2.0/24) is intermittently unreachable despite the customer claiming their link is stable. `show bgp 192.0.2.0/24 detail` shows a 'd' flag and a suppression timer of 45 minutes remaining. What happened and what is the remediation?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The 'd' flag and a long suppression timer indicate that 192.0.2.0/24 has been dampened by route flap dampening: the prefix accumulated enough withdrawal-and-readvertisement events to push its penalty above the configured suppress limit, and it will not be re-advertised until the penalty decays below the reuse limit — up to 45 minutes away. The customer's link may now be stable, but the dampening state is preventing the route from propagating. Remediation: (1) Immediate: run `clear bgp dampening 192.0.2.0/24` to instantly clear the suppression and re-advertise the prefix; verify with `show bgp 192.0.2.0/24` that the 'd' flag is gone. (2) Root cause: inspect `show bgp dampening flap-statistics` for 192.0.2.0/24 to see how many flaps triggered this; investigate the customer's upstream connection for link instability, BFD flaps, or interface errors. (3) Long-term: evaluate whether dampening parameters are overly aggressive per RFC 7196 guidance — consider raising suppress limit, lowering max-suppress time, or disabling dampening on stable customer sessions entirely. Apply a per-neighbor dampening policy rather than a global one.",
+      "layer": "bgp",
+      "commands": ["show bgp 192.0.2.0/24 detail", "show bgp dampening flap-statistics", "clear bgp dampening 192.0.2.0/24", "show bgp dampening dampened-paths"],
+      "executable": true,
+      "grounded_in": ["RFC2439 S4", "RFC7196 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc2439", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-181",
+    "category": "multiprotocol",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What does RFC 4760 add to BGP and how are AFI and SAFI used to identify address families in MP-BGP OPEN capability negotiation?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 4760 (Multiprotocol Extensions for BGP-4) extends BGP to carry Network Layer Reachability Information (NLRI) for address families beyond IPv4 unicast. It introduces two new optional non-transitive path attributes: MP_REACH_NLRI (type code 14) for advertising reachable routes, and MP_UNREACH_NLRI (type code 15) for withdrawing routes. Each is identified by a 2-byte Address Family Identifier (AFI) and a 1-byte Subsequent Address Family Identifier (SAFI). Common AFI/SAFI pairs: AFI=1 (IPv4) SAFI=1 (unicast), AFI=1 SAFI=128 (VPN, for MPLS VPNv4 per RFC 4364), AFI=2 (IPv6) SAFI=1 (unicast), AFI=2 SAFI=128 (VPNv6), AFI=25 (L2VPN) SAFI=70 (EVPN). In the OPEN message, a BGP speaker advertises its supported address families via BGP Capability Advertisement (RFC 5492). The Multiprotocol Extensions capability has Capability Code 1 and carries the AFI and SAFI the speaker supports. Both peers must advertise Capability Code 1 with matching AFI/SAFI for that address family to be active on the session; mismatched capabilities result in the address family being inactive without tearing down the session.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> capabilities", "show bgp ipv6 unicast summary", "show bgp ipv4 unicast summary"],
+      "executable": true,
+      "grounded_in": ["RFC4760 S1", "RFC4760 S3", "RFC5492 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4760", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-182",
+    "category": "multiprotocol",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "How does the MP_REACH_NLRI attribute (RFC 4760) differ structurally from the standard UPDATE NLRI field, and what additional information does it carry?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The standard BGP UPDATE message (RFC 4271 §4.3) carries IPv4 unicast prefixes in two fields: a Withdrawn Routes field (list of withdrawn prefixes) and an NLRI field at the end of the UPDATE (list of advertised prefixes). The NEXT_HOP path attribute carries the IPv4 next-hop. These standard fields are implicitly AFI=1 SAFI=1 (IPv4 unicast). MP_REACH_NLRI (RFC 4760 §3) generalizes this: it is a BGP path attribute (type code 14, optional, non-transitive) that explicitly encodes AFI (2 bytes) and SAFI (1 byte), followed by a Next Hop Length field (1 byte), the Next Hop address (variable length — e.g., 16 bytes for an IPv6 address or 32 bytes for a global+link-local pair), a reserved byte (SNPA, set to 0), and then the NLRI prefixes in the same length-prefix encoding as standard NLRI. MP_UNREACH_NLRI (type code 15) carries AFI, SAFI, and the list of withdrawn prefixes for that address family. The key differences: MP_REACH_NLRI carries the next-hop inline (not as a separate NEXT_HOP attribute), supports variable-length next-hops (e.g., 128-bit IPv6 addresses), and explicitly scopes the NLRI to a specific AFI/SAFI rather than assuming IPv4 unicast.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv6 unicast <prefix> detail", "show bgp neighbors <addr> advertised-routes"],
+      "executable": true,
+      "grounded_in": ["RFC4760 S3", "RFC4760 S4", "RFC4271 S4.3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4760", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-183",
+    "category": "multiprotocol",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "Why are IPv6 BGP routes carried in MP_REACH_NLRI/MP_UNREACH_NLRI attributes rather than the standard UPDATE NLRI and Withdrawn Routes fields?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The standard UPDATE NLRI and Withdrawn Routes fields in RFC 4271 are designed exclusively for IPv4 unicast: the NEXT_HOP attribute carries a 4-byte IPv4 address, and the NLRI prefixes are implicitly IPv4. An IPv6 prefix cannot be represented in these fields because: (1) a 128-bit IPv6 next-hop does not fit in the 4-byte NEXT_HOP attribute; (2) IPv6 prefixes use a different address format and length; (3) the NLRI field has no AFI/SAFI label, so a router receiving it cannot distinguish IPv4 from IPv6. RFC 4760 introduces MP_REACH_NLRI (type code 14), which explicitly encodes the AFI (2, for IPv6), SAFI (1, for unicast), a variable-length next-hop field (16 bytes for a global IPv6 address, or 32 bytes for global plus link-local), and the IPv6 NLRI prefixes. This attribute is optional and non-transitive, so BGP speakers that do not understand it drop it safely per RFC 4271 unknown attribute rules. IPv6 BGP sessions must negotiate Capability Code 1 with AFI=2 SAFI=1 in OPEN to activate the IPv6 unicast address family.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv6 unicast", "show bgp neighbors <addr> capabilities", "show bgp ipv6 unicast <prefix> detail"],
+      "executable": true,
+      "grounded_in": ["RFC4760 S3", "RFC4271 S4.3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4760", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-184",
+    "category": "multiprotocol",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "Two routers complete a BGP OPEN exchange. Router A advertises Capability Code 1 with AFI=2 SAFI=1 (IPv6 unicast) but Router B does not include Capability Code 1 in its OPEN. What happens to the session and to IPv6 route exchange?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Per RFC 5492 §4, if a BGP speaker receives an OPEN with a capability it does not recognize or does not support, it does not reject the session solely on that basis (unless the capability is marked as mandatory, which Capability Code 1 is not). Instead, the session is established but the unsupported address family is simply not activated. If Router A advertises AFI=2 SAFI=1 but Router B does not advertise it back, Router A MUST NOT send MP_REACH_NLRI or MP_UNREACH_NLRI for AFI=2 SAFI=1 on that session — Router B has not indicated it can process IPv6 MP-BGP attributes. The session will establish and IPv4 unicast will operate normally if both sides support the default AFI=1 SAFI=1. IPv6 routes will not be exchanged. Verify with `show bgp neighbors <addr> capabilities` on Router A — the output will show the locally advertised capabilities and the received capabilities; AFI=2 SAFI=1 will appear under 'Advertised' but not under 'Received'. The address family will show 'not negotiated' or be absent from the active AF list.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> capabilities", "show bgp neighbors <addr>", "show bgp ipv6 unicast summary"],
+      "executable": true,
+      "grounded_in": ["RFC5492 S4", "RFC4760 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5492", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-185",
+    "category": "multiprotocol",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A router shows `show bgp ipv6 unicast summary` with a neighbor in 'Idle' state even though the IPv4 session to the same neighbor is 'Established'. What are the most likely causes and how do you diagnose them?",
+    "context": null,
+    "ground_truth": {
+      "answer": "An IPv4 session that is Established while the IPv6 unicast address family shows Idle (or is not listed) indicates that the IPv6 AFI/SAFI was not successfully negotiated or was not activated. Likely causes: (1) Capability mismatch — the remote peer did not advertise Capability Code 1 with AFI=2 SAFI=1 in its OPEN; check `show bgp neighbors <addr> capabilities` and compare 'Advertised' vs 'Received' capabilities. (2) IPv6 address family not configured on the local router — the `address-family ipv6 unicast` block may be missing or the `neighbor <addr> activate` command under it may be absent in the FRR/IOS configuration. (3) The neighbor statement may use an IPv4 address for the TCP session, but the IPv6 AFI was not enabled — this is valid (you can run IPv6 NLRI over an IPv4-addressed BGP session), but both sides must have the AF activated. (4) An inbound policy or capability negotiation error caused the AF to be deactivated post-OPEN. Diagnostic steps: `show bgp neighbors <addr>` (look for 'AF activated' lines), `show bgp neighbors <addr> capabilities`, review the running configuration for the neighbor's address-family block, and check logs for NOTIFICATION messages referencing capability errors.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv6 unicast summary", "show bgp neighbors <addr> capabilities", "show bgp neighbors <addr>", "show running-config | section router bgp"],
+      "executable": true,
+      "grounded_in": ["RFC4760 S3", "RFC5492 S4"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4760", "authored": true, "confidence": 0.92}
+  },
+  {
+    "id": "q-186",
+    "category": "route-refresh",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What does the BGP ROUTE-REFRESH message (RFC 2918) do, and why was it introduced as an alternative to tearing down and re-establishing a BGP session to re-receive a full table?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 2918 defines a new BGP message type — ROUTE-REFRESH (type 5) — that allows a BGP speaker to request its peer to re-advertise its entire BGP table for a specific AFI/SAFI without resetting the TCP session or the BGP session. Before RFC 2918, if an operator changed an inbound route policy and wanted to re-apply it to all received routes, the only option was to reset the BGP session (hard reset), which caused a traffic outage while the session re-established and the full table was re-exchanged. ROUTE-REFRESH avoids this by sending a 4-byte message (AFI 2 bytes, reserved 1 byte, SAFI 1 byte) to the peer; the peer responds by re-sending all routes it has for that address family in standard UPDATE messages. The requesting speaker can then re-apply its inbound policy against the re-received updates without ever interrupting the session. Support for ROUTE-REFRESH is negotiated via BGP Capability Advertisement: Capability Code 2 (ROUTE-REFRESH). If both peers advertise Capability Code 2, either peer may send ROUTE-REFRESH at any time.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> capabilities", "clear bgp <addr> soft in", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC2918 S1", "RFC2918 S2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc2918", "authored": true, "confidence": 0.96}
+  },
+  {
+    "id": "q-187",
+    "category": "route-refresh",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What does RFC 7313 (Enhanced Route Refresh) add to RFC 2918, and what is the purpose of the begin-of-RIB and end-of-RIB markers in the context of route refresh?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 7313 defines Enhanced Route Refresh, which adds two new ROUTE-REFRESH subtypes: subtype 1 (BoRR — begin-of-Route-Refresh) and subtype 2 (EoRR — end-of-Route-Refresh). In RFC 2918 route refresh, a receiver of a ROUTE-REFRESH request re-sends all routes but there is no signal to the requester indicating when the re-advertisement is complete. This matters because during the refresh the requester is simultaneously applying its new policy to incoming updates, and it cannot distinguish 'old routes still being re-sent' from 'no more routes'. RFC 7313 adds: the responding peer sends a BoRR message (ROUTE-REFRESH subtype 1) immediately before starting the re-advertisement, and an EoRR message (ROUTE-REFRESH subtype 2) after the last UPDATE of the refresh. The requester can then track the refresh window: updates received between BoRR and EoRR are the refreshed table; any stale routes that were NOT re-advertised within the window can be safely purged. This enables deterministic stale-route cleanup after policy changes without session resets. Enhanced Route Refresh is negotiated via Capability Code 70.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> capabilities", "show bgp neighbors <addr>", "clear bgp <addr> soft in"],
+      "executable": true,
+      "grounded_in": ["RFC7313 S2", "RFC7313 S3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7313", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-188",
+    "category": "route-refresh",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "An operator changes an inbound route policy on a BGP session and runs `clear bgp <neighbor-addr> soft in`. What exactly happens on the wire and what capability must be negotiated for this to work without a session reset?",
+    "context": null,
+    "ground_truth": {
+      "answer": "`clear bgp <neighbor-addr> soft in` triggers an inbound soft reset. If the BGP session has negotiated Capability Code 2 (ROUTE-REFRESH, RFC 2918), the local router sends a ROUTE-REFRESH message to the neighbor specifying the AFI and SAFI; the neighbor responds by re-sending its full BGP table for that AFI/SAFI in standard UPDATE messages. The local router re-applies its (now updated) inbound route policy to each re-received UPDATE, which may change which routes are accepted, rejected, or have their attributes modified. No session teardown or TCP reset occurs. If ROUTE-REFRESH capability was NOT negotiated (Capability Code 2 absent from the neighbor's OPEN), `clear bgp soft in` requires `soft-reconfiguration inbound` to be configured — in that mode, the router stores a copy of all received pre-policy routes locally and re-applies the policy to that local copy. The difference: with ROUTE-REFRESH the peer re-sends routes (no local memory cost); with soft-reconfiguration inbound the router caches routes locally (memory cost on the local router, no capability requirement from the peer). Verify capability negotiation with `show bgp neighbors <addr> capabilities` and look for 'Route refresh' in the received capabilities list.",
+      "layer": "bgp",
+      "commands": ["clear bgp <addr> soft in", "show bgp neighbors <addr> capabilities", "show bgp neighbors <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC2918 S2", "RFC4271 S9.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc2918", "authored": true, "confidence": 0.94}
+  },
+  {
+    "id": "q-189",
+    "category": "route-refresh",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "What is Outbound Route Filtering (ORF, RFC 5292) in the context of BGP Route Refresh, and how does it allow a receiving router to push prefix-based filters to its peer?",
+    "context": null,
+    "ground_truth": {
+      "answer": "RFC 5292 defines the Outbound Route Filtering (ORF) capability for BGP, building on the Route Refresh mechanism. Normally, an ISP receives millions of routes from a peer and then locally filters them with an inbound prefix-list — every unwanted route is still transmitted over the BGP session and processed before being discarded. ORF allows the receiving router to send a list of prefixes it is interested in (a prefix-list) to its peer, and the peer applies this as an outbound filter — only sending the routes that match the ORF entries. This reduces the volume of UPDATE messages and CPU processing on both sides. ORF is negotiated via BGP Capability Advertisement: the ORF capability (Capability Code 3) includes the AFI/SAFI and the ORF type (e.g., Address Prefix ORF, type 64). When negotiated, the receiving router sends a ROUTE-REFRESH message with ORF entries embedded in it (RFC 5292 §6). The peer processes the ORF, updates its outbound filter, and optionally triggers an immediate route refresh to apply the new filter. Configuration on FRR uses `neighbor <addr> capability orf prefix-list [send|receive|both]`.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> capabilities", "show bgp neighbors <addr>", "show bgp neighbors <addr> received prefix-filter"],
+      "executable": true,
+      "grounded_in": ["RFC5292 S1", "RFC5292 S6"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc5292", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-190",
+    "category": "route-refresh",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "An operator applied a new inbound route-map to a BGP session and ran `clear bgp <addr> soft in`, but the changes in the route-map do not appear to be taking effect — the BGP table still shows the old LOCAL_PREF values. How do you diagnose why the soft reset did not work?",
+    "context": null,
+    "ground_truth": {
+      "answer": "If `clear bgp soft in` does not produce the expected result, the likely causes are: (1) ROUTE-REFRESH not negotiated — if the peer does not support Capability Code 2 and `soft-reconfiguration inbound` is not configured, the soft clear silently does nothing. Check `show bgp neighbors <addr> capabilities` for 'Route refresh' in the received capabilities. If absent, configure `neighbor <addr> soft-reconfiguration inbound` and then do a hard reset once to populate the pre-policy RIB cache. (2) The route-map was applied after the soft clear was issued — verify with `show bgp neighbors <addr>` that the route-map name shown under 'Route map for incoming advertisements' matches the intended policy. (3) The route-map was applied to the wrong neighbor address (IPv4 vs. IPv6 peer address). (4) The route-map uses a community-list or prefix-list that was not reloaded — check that the referenced objects reflect the new configuration. (5) Cached pre-policy routes (if using soft-reconfiguration inbound) are stale — run `show bgp neighbors <addr> received-routes` to see the pre-policy table and confirm the routes are present. Then reapply with `clear bgp <addr> soft in` after confirming the route-map is attached.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr> capabilities", "show bgp neighbors <addr>", "show bgp neighbors <addr> received-routes", "show bgp <prefix> detail"],
+      "executable": true,
+      "grounded_in": ["RFC2918 S2", "RFC4271 S9.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc2918", "authored": true, "confidence": 0.92}
+  },
+  {
+    "id": "q-191",
+    "category": "bgp-pic",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is BGP Prefix-Independent Convergence (PIC) and what problem does it solve compared to standard BGP failover?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGP Prefix-Independent Convergence (PIC) is a fast-failover architecture that pre-installs backup forwarding entries in the FIB so that a BGP next-hop failure results in a hardware-level path swap rather than a full BGP re-convergence cycle. In standard BGP failover, when a next-hop becomes unreachable (detected via BFD or IGP withdrawal), BGP must: (1) detect the failure via NHT callback, (2) re-run best-path selection for every prefix using that next-hop, (3) generate FIB update messages for each prefix, and (4) program each prefix into the hardware FIB — a process that can take seconds for large tables (hundreds of thousands of prefixes). PIC solves this by pre-computing the backup path at provisioning time and pre-installing it in the FIB as a secondary entry (a 'repair path' or 'backup nhop'). When the primary next-hop fails, the FIB performs a single pointer swap from the primary to the pre-installed backup, immediately rerouting all prefixes that share that next-hop without waiting for BGP to reconverge. There are two variants: PIC Core (protects against core/P-node next-hop failure in an MPLS network) and PIC Edge (protects against PE or eBGP next-hop failure).",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix> detail", "show bgp ipv4 unicast summary"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-192",
+    "category": "bgp-pic",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the distinction between BGP PIC Core and BGP PIC Edge, and which type of failure does each address?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGP PIC Core and PIC Edge address failures at different points in an MPLS+BGP network: PIC Core protects against the failure of a core (P) router or a core link within the MPLS transport network. In an MPLS VPN or BGP/LDP network, PE routers use LDP or SR labels to reach remote PE next-hops. A core failure causes many BGP/VPN paths to lose their transport LSP. PIC Core pre-installs an MPLS backup tunnel (e.g., RSVP-TE FRR or TI-LFA backup) at the IGP/MPLS layer, but the BGP FIB pre-points to this backup tunnel so that when the primary MPLS path fails, the hierarchical FIB entry for the BGP next-hop swaps to the pre-installed backup LSP without BGP reconvergence. PIC Edge protects against the failure of a BGP next-hop router itself (a PE or eBGP peer). PIC Edge requires that an alternate BGP path to the same prefix (or set of prefixes) exists — typically via BGP Add-Paths (RFC 7911) or a route reflector advertising multiple paths — and pre-installs this alternate BGP path in the FIB as a backup. When the primary BGP next-hop is declared down (via BFD or NHT), the FIB swaps to the pre-installed alternate BGP path without requiring a BGP reconvergence cycle.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix> detail", "show bgp neighbors <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1.2", "RFC7911 S1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.92}
+  },
+  {
+    "id": "q-193",
+    "category": "bgp-pic",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "How does BGP Add-Paths (RFC 7911) relate to BGP PIC Edge, and why is Add-Paths or a hierarchical FIB required for PIC Edge to function?",
+    "context": null,
+    "ground_truth": {
+      "answer": "BGP PIC Edge requires that a backup BGP path to the same destination be available and pre-installed in the FIB before the primary next-hop fails. In standard BGP operation, only the best path is selected and installed; if the best-path next-hop fails, BGP must reconverge to find the next-best path. BGP Add-Paths (RFC 7911) allows a BGP speaker to advertise multiple paths for the same prefix (each identified by a Path ID) to its peers. With Add-Paths, a route reflector or eBGP peer can advertise both the best path and the second-best (backup) path to the downstream PE. The downstream PE installs the primary (best) path as the active FIB entry and the secondary path as the pre-installed backup. When PIC Edge detects the primary next-hop has failed, the FIB atomically swaps to the pre-installed backup path — a pointer swap in hardware — rather than waiting for BGP to select and program a new best path. Without Add-Paths, the downstream router has only one path and cannot pre-install a backup. A hierarchical FIB (also called a multi-level FIB or 'BGP next-hop pointer') achieves similar results: all prefixes sharing a next-hop point to a shared next-hop object; when the next-hop object is updated (to point to the backup), all prefixes are rerouted simultaneously with a single update rather than one update per prefix.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix> detail", "show bgp neighbors <addr> capabilities", "show bgp ipv4 unicast"],
+      "executable": true,
+      "grounded_in": ["RFC7911 S1", "RFC4271 S9.1.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7911", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-194",
+    "category": "bgp-pic",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "How do you verify that a BGP backup path is pre-installed for PIC Edge using `show bgp ipv4 unicast <prefix> detail`, and what fields indicate the backup path is ready?",
+    "context": null,
+    "ground_truth": {
+      "answer": "On FRR and Cisco IOS/IOS-XR, `show bgp ipv4 unicast <prefix> detail` (or `show bgp ipv4 unicast <prefix>`) displays all paths known to BGP for that prefix. In a PIC Edge deployment, the output will show multiple paths: the best path marked with a '>' (best) indicator and a backup/alternate path. Indicators that the backup is pre-installed for PIC: (1) A second path entry marked with 'b' (backup) or 'backup-path' in FRR's output, indicating BGP has designated it as the PIC backup. (2) The backup path's next-hop will be a different BGP peer (different PE or different eBGP peer). (3) If `bgp additional-paths install` is configured (FRR) or `additional-paths install backup` (IOS-XR), the backup path is programmed into the RIB/FIB. (4) On IOS-XR, the line 'Backup path is installed' appears in the detail output when PIC is active. (5) Verify that Add-Paths capability was negotiated with `show bgp neighbors <addr> capabilities` — the 'Additional paths Send/Receive' lines should show the AFI/SAFI. A backup path present in the BGP table but not marked as installed means PIC pre-installation did not succeed, often due to a missing `bgp additional-paths install` command.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix> detail", "show bgp neighbors <addr> capabilities", "show bgp ipv4 unicast <prefix>"],
+      "executable": true,
+      "grounded_in": ["RFC7911 S4", "RFC4271 S9.1"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7911", "authored": true, "confidence": 0.92}
+  },
+  {
+    "id": "q-195",
+    "category": "bgp-pic",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "A network operator claims BGP PIC Edge is configured, but traffic loss during a PE failure lasts 8-10 seconds instead of the sub-second failover expected. What are the most likely causes of the slow failover and how do you diagnose them?",
+    "context": null,
+    "ground_truth": {
+      "answer": "8-10 second failover with BGP PIC Edge configured suggests PIC is not functioning as intended. Likely causes: (1) Backup path not pre-installed — `show bgp ipv4 unicast <prefix> detail` does not show a 'b' or 'backup' flag on any path, meaning BGP has a single path and no backup is in the FIB; verify that `bgp additional-paths install` is configured and that Add-Paths capability is negotiated with the route reflector (`show bgp neighbors <addr> capabilities`). (2) Failure detection is slow — PIC swaps instantly once the failure is detected, but if BFD is not configured on the session to the failed PE, failure detection relies on BGP keepalive timeouts (default 90s hold-time / 30s keepalive) or IGP convergence, which takes seconds to minutes; configure BFD (`neighbor <addr> bfd`) to reduce detection to sub-second. (3) ECMP interaction — if the prefix has multiple equal-cost paths installed (ECMP) rather than a primary+backup hierarchy, the FIB may be doing per-prefix reconvergence rather than a pointer swap; verify ECMP vs. PIC backup configuration. (4) Hardware FIB not supporting hierarchical entries — some forwarding ASICs require specific configuration to enable multi-level FIB (BGP PIC may be enabled in the control plane but the FIB is reprogramming per-prefix). Check platform-specific PIC support. Run `show bgp ipv4 unicast summary` to check if path counts match expectations.",
+      "layer": "bgp",
+      "commands": ["show bgp ipv4 unicast <prefix> detail", "show bgp neighbors <addr> capabilities", "show bgp neighbors <addr>", "show bgp summary"],
+      "executable": true,
+      "grounded_in": ["RFC7911 S1", "RFC4271 S9.1.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc7911", "authored": true, "confidence": 0.91}
+  },
+  {
+    "id": "q-196",
+    "category": "operational-tools",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What are the key fields displayed in `show bgp summary` and what does each field indicate about the state of a BGP session?",
+    "context": null,
+    "ground_truth": {
+      "answer": "`show bgp summary` (or `show ip bgp summary` on IOS) displays a table with one row per BGP neighbor. Key fields: 'Neighbor' — the peer's IP address. 'V' — the BGP version (always 4). 'AS' — the peer's ASN. 'MsgRcvd' / 'MsgSent' — count of BGP messages received and sent since session establishment (includes KEEPALIVEs, UPDATEs, and NOTIFICATIONs); a MsgRcvd count that is not increasing indicates a stalled session. 'TblVer' — the BGP table version at the last update sent to this peer; a value lagging behind the global table version indicates the peer is behind on updates. 'InQ' / 'OutQ' — number of messages queued for processing inbound or outbound; a persistently non-zero OutQ indicates the TCP send buffer is congested (possible bandwidth or CPU issue). 'Up/Down' — the duration the session has been in its current state; if the session is not Established, this shows how long it has been in the non-established state (useful for detecting flapping). 'State/PfxRcd' — when Established, this shows the number of prefixes received from the peer; when not Established, it shows the FSM state (Idle, Connect, Active, OpenSent, OpenConfirm). A 'PfxRcd' of 0 on an established session may indicate a policy is filtering all received routes.",
+      "layer": "bgp",
+      "commands": ["show bgp summary", "show bgp ipv4 unicast summary", "show bgp ipv6 unicast summary"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S8"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-197",
+    "category": "operational-tools",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "When is it appropriate to use `debug bgp updates in` and `debug bgp updates out`, what are the CPU and logging risks, and how do you safely stop a debug that is generating excessive output?",
+    "context": null,
+    "ground_truth": {
+      "answer": "`debug bgp updates in` and `debug bgp updates out` enable per-UPDATE message debugging, printing each BGP UPDATE received or sent with full attribute and NLRI detail. Appropriate use cases: diagnosing a policy that is not matching expected routes (to see exactly what attributes are in the UPDATE), verifying that a specific prefix is being advertised or withdrawn, or debugging a BGP session that is establishing but not exchanging routes. CPU and logging risks: each BGP UPDATE generates one or more debug log lines; on a session receiving a full Internet table (900,000+ routes), enabling this debug during a session reset or initial table exchange can generate hundreds of thousands of log lines per second, saturating the logging subsystem, filling disk, and consuming enough CPU to impact other routing protocols or cause keepalive timeouts and session drops. Mitigation: always limit the debug with a neighbor filter (`debug bgp neighbor <addr> updates in`) and a prefix filter if the platform supports it. Have a terminal monitor session ready. Stop the debug immediately with `no debug bgp updates` (or `undebug all` / `no debug all` as an emergency stop). On FRR, use `debug bgp updates prefix <prefix>` to limit output to a specific prefix. Never enable unfiltered BGP update debugging on a full-table Internet session in production.",
+      "layer": "bgp",
+      "commands": ["debug bgp updates in", "debug bgp updates out", "no debug bgp updates", "undebug all"],
+      "executable": false,
+      "grounded_in": ["RFC4271 S4.3"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-198",
+    "category": "operational-tools",
+    "difficulty": "apply",
+    "fault_id": null,
+    "question": "What is a BGP looking glass and how would an operator use it to verify the AS_PATH and next-hop for a specific prefix from a remote vantage point?",
+    "context": null,
+    "ground_truth": {
+      "answer": "A BGP looking glass is a read-only, publicly accessible interface (typically web-based or telnet) to a router at an ISP or IXP that allows external parties to query the BGP table from that router's perspective. Operators use looking glasses to verify route propagation, check AS_PATH, NEXT_HOP, MED, and community attributes for a prefix as seen from a specific network or geographic location — information that cannot be determined from the local router alone. Typical use: (1) Navigate to a public looking glass (e.g., provided by a transit provider or an IXP like AMS-IX or LINX). (2) Enter the prefix of interest and select the query type: 'show bgp <prefix>' or 'show route <prefix>'. (3) The looking glass executes a read-only `show bgp` command on the remote router and returns the output, including the AS_PATH, NEXT_HOP, LOCAL_PREF (if iBGP), MED, and community strings. (4) Verify that the AS_PATH terminates at the expected origin AS, that the NEXT_HOP is a reachable peering address, and that no unexpected transit ASes appear. Looking glasses are especially useful for verifying that a newly announced prefix has propagated globally, detecting AS_PATH prepending taking effect, or confirming that a route leak (RFC 7908) is visible from a third-party vantage point. Common tools: Routeviews, RIPE RIS, and individual provider looking glass pages.",
+      "layer": "bgp",
+      "commands": ["show bgp <prefix>", "show bgp <prefix> detail"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.1", "RFC7908 S2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.93}
+  },
+  {
+    "id": "q-199",
+    "category": "operational-tools",
+    "difficulty": "recall",
+    "fault_id": null,
+    "question": "What is the difference between `soft-reconfiguration inbound` and BGP Route Refresh (RFC 2918) for applying updated inbound policies, and what is the memory cost of each?",
+    "context": null,
+    "ground_truth": {
+      "answer": "Both mechanisms allow an operator to re-apply an updated inbound route policy without resetting the BGP session, but they differ in where pre-policy routes are stored. `soft-reconfiguration inbound` (also called 'soft reconfiguration') configures the local router to store a complete copy of all routes received from a neighbor before the inbound policy is applied — this is the pre-policy RIB or 'Adj-RIB-In' copy. When the operator runs `clear bgp <addr> soft in`, the router re-applies the new policy to its locally cached pre-policy copy without contacting the peer. Memory cost: the router must store an extra copy of every route received from the peer (in full, with all attributes), which for a full Internet table can be 500 MB or more of additional memory per peer. This is the primary drawback. BGP Route Refresh (RFC 2918) requires no local storage: when the operator runs `clear bgp <addr> soft in` and the peer supports Capability Code 2 (ROUTE-REFRESH), the local router simply sends a ROUTE-REFRESH message and the peer re-sends its table. The pre-policy RIB is reconstituted from the peer's re-advertisement in real time. Memory cost: no additional local storage required. However, the peer must support RFC 2918, and the re-advertisement creates a burst of UPDATE messages. Best practice: prefer Route Refresh (no memory penalty) and only configure `soft-reconfiguration inbound` for peers that do not support Route Refresh.",
+      "layer": "bgp",
+      "commands": ["show bgp neighbors <addr>", "show bgp neighbors <addr> received-routes", "clear bgp <addr> soft in", "show bgp neighbors <addr> capabilities"],
+      "executable": true,
+      "grounded_in": ["RFC2918 S2", "RFC4271 S3.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc2918", "authored": true, "confidence": 0.95}
+  },
+  {
+    "id": "q-200",
+    "category": "operational-tools",
+    "difficulty": "diagnose",
+    "fault_id": null,
+    "question": "An eBGP session with a transit provider suddenly starts receiving 850,000 prefixes — far more than the expected 800,000. `show bgp summary` shows PfxRcd climbing. What mechanism prevents this from impacting the router's stability, how is it configured, and what happens when the limit is exceeded?",
+    "context": null,
+    "ground_truth": {
+      "answer": "The `neighbor maximum-prefix` command is the BGP safety valve that prevents a peer from advertising more routes than expected, protecting the local router from RIB/FIB memory exhaustion and CPU overload. Configuration: `neighbor <addr> maximum-prefix <limit> [threshold-percentage] [warning-only | restart <interval>]`. How it works: the router counts the number of prefixes received from the peer; when the count reaches the threshold (default 75% of the limit), a syslog warning is generated. When the count reaches the limit, the default behavior is to tear down the BGP session and log an error — the peer is placed in 'Idle (max-prefix)' state and will not automatically reconnect. With `warning-only`, the session is not torn down — only a log message is generated (useful for monitoring without disruption). With `restart <minutes>`, the session is torn down but automatically re-established after the specified interval. Diagnosis: `show bgp summary` will show the session state as 'Idle (PfxLimit)' or the PfxRcd count at the limit. `show bgp neighbors <addr>` shows the configured maximum-prefix value and the current count. To clear the state and re-establish: `clear bgp <addr>` (hard reset) after investigating the cause of the prefix surge. Best practice: set the limit at 110-120% of the expected prefix count with a threshold warning at 80%, and use `restart 5` rather than a permanent idle to allow automatic recovery after the peer corrects the leak.",
+      "layer": "bgp",
+      "commands": ["show bgp summary", "show bgp neighbors <addr>", "clear bgp <addr>"],
+      "executable": true,
+      "grounded_in": ["RFC4271 S9.2"]
+    },
+    "evaluation": {"rag_answer_relevance": null, "rag_faithfulness": null, "rag_context_relevance": null, "executability": null, "diagnosis_correct": null},
+    "provenance": {"source": "rfc4271", "authored": true, "confidence": 0.94}
+  }
+]

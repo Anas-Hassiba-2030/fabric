@@ -1,0 +1,26 @@
+{
+  "id": "f-bgp-wrong-remote-as",
+  "title": "Customer eBGP session stays Idle — remote-as misconfigured on R2",
+  "scope": ["bgp", "ebgp", "session"],
+  "symptom": "Customer eBGP session R2 -> R3 (192.0.2.2) does not reach Established; prefix count stays 0; CustA has no connectivity.",
+  "inject": {
+    "device": "R2",
+    "kind": "frr-config-patch",
+    "patch": [
+      "router bgp 65001",
+      " neighbor 192.0.2.2 remote-as 65999"
+    ],
+    "note": "Real peer is in AS 65010; this sets the wrong remote-as so OPEN never agrees."
+  },
+  "expected_evidence": [
+    "show bgp summary",
+    "show ip bgp neighbors 192.0.2.2"
+  ],
+  "ground_truth": {
+    "root_cause": "remote-as mismatch on R2 toward R3 (configured wrong, peer is 65010)",
+    "layer": "bgp",
+    "fix": "router bgp 65001 / no neighbor 192.0.2.2 remote-as 65999 / neighbor 192.0.2.2 remote-as 65010",
+    "verify": "show bgp summary shows 192.0.2.2 Established with prefix count > 0"
+  },
+  "provenance": {"source": "thesis/lab/faults/f-bgp-wrong-remote-as.json", "authored": true, "confidence": 1.0}
+}

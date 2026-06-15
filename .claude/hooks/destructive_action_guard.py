@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""FABRIC destructive-action-guard (House Rule 6: the irreversible needs a human).
+"""WRATH destructive-action-guard (House Rule 6: the irreversible needs a human).
 
 A Claude Code PreToolUse hook on Bash/PowerShell. It does NOT spawn agents (hooks can't) — it is a
 pure pattern check. When a command looks like it pushes config to a live device or deploys/cuts over
@@ -83,7 +83,7 @@ def main():
                 "hookEventName": "PreToolUse",
                 "permissionDecision": "ask",
                 "permissionDecisionReason": (
-                    f"FABRIC destructive-action-guard (House Rule 6): this looks like it touches a "
+                    f"WRATH destructive-action-guard (House Rule 6): this looks like it touches a "
                     f"live network device — {reason}. Confirm before it runs.\n\n"
                     f"Command:\n{command}"
                 ),

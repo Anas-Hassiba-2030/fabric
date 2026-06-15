@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "wrath-standards": {
+      "command": "python",
+      "args": ["wrath/mcp/standards_server.py"]
+    },
+    "wrath-netstate": {
+      "command": "python",
+      "args": ["wrath/mcp/network_state_server.py"]
+    }
+  }
+}

@@ -10,6 +10,10 @@ __pycache__/
 Thumbs.db
 *.swp
 
-# FABRIC: designs, configs, runbooks ARE versioned (charter §5 — "version every design").
+# WRATH: designs, configs, runbooks ARE versioned (charter §5 — "version every design").
 # Keep deliverables/ tracked. Only ignore scratch.
 deliverables/_scratch/
+
+# WRATH Console: saved runs + the inbox workspace are runtime/local memory, not source.
+wrath/memory/runs/
+wrath/memory/inbox.json

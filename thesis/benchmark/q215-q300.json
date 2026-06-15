@@ -1,0 +1,518 @@
+[
+  {
+    "id": "q-215",
+    "category": "bfd",
+    "question": "A BGP session between two IOS-XE routers is configured with BFD for fast failure detection. After a link flap, the BGP session drops and reconnects, but operators notice the session takes 90 seconds to re-establish instead of the expected sub-second detection. What BFD parameter is likely misconfigured and how do you verify it?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-216",
+    "category": "bfd",
+    "question": "An FRR router shows 'show bfd peers' with a peer in the DOWN state, but the corresponding BGP neighbor remains in Established state. What configuration discrepancy between BFD and BGP could cause this, and what is the expected behavior when BFD is properly integrated?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-217",
+    "category": "bfd",
+    "question": "Two routers share a multi-hop eBGP session across three intermediate hops. BFD is configured but sessions never come up. The 'show bfd neighbors detail' output shows the peer as unreachable. What additional BFD configuration is required for multi-hop sessions and which IOS command enables it?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-218",
+    "category": "bfd",
+    "question": "An operator configures BFD timers of 50ms interval and multiplier 3 on a BGP session, expecting 150ms failure detection. Under high CPU load on the remote peer, BFD sessions are flapping repeatedly, causing BGP to oscillate. Explain the trade-off between BFD sensitivity and stability under CPU stress, and what mitigation strategies exist.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-219",
+    "category": "multipath",
+    "question": "An IOS-XE router has two eBGP paths to 10.0.0.0/8 from two different providers, both with equal attributes. Only one path appears in the routing table despite 'maximum-paths 2' being configured. What BGP attribute difference typically prevents multipath from activating and how do you diagnose it with 'show ip bgp 10.0.0.0'?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-220",
+    "category": "multipath",
+    "question": "A data center operator wants to load-balance traffic across four iBGP paths to the same prefix. After configuring 'maximum-paths ibgp 4', only two paths are installed. The paths originate from different route reflectors. What iBGP-specific constraint limits multipath installation and how is it resolved?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-221",
+    "category": "multipath",
+    "question": "After enabling BGP multipath with 'maximum-paths 4' on a Juniper router, 'show route 192.168.0.0/16 detail' shows four next-hops, but traffic is not being distributed across all paths. The FIB shows only two entries. What is the likely cause and how do you verify FIB programming with Junos CLI?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-222",
+    "category": "multipath",
+    "question": "An operator enables BGP multipath relax ('bgp bestpath as-path multipath-relax') to allow paths from different ASes to be treated as equal-cost. Explain the security and routing stability implications of this setting, which RFC governs standard multipath behavior, and what operational safeguards should be in place.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-223",
+    "category": "addpath",
+    "question": "A route reflector client receives only the best path for prefix 172.16.0.0/12 from the RR, but the operator needs all paths for optimal exit selection at the client. Which BGP extension enables sending multiple paths per prefix and which RFC defines it?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-224",
+    "category": "addpath",
+    "question": "After configuring BGP Add-Path (RFC 7911) on an IOS-XE route reflector with 'bgp additional-paths send receive', clients still receive only one path. The 'show ip bgp neighbors x.x.x.x | include additional-paths' output shows 'not negotiated'. What must be configured on the client side and how is capability negotiation verified?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-225",
+    "category": "addpath",
+    "question": "An FRR BGP speaker is configured as an Add-Path sender. After enabling the capability, memory and CPU usage on the route reflector spike significantly. The RR is now advertising three paths per prefix to all 200 clients. Explain the scaling implications of Add-Path deployment and what selective advertisement controls exist.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-226",
+    "category": "addpath",
+    "question": "A network architect wants to use BGP Add-Path at the edge to implement PIC (Prefix Independent Convergence) for fast reroute. Describe how Add-Path interacts with BGP PIC Edge, what path IDs are used for, and how the data plane pre-programs backup paths before the primary fails.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-227",
+    "category": "graceful-restart",
+    "question": "After a BGP speaker restarts, its peers should maintain forwarding state during the restart period. The restarting router advertises the Graceful Restart capability (RFC 4724) but peer routers are flushing routes immediately. What flag in the GR capability indicates the router is in restart mode and why might peers ignore it?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-228",
+    "category": "graceful-restart",
+    "question": "An operator configures BGP Graceful Restart with a restart-time of 300 seconds. After a planned software upgrade, the peer holds stale routes for the full 300 seconds before the session re-establishes. During this window, traffic continues forwarding but some routes are stale. How does the End-of-RIB marker work and how does the helper peer know when to purge stale routes?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-229",
+    "category": "graceful-restart",
+    "question": "A Junos router configured with Graceful Restart experiences a routing process restart. After reconnecting, 'show bgp neighbor x.x.x.x' shows 'Restart flags: Restart, RIB not preserved'. What does 'RIB not preserved' indicate, how does it affect the helper peer's behavior, and what is the difference between graceful-restart and long-lived graceful restart (LLGR)?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-230",
+    "category": "as-path-loop",
+    "question": "A BGP confederation is configured where sub-ASes 65001, 65002, and 65003 belong to confederation AS 64512. A prefix originating in AS 65001 is not being installed on a router in AS 65002 even though the session is Established. The AS_PATH shows '(65001) 65001'. Why does this cause an issue and how does BGP handle confederation AS_PATH loop detection differently from standard eBGP?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-231",
+    "category": "as-path-loop",
+    "question": "An operator configures 'neighbor x.x.x.x allowas-in 2' on a CE router connected to an MPLS VPN PE. Explain why this command is sometimes necessary in hub-and-spoke VPN topologies where the hub CE's AS number appears in spoke-to-spoke routes, and what the security implications of relaxing AS_PATH loop prevention are.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-232",
+    "category": "as-path-loop",
+    "question": "A BGP route server at an IXP is configured with 'no bgp client-to-client reflection'. Multiple member ASes report that their own prefixes are appearing in their received BGP table from the route server. Explain why this occurs, what RFC 7947 says about route server AS_PATH handling, and how transparent mode resolves the loop-prevention conflict.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-233",
+    "category": "local-preference",
+    "question": "An enterprise network uses two ISP connections. Outbound traffic should prefer ISP-A but the BGP routing table shows ISP-B as best for most prefixes despite local-preference being set to 200 for ISP-A routes. The 'show ip bgp' output shows both paths with local-pref 200. What other BGP attribute takes precedence over local-preference and could override the intended selection?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-234",
+    "category": "local-preference",
+    "question": "An operator wants to implement a tiered exit policy: primary exit via AS 65100 (local-pref 200), secondary via AS 65200 (local-pref 150), tertiary via AS 65300 (local-pref 100). After applying route-maps, some prefixes still exit via the tertiary link. The route-maps use 'set local-preference' correctly. What BGP attribute differences between the paths could still cause unexpected exit selection?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-235",
+    "category": "local-preference",
+    "question": "In a BGP network, local-preference is a well-known discretionary attribute scoped to the local AS. An operator wants to influence path selection across AS boundaries to prefer a specific ingress point into their AS. Since local-pref does not cross AS boundaries, what BGP mechanisms (MED, AS_PATH prepending, communities) are available, and what are the trade-offs of each approach for inbound traffic engineering?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-236",
+    "category": "communities",
+    "question": "An operator receives BGP routes from a transit provider tagged with community 65000:100 indicating 'customer route'. The route-map on the peering session uses 'match community TRANSIT-IN' but the community list is not matching. The 'show ip bgp community 65000:100' command shows routes exist. What is the most common misconfiguration in community-list matching and how do standard versus extended community lists differ?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-237",
+    "category": "communities",
+    "question": "A network operator wants to use BGP communities to implement a 'no-export to upstream' policy for customer prefixes. They tag routes with the well-known community NO_EXPORT (0xFFFFFF01) at the edge. Explain precisely what RFC 1997 specifies for NO_EXPORT behavior, how it differs from NO_ADVERTISE, and at what point in the BGP decision process community-based filtering is applied.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-238",
+    "category": "mtu-path",
+    "question": "A BGP session between two routers connected via an MPLS network is Established, but large BGP UPDATE messages containing full routing tables are being fragmented. The operator suspects an MTU mismatch in the MPLS path. What is the relationship between BGP UPDATE message size, TCP MSS, and path MTU, and how does fragmentation affect BGP session stability?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-239",
+    "category": "mtu-path",
+    "question": "After adding MPLS labels to a BGP-over-MPLS path, BGP sessions between PE routers start dropping with TCP retransmission storms. The interface MTU is 1500 bytes but MPLS adds 4 bytes per label. The operator runs 'show interface' and sees input errors increasing. Explain how to properly size MTU for MPLS environments with BGP and what 'ip tcp adjust-mss' does on IOS-XE.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-240",
+    "category": "rr-reflector",
+    "question": "A BGP route reflector (RFC 4456) is reflecting routes from client R1 to client R2. The reflected UPDATE contains ORIGINATOR_ID and CLUSTER_LIST attributes. R2's BGP process discards the route with 'ORIGINATOR_ID matches router-id' in the debug output. What configuration error on R2 causes this and how should RR clusters be designed to prevent ORIGINATOR_ID loops?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-241",
+    "category": "ibgp-scaling",
+    "question": "A network has 50 BGP speakers that need full iBGP connectivity. In a full mesh configuration, how many iBGP sessions are required? What are the two standard approaches to eliminate the full-mesh requirement, and what RFC governs each approach?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-242",
+    "category": "ibgp-scaling",
+    "question": "An operator has deployed two route reflectors for redundancy in a large iBGP network. After a maintenance window, several BGP clients show routes with different CLUSTER_LIST values and are selecting suboptimal paths. Explain how CLUSTER_LIST prevents routing loops in hierarchical RR deployments and why multiple RRs in the same cluster should share the same cluster-id.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-243",
+    "category": "ibgp-scaling",
+    "question": "A service provider is migrating from a route reflector hierarchy to BGP confederations (RFC 5065) to improve scalability. The current design has 500 iBGP speakers in one AS. Describe the key operational differences between confederations and route reflectors in terms of AS_PATH handling, policy application points, and failure domain isolation.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-244",
+    "category": "ibgp-scaling",
+    "question": "After deploying BGP route reflectors, an operator notices that traffic between two RR clients takes a non-optimal path through the RR even though a direct link exists. The clients have an iBGP session configured directly. Explain the 'RR client-to-client reflection' problem and how the BGP next-hop attribute interacts with IGP metrics to cause suboptimal forwarding in RR deployments.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-245",
+    "category": "ibgp-scaling",
+    "question": "A network engineer is designing a large-scale data center BGP fabric with 1000 ToR switches. They are evaluating using iBGP with route reflectors versus a full eBGP design where each rack is a separate AS. Compare the scaling characteristics, operational complexity, and failure domain isolation of both approaches, referencing RFC 7938 for data center BGP design principles.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-246",
+    "category": "bgp-timers",
+    "question": "A BGP session between two routers has default keepalive and hold timers. An operator wants to reduce convergence time and configures 'timers bgp 10 30' on one router and 'timers bgp 30 90' on the other. What timer values will be negotiated and why, according to RFC 4271 timer negotiation rules?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-247",
+    "category": "bgp-timers",
+    "question": "After reducing BGP keepalive timers from 60/180 to 3/9 seconds on a high-traffic peering session, the BGP session starts flapping under CPU load on the remote peer. The hold timer expires before keepalives are processed. What is the relationship between BGP timer aggressiveness and CPU scheduling, and what is the recommended minimum timer setting for most deployments?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-248",
+    "category": "bgp-timers",
+    "question": "An operator uses BGP with BFD for fast failure detection and sets BGP hold time to 0 (disabled). The 'show ip bgp neighbors' output shows 'Hold time: 0, Keepalive interval: 0'. Explain what hold time 0 means in BGP, whether it is valid per RFC 4271, and the operational implications of relying solely on BFD for session failure detection.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-249",
+    "category": "bgp-timers",
+    "question": "A BGP route flap dampening configuration uses default timers. An operator notices that a flapping prefix is suppressed for over 60 minutes after just three flaps. Explain how BGP dampening penalty accumulation works, what the half-life, suppress-threshold, and reuse-threshold parameters control per RFC 7196, and how to verify the current penalty with 'show ip bgp dampened-paths'.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-250",
+    "category": "bgp-timers",
+    "question": "An ISP is troubleshooting slow BGP convergence after a link failure. The BGP scan-time (default 60 seconds) is the bottleneck — next-hop reachability changes are not propagating quickly enough. Explain how BGP next-hop tracking (RFC 5286 concepts) and the 'bgp nexthop trigger delay' command improve convergence time compared to relying on the BGP scan timer.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-251",
+    "category": "peer-groups",
+    "question": "A BGP speaker has 100 eBGP neighbors with identical outbound policy. An operator creates a peer-group and assigns all neighbors to it. After the change, 'show ip bgp summary' shows all neighbors in Idle state. What is the most common reason peer-group assignment resets existing sessions and how can session reset be minimized during peer-group migration?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-252",
+    "category": "peer-groups",
+    "question": "An operator configures a BGP peer-group 'UPSTREAM-TRANSIT' with common attributes including update-source loopback0 and ebgp-multihop 2. One member of the peer-group needs a different local-as. Can per-neighbor overrides coexist with peer-group membership, and what attributes can and cannot be overridden at the neighbor level in IOS-XE?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-253",
+    "category": "peer-groups",
+    "question": "A large IXP route server has 500 member peers. The operator is evaluating peer-groups versus dynamic BGP peering with peer templates. Explain the scalability difference between traditional peer-groups and BGP peer templates (session templates and policy templates) available in IOS-XE, and how peer templates enable more granular configuration inheritance.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-254",
+    "category": "peer-groups",
+    "question": "After migrating 200 BGP neighbors to a peer-group with a common outbound route-map, an operator notices that update generation CPU spikes to 100% during full table advertisements. Explain how peer-groups optimize BGP UPDATE generation through shared UPDATE messages, and what happens when even one neighbor in the group has a different outbound policy override.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-255",
+    "category": "peer-groups",
+    "question": "A BGP peer-group is configured with 'send-community both' to send standard and extended communities. After adding a new neighbor to the peer-group, the neighbor only receives standard communities, not extended communities. The 'show ip bgp neighbors x.x.x.x | include community' shows 'Community attribute sent to this neighbor'. What is likely misconfigured and how does capability negotiation affect community advertisement?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-256",
+    "category": "prefix-filter",
+    "question": "An operator applies a prefix-list to a BGP neighbor to accept only routes within 10.0.0.0/8, permitting prefixes up to /24. The configuration is 'ip prefix-list FILTER permit 10.0.0.0/8 le 24'. A route for 10.1.0.0/20 is being rejected. What is wrong with this prefix-list entry and what is the correct syntax to permit all prefixes within 10.0.0.0/8 up to /24?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-257",
+    "category": "prefix-filter",
+    "question": "A transit provider wants to implement RPKI-based origin validation to filter bogon prefixes and prefixes with invalid ROAs. Explain how RPKI Route Origin Validation integrates with BGP prefix filtering, what the three ROA states (valid, invalid, not-found) mean, and how 'bgp bestpath dampening' interacts with RPKI-invalid routes.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-258",
+    "category": "prefix-filter",
+    "question": "An operator uses an inbound prefix-list to limit routes received from a customer BGP peer to a maximum of 100 prefixes. The 'maximum-prefix 100 80' command is configured with an 80% warning threshold. The session drops when the customer sends 101 prefixes. What is the difference between 'maximum-prefix' with and without the 'warning-only' keyword, and how does the restart interval option work?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-259",
+    "category": "prefix-filter",
+    "question": "A BGP operator implements the MANRS (Mutually Agreed Norms for Routing Security) framework and needs to filter bogon prefixes, bogon ASNs, and prefixes longer than /24 for IPv4. Describe a comprehensive inbound prefix-filter strategy covering these three categories, referencing IANA-reserved space, private AS ranges (64512-65535, 4200000000-4294967294), and common operational filtering practices.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-260",
+    "category": "prefix-filter",
+    "question": "An operator uses an AS-path access-list to filter routes with specific AS_PATH patterns. The regex '^65100_' is intended to match routes where AS 65100 is the first AS in the path. Routes originating directly from AS 65100 (AS_PATH: '65100') are not being matched. What is wrong with the regex and how should it be corrected to match both direct origination and transit paths starting with AS 65100?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-261",
+    "category": "bgp-attributes",
+    "question": "A BGP UPDATE is received with an unrecognized optional transitive attribute. RFC 4271 specifies specific handling rules for unknown attributes based on the well-known/optional and transitive/non-transitive bits. Describe how a BGP speaker should handle an unrecognized optional transitive attribute and what the PARTIAL bit indicates in the attribute flags.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-262",
+    "category": "bgp-attributes",
+    "question": "An operator sees a BGP route with MED (MULTI_EXIT_DISC) of 4294967295 in the BGP table from a peer. Other routes from different peers to the same prefix have MED of 100. MED comparison is only performed between paths from the same neighboring AS by default. Explain MED's role in BGP path selection, the 'bgp always-compare-med' knob, and why MED is sometimes called a 'weak' attribute.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-263",
+    "category": "bgp-attributes",
+    "question": "After a BGP session reset with 'clear ip bgp x.x.x.x soft', an operator notices that ATOMIC_AGGREGATE and AGGREGATOR attributes are present on several routes in the BGP table. Explain what these attributes indicate about route origin, how they relate to BGP route aggregation, and what information AGGREGATOR carries.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-264",
+    "category": "bgp-attributes",
+    "question": "A BGP operator wants to manipulate WEIGHT attribute to prefer one eBGP peer over another for outbound traffic. After setting weight 200 on the preferred peer's inbound routes, the alternate peer is still selected for some prefixes. The 'show ip bgp' output shows both paths with weight 0. Why is the weight not being applied and what is the scope of the WEIGHT attribute?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-265",
+    "category": "bgp-attributes",
+    "question": "An operator is troubleshooting a BGP path selection issue where two paths have identical WEIGHT, LOCAL_PREF, AS_PATH length, ORIGIN, MED, and IGP cost to next-hop. BGP selects one path consistently over the other. What are the tiebreakers used at the end of the BGP decision process and how does the BGP router-id influence final path selection?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-266",
+    "category": "network-import",
+    "question": "An operator configures 'network 192.168.1.0 mask 255.255.255.0' under BGP to advertise a prefix. The prefix does not appear in the BGP table even though the route exists in the routing table. What exact condition must be met for the 'network' command to inject a route into BGP and how does 'auto-summary' affect this behavior in IOS-XE?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-267",
+    "category": "network-import",
+    "question": "An operator uses 'redistribute connected' under BGP to advertise directly connected subnets. After applying a route-map to set communities on redistributed routes, only some connected subnets appear in BGP. The route-map uses a prefix-list match. Describe the interaction between 'redistribute connected route-map' and how to verify which routes are being redistributed with 'show ip bgp'.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-268",
+    "category": "network-import",
+    "question": "A network operator redistributes OSPF routes into BGP. After the redistribution, the BGP table contains hundreds of specific /32 host routes that should not be advertised externally. Explain how to use a route-map with prefix-list filtering during redistribution to control which OSPF routes enter BGP, and what the default ORIGIN attribute is for redistributed routes.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-269",
+    "category": "network-import",
+    "question": "An operator uses BGP conditional advertisement ('bgp advertise-map exist-map') to advertise a prefix only when a specific route is present in the BGP table. The feature is configured but the conditional prefix is always advertised regardless of the condition route's presence. What are the common misconfigurations in BGP conditional advertisement and how does the scan-timer affect condition evaluation?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-270",
+    "category": "network-import",
+    "question": "A BGP operator wants to originate a default route (0.0.0.0/0) to all eBGP peers without having a default route in the local routing table. Explain the difference between 'default-information originate', 'neighbor x.x.x.x default-originate', and 'network 0.0.0.0' in BGP, including when each method injects the default and what conditions each requires.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-271",
+    "category": "bgp-convergence",
+    "question": "After a core link failure, BGP takes 45 seconds to converge even though OSPF reconverges in under 2 seconds. The BGP peers are still up. Explain why BGP convergence can lag significantly behind IGP convergence and what role the BGP scan timer, next-hop tracking, and MRAI (Minimum Route Advertisement Interval) play in this delay.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-272",
+    "category": "bgp-convergence",
+    "question": "An operator wants to reduce BGP UPDATE propagation delay across a transit AS. The default MRAI for iBGP is 0 seconds and for eBGP is 30 seconds. Explain the purpose of MRAI in preventing UPDATE storms, how 'no bgp mrai' affects eBGP behavior, and the trade-off between reducing MRAI and increased UPDATE churn during topology instability.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-273",
+    "category": "bgp-convergence",
+    "question": "A BGP speaker with a full Internet routing table (900,000+ routes) is restarting. After the TCP session re-establishes, it takes over 10 minutes to process all incoming UPDATEs and reach a converged state. Describe the phases of BGP table convergence, how the End-of-RIB marker (RFC 4724) signals convergence completion, and how to monitor convergence progress with 'show bgp summary'.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-274",
+    "category": "bgp-convergence",
+    "question": "An operator implements BGP PIC (Prefix Independent Convergence) to achieve sub-second failover for critical prefixes. After a primary path failure, convergence is still taking 2-3 seconds. The FIB has backup paths pre-programmed. Explain the data-plane and control-plane components of BGP PIC, what 'bgp additional-paths install' enables, and why backup paths may not activate instantly.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-275",
+    "category": "bgp-convergence",
+    "question": "An IXP operator wants to understand the convergence impact of adding 50 new route server clients, each advertising approximately 1000 prefixes. Describe how to estimate the BGP UPDATE processing load, the effect of route server policy evaluation per client, and operational monitoring strategies using 'show bgp process performance-statistics' to track convergence under load.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-276",
+    "category": "rib-fib",
+    "question": "A BGP route appears in the 'show ip bgp' table with status '>' (best) but does not appear in 'show ip route'. The route's next-hop is reachable via OSPF. What conditions prevent a BGP best path from being installed into the IP routing table (RIB) and how do you diagnose the discrepancy?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-277",
+    "category": "rib-fib",
+    "question": "An operator sees a route in 'show ip route bgp' (RIB) but 'show ip cef 10.1.0.0' shows 'no route' or points to a different next-hop. Explain the distinction between the BGP RIB (Adj-RIB-In, Loc-RIB, Adj-RIB-Out per RFC 4271), the IP routing table, and the Forwarding Information Base (FIB/CEF), and what causes RIB-to-FIB programming failures.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-278",
+    "category": "rib-fib",
+    "question": "After a BGP route is withdrawn, the IP routing table and CEF table are updated within 1 second, but a downstream router connected via iBGP continues forwarding traffic to the withdrawn prefix for 30 seconds. Explain the sequence of events in BGP UPDATE propagation, RIB update, and FIB programming that causes this delay, and how BGP route withdrawal is different from route addition.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-279",
+    "category": "rib-fib",
+    "question": "A BGP operator is running a Junos router and notices that 'show route table inet.0' shows a BGP route as active, but 'show route forwarding-table destination x.x.x.x' shows a different next-hop. Explain how Junos separates the routing table (RIB) from the forwarding table (FIB), what the 'active/current/best' flags mean in Junos routing tables, and what causes RIB/FIB divergence.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-280",
+    "category": "rib-fib",
+    "question": "An operator configures 'table-map' in BGP to modify attributes of routes as they are installed into the RIB. After configuration, some routes are not installed in the RIB at all. Explain how 'table-map filter' works differently from 'table-map' without filter, and what the implications are for routes that are blocked by table-map from entering the RIB but remain in the BGP table.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-281",
+    "category": "weight-policy",
+    "question": "An IOS-XE BGP router receives routes from two eBGP peers for the same prefix 203.0.113.0/24. The operator sets WEIGHT 200 on routes received from peer A using an inbound route-map, leaving peer B with default weight 0. Peer B's route is selected as best. What is likely wrong and how do you verify WEIGHT assignment with 'show ip bgp 203.0.113.0'?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-282",
+    "category": "weight-policy",
+    "question": "A network operator uses WEIGHT as the primary outbound traffic engineering mechanism across 10 edge routers. Each router independently sets WEIGHT values. An operator on one router changes a WEIGHT value, but traffic distribution on other routers is unaffected. Explain why WEIGHT cannot be used for network-wide traffic engineering and what attributes should be used instead for consistent AS-wide path preference.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-283",
+    "category": "weight-policy",
+    "question": "An operator wants to set WEIGHT based on the BGP community values in received routes. Provider A tags routes with community 65000:200 (preferred) and 65000:100 (backup). The route-map uses 'match community' followed by 'set weight'. After configuration, 'show ip bgp' shows all routes from provider A with weight 0. What is the likely route-map configuration error?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-284",
+    "category": "weight-policy",
+    "question": "Describe the complete BGP path selection decision process for a Cisco IOS-XE router, starting with WEIGHT and ending with router-ID comparison. For each step, identify whether the attribute is locally significant or carried in BGP UPDATEs, and explain at which steps the process stops when a clear winner is found.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-285",
+    "category": "weight-policy",
+    "question": "An operator configures per-neighbor default WEIGHT using 'neighbor x.x.x.x weight 500' and also applies an inbound route-map that sets weight for specific prefixes. On 'show ip bgp' some routes from this neighbor show weight 500, others show weight 100. Explain the precedence rules between neighbor-level weight and route-map weight settings, and how to audit weight assignment across all prefixes from a neighbor.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-286",
+    "category": "bgp-monitoring",
+    "question": "An operator wants to implement real-time monitoring of BGP route changes without impacting production sessions. Which protocol and RFC provide a read-only stream of BGP RIB data and UPDATE messages to a collector, and what are the main message types it defines?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-287",
+    "category": "bgp-monitoring",
+    "question": "An operator uses 'show ip bgp summary' to monitor BGP session health across 200 neighbors. The output shows several neighbors in 'Active' state with varying 'Up/Down' times. Explain what the 'Active' state indicates about TCP connection attempts, how to distinguish between a router actively trying to connect versus waiting for an inbound connection, and what 'MsgRcvd/MsgSent' counters reveal about session health.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-288",
+    "category": "bgp-monitoring",
+    "question": "An operator wants to set up alerting for BGP prefix count anomalies — specifically detecting when a peer suddenly advertises 10x more prefixes than its historical baseline (possible route leak). Describe the monitoring approach using SNMP BGP MIB objects (bgpPeerPrefixesReceived), streaming telemetry, or BMP to implement prefix-count threshold alerting.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-289",
+    "category": "bgp-monitoring",
+    "question": "After deploying a BGP Monitoring Protocol (BMP, RFC 7854) collector, an operator notices that the route-monitoring messages contain pre-policy Adj-RIB-In routes, but they need post-policy routes to understand what routes are actually being used. Explain the difference between pre-policy and post-policy monitoring in BMP, what 'local-rib' monitoring adds, and how to configure the BMP session to send post-policy data on IOS-XE.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-290",
+    "category": "bgp-monitoring",
+    "question": "An operator is troubleshooting intermittent BGP session resets and wants to capture the NOTIFICATION messages being sent and received. The resets occur once per day, making real-time debugging impractical. Describe how to use BGP session logging, 'debug ip bgp notifications' with conditional debugging, EEM applets triggered on BGP state changes, and BMP to capture NOTIFICATION data without continuous debug overhead.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-291",
+    "category": "bgp-multihop-advanced",
+    "question": "An operator configures a multi-hop eBGP session between two loopback addresses across a network where the routers are not directly connected. The session stays in Active state despite the loopback route being present in the routing table. What two configuration elements are required to establish multi-hop eBGP sessions and how do you verify the TTL is set correctly?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-292",
+    "category": "bgp-multihop-advanced",
+    "question": "A BGP operator configures 'neighbor x.x.x.x ebgp-multihop 2' but the session fails to establish. The remote peer is exactly 2 hops away. Explain how the TTL value sent in TCP packets relates to the ebgp-multihop hop-count, why a hop count of 2 requires a specific TTL setting, and how 'ttl-security hops' (Generalized TTL Security Mechanism, RFC 5082) differs from ebgp-multihop.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-293",
+    "category": "bgp-multihop-advanced",
+    "question": "An operator needs to establish a BGP session between two routers where the path traverses a firewall performing NAT. The BGP session uses loopback addresses. The TCP connection reaches the remote router but the BGP OPEN message is rejected. Explain how NAT affects BGP session establishment, why the OPEN message's BGP Identifier field causes issues in NAT environments, and what workarounds exist.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-294",
+    "category": "bgp-multihop-advanced",
+    "question": "An operator sets up a multi-hop eBGP session for exchanging full Internet routing tables between two IXP members that are not directly connected. The session carries 900,000+ routes. After several hours, the session resets with error code 'Notification: Cease/Maximum Number of Prefixes Reached'. How does maximum-prefix interact with multi-hop eBGP sessions and what are the security implications of unconstrained prefix acceptance in multi-hop eBGP?",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-295",
+    "category": "bgp-multihop-advanced",
+    "question": "An operator runs multi-hop eBGP over an MPLS network where the BGP next-hop is set to the loopback address of the originating PE. After enabling multi-hop eBGP between two PE routers in different ASes, traffic for some prefixes is black-holed. The 'show ip cef' shows the correct next-hop but the LSP to that next-hop is not set up. Explain the next-hop resolution problem in multi-hop eBGP over MPLS and how 'next-hop-self' or explicit next-hop manipulation resolves it.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-296",
+    "category": "bgp-capacity",
+    "question": "A BGP router is receiving full Internet routing tables from two transit providers (approximately 900,000 routes each). Memory usage is at 85% and the router is beginning to drop routes. Explain how BGP stores routes in memory (Adj-RIB-In, Loc-RIB, Adj-RIB-Out), which tables consume the most memory, and what 'soft-reconfiguration inbound' does to memory consumption.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-297",
+    "category": "bgp-capacity",
+    "question": "An IXP route server is advertising routes to 300 member peers. The operator notices that BGP UPDATE generation is consuming 95% CPU during reconvergence events. Explain the O(n²) complexity of BGP UPDATE generation in a full-mesh scenario, how peer-groups reduce this complexity, and what 'bgp update-group' optimization in IOS-XE provides automatic UPDATE group sharing.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-298",
+    "category": "bgp-capacity",
+    "question": "A BGP operator needs to assess the maximum number of BGP prefixes their router platform can handle before performance degrades. Describe the key hardware and software metrics to evaluate (memory per prefix, CEF table capacity, BGP process CPU budget), and how 'show bgp process performance-statistics' and 'show memory statistics' help with capacity planning.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-299",
+    "category": "bgp-capacity",
+    "question": "An operator configures BGP outbound route filtering (ORF, RFC 5291) to allow peers to push prefix-filters upstream, reducing unwanted UPDATE volume. After configuring ORF prefix-list capability on a transit session, the peer sends 50,000 ORF entries. Explain how ORF reduces UPDATE volume, what capability negotiation is required per RFC 5292, and what the scaling limits of ORF deployments are.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-300",
+    "category": "bgp-capacity",
+    "question": "A service provider is planning to carry both IPv4 and IPv6 full Internet tables plus VPNv4 and VPNv6 routes on PE routers. The total expected prefix count is 2.5 million entries across all address families. Describe the BGP multi-protocol (RFC 4760) architecture for carrying multiple address families, how separate RIBs are maintained per address family, and the memory and CPU implications of enabling multiple address families on high-scale PE routers.",
+    "provenance": {"source": "thesis/benchmark/q215-q300.json", "authored": true, "confidence": 1.0}
+  }
+]

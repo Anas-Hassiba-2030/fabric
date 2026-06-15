@@ -1,0 +1,142 @@
+[
+  {
+    "id": "q-201",
+    "question": "R2 shows eBGP session to 192.0.2.2 as Established with non-zero timers, but the prefix count is 0 and CustA has no reachability. What is the most likely cause?",
+    "category": "route-policy",
+    "difficulty": "diagnose",
+    "fault_id": "f-bgp-route-policy-reject",
+    "ground_truth": {
+      "answer": "inbound route-map DENY-ALL on R2 blocks all prefixes from R3 (192.0.2.2) — session Established but zero routes admitted",
+      "commands": ["show ip bgp neighbors 192.0.2.2", "show route-map"],
+      "rfc": "RFC 4271 §9.2.1"
+    },
+    "executable": true,
+    "provenance": {"source": "thesis/benchmark/q201-q210.json", "rfc": "RFC 4271", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-202",
+    "question": "An eBGP session is Established and you can see KEEPALIVE messages in a packet capture, but no prefixes appear in the BGP table on R2. show route-map reveals a deny-all policy applied inbound. What is the root cause and the fix?",
+    "category": "route-policy",
+    "difficulty": "apply",
+    "fault_id": "f-bgp-route-policy-reject",
+    "ground_truth": {
+      "answer": "inbound route-map DENY-ALL on R2 blocks all prefixes from R3 (192.0.2.2) — session Established but zero routes admitted",
+      "commands": ["show ip bgp neighbors 192.0.2.2", "show route-map"],
+      "rfc": "RFC 4271 §9.2.1"
+    },
+    "executable": true,
+    "provenance": {"source": "thesis/benchmark/q201-q210.json", "rfc": "RFC 4271", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-203",
+    "question": "R2 has a BGP session to 192.0.2.2 showing Established state and correct AS numbers. The customer prefix 10.1.0.0/24 appears in the BGP table but not in the IP routing table, and traffic is black-holed. What is the root cause?",
+    "category": "operational",
+    "difficulty": "diagnose",
+    "fault_id": "f-bgp-next-hop-unreachable",
+    "ground_truth": {
+      "answer": "BGP next-hop 192.0.2.2 not resolved in RIB on R2 — customer prefix 10.1.0.0/24 is inactive (next-hop unreachable)",
+      "commands": ["show ip bgp neighbors 192.0.2.2", "show ip route 192.0.2.2", "show ip bgp 10.1.0.0/24"],
+      "rfc": "RFC 4271 §9.1.2"
+    },
+    "executable": true,
+    "provenance": {"source": "thesis/benchmark/q201-q210.json", "rfc": "RFC 4271", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-204",
+    "question": "After removing a connected interface on R2, the BGP session to 192.0.2.2 stays up but the customer prefix becomes inactive. show ip bgp 10.1.0.0/24 shows 'next-hop unreachable'. What needs to be fixed?",
+    "category": "nexthop-tracking",
+    "difficulty": "apply",
+    "fault_id": "f-bgp-next-hop-unreachable",
+    "ground_truth": {
+      "answer": "BGP next-hop 192.0.2.2 not resolved in RIB on R2 — customer prefix 10.1.0.0/24 is inactive (next-hop unreachable)",
+      "commands": ["show ip bgp neighbors 192.0.2.2", "show ip route 192.0.2.2", "show ip bgp 10.1.0.0/24"],
+      "rfc": "RFC 4271 §9.1.2"
+    },
+    "executable": true,
+    "provenance": {"source": "thesis/benchmark/q201-q210.json", "rfc": "RFC 4271", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-205",
+    "question": "R2-R3 eBGP session briefly reaches Established then immediately drops to Idle. show ip bgp neighbors 192.0.2.2 shows 'NOTIFICATION sent: Maximum prefix reached'. What is the root cause?",
+    "category": "security",
+    "difficulty": "diagnose",
+    "fault_id": "f-bgp-max-prefix-limit",
+    "ground_truth": {
+      "answer": "max-prefix limit (1) exceeded on R2 toward 192.0.2.2 — peer advertised 2 prefixes, R2 sent NOTIFICATION and shut down the session",
+      "commands": ["show ip bgp neighbors 192.0.2.2", "show bgp summary"],
+      "rfc": "RFC 4271 §9.2.3"
+    },
+    "executable": true,
+    "provenance": {"source": "thesis/benchmark/q201-q210.json", "rfc": "RFC 4271", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-206",
+    "question": "A max-prefix limit of 1 was configured on R2 toward 192.0.2.2, but R3 advertises 2 prefixes. The session is torn down. What command diagnoses this, and what is the fix?",
+    "category": "security",
+    "difficulty": "apply",
+    "fault_id": "f-bgp-max-prefix-limit",
+    "ground_truth": {
+      "answer": "max-prefix limit (1) exceeded on R2 toward 192.0.2.2 — peer advertised 2 prefixes, R2 sent NOTIFICATION and shut down the session",
+      "commands": ["show ip bgp neighbors 192.0.2.2", "show bgp summary"],
+      "rfc": "RFC 4271 §9.2.3"
+    },
+    "executable": true,
+    "provenance": {"source": "thesis/benchmark/q201-q210.json", "rfc": "RFC 4271", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-207",
+    "question": "R2-R3 eBGP session cycles between Idle and Established every 10-15 seconds. Logs show 'Hold Timer Expired'. show ip bgp neighbors 192.0.2.2 reports Hold time = 10. What is the root cause?",
+    "category": "session-establishment",
+    "difficulty": "diagnose",
+    "fault_id": "f-bgp-hold-timer-expired",
+    "ground_truth": {
+      "answer": "hold-timer too aggressive (10s) on R2 toward 192.0.2.2 — session resets on transient delay; increase hold-time to 90 or 180 seconds",
+      "commands": ["show ip bgp neighbors 192.0.2.2", "show bgp summary"],
+      "rfc": "RFC 4271 §4.4"
+    },
+    "executable": true,
+    "provenance": {"source": "thesis/benchmark/q201-q210.json", "rfc": "RFC 4271", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-208",
+    "question": "An operator set 'neighbor 192.0.2.2 timers 3 10' on R2. The BGP session is now unstable and drops frequently. What holds this session and what is the recommended fix?",
+    "category": "session-establishment",
+    "difficulty": "apply",
+    "fault_id": "f-bgp-hold-timer-expired",
+    "ground_truth": {
+      "answer": "hold-timer too aggressive (10s) on R2 toward 192.0.2.2 — session resets on transient delay; increase hold-time to 90 or 180 seconds",
+      "commands": ["show ip bgp neighbors 192.0.2.2", "show bgp summary"],
+      "rfc": "RFC 4271 §4.4"
+    },
+    "executable": true,
+    "provenance": {"source": "thesis/benchmark/q201-q210.json", "rfc": "RFC 4271", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-209",
+    "question": "R2 is configured with 'neighbor 10.10.10.2 remote-as 65020' to peer with a non-adjacent loopback two IGP hops away. The session stays in Active. Ping to 10.10.10.2 succeeds. What is the root cause?",
+    "category": "session-establishment",
+    "difficulty": "diagnose",
+    "fault_id": "f-bgp-ebgp-multihop",
+    "ground_truth": {
+      "answer": "eBGP neighbor 10.10.10.2 is not directly connected — ebgp-multihop not configured, TCP SYN dropped by TTL exhaustion after first hop",
+      "commands": ["show ip bgp neighbors 10.10.10.2", "show bgp summary"],
+      "rfc": "RFC 4271 §8.2.1"
+    },
+    "executable": true,
+    "provenance": {"source": "thesis/benchmark/q201-q210.json", "rfc": "RFC 4271", "authored": true, "confidence": 1.0}
+  },
+  {
+    "id": "q-210",
+    "question": "An eBGP session to a loopback address stays in Active state. ICMP ping works but TCP port 179 never opens. show ip bgp neighbors shows 'TTL = 1, multihop not configured'. What must be added?",
+    "category": "ttl-security",
+    "difficulty": "apply",
+    "fault_id": "f-bgp-ebgp-multihop",
+    "ground_truth": {
+      "answer": "eBGP neighbor 10.10.10.2 is not directly connected — ebgp-multihop not configured, TCP SYN dropped by TTL exhaustion after first hop",
+      "commands": ["show ip bgp neighbors 10.10.10.2", "show bgp summary"],
+      "rfc": "RFC 4271 §8.2.1"
+    },
+    "executable": true,
+    "provenance": {"source": "thesis/benchmark/q201-q210.json", "rfc": "RFC 4271", "authored": true, "confidence": 1.0}
+  }
+]

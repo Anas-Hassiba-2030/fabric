@@ -10,7 +10,7 @@ the design. The discipline: **never invent a value for an architecture-critical 
 
 ## Procedure
 
-1. **Read everything provided** + prior memory for this customer (`fabric/memory/customers/<name>.md`).
+1. **Read everything provided** + prior memory for this customer (`wrath/memory/customers/<name>.md`).
 2. **Populate the brief** (`assets/brief-template.md`). Fill only what's stated.
 3. **Score each empty field**: does it change the *architecture* (scale, SLA, security baseline, vendor constraint, brownfield/greenfield) or just a detail? Tag accordingly.
 4. **Write clarifying questions** for the architecture-critical gaps — specific and answerable, not "what do you need?" Example: *"Is the 50ms convergence target end-to-end service restoration or IGP-only, and is it contractual?"*
@@ -24,6 +24,10 @@ the design. The discipline: **never invent a value for an architecture-critical 
 - Vendor constraints / existing estate
 - Timeline + change windows + budget envelope
 
+The full dimension-by-dimension question bank (and which dimensions *block* design) is in
+`references/clarifying-questions.md`. The deterministic `webui/clarify.py` gate mirrors it.
+
 ## Output
-The completed brief + a numbered, prioritized open-questions list (architecture-critical first). Hand
-back to the Orchestrator as a summary.
+The completed brief + a numbered, prioritized open-questions list (architecture-critical first), and
+an explicit **ready / NOT-ready for design** verdict — NOT ready while any blocking dimension is
+unanswered. Hand back to the Orchestrator as a summary.

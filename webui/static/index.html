@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>WRATH Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,400..700&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;700&display=swap"/>
+<style>
+  /* ============================================================
+     WRATH Console — Old Library Edition (v6)
+     Cream paper canvas, ink-dark header, burgundy as THE accent,
+     aged gold for KPIs, sage for grounded. Editorial serif heads,
+     humanist sans body, monospaced labels. No neon, no glow.
+     All existing class names preserved so JS keeps working.
+     ============================================================ */
+  :root{
+    /* — Canvas — */
+    --cream:#F5EFE4;
+    --cream-2:#EFE7D6;
+    --paper:#FBF7EE;
+
+    /* — Ink (dark sections only) — */
+    --ink:#181E2A;
+    --ink-soft:#2C3344;
+
+    /* — Accents — */
+    --burgundy:#8A2D3B;
+    --burgundy-deep:#6B1F2B;
+    --burgundy-tint:rgba(138,45,59,.08);
+    --gold:#B8893B;
+    --gold-soft:#D4B27A;
+    --gold-tint:rgba(184,137,59,.08);
+
+    /* — Status — */
+    --sage:#4A6256;
+    --sage-soft:#6B8074;
+    --green-bg:#E5EBE2;
+    --amber-ink:#8A5A1F;
+    --amber-bg:#F2E5C9;
+    --crimson:#A53124;
+    --crimson-bg:#F1DAD6;
+
+    /* — Neutrals — */
+    --grey:#6B6258;
+    --grey-soft:#8A8378;
+    --line:#D9CDB7;
+    --line-2:#CABFA6;
+
+    /* — Type — */
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --sans:'DM Sans','Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+
+    /* — Backward-compatibility aliases (JS strings + legacy selectors) — */
+    --ink-1:var(--ink);
+    --ink-2:var(--ink-soft);
+    --ink-3:var(--grey);
+    --muted:var(--grey);
+    --faint:var(--grey-soft);
+    --accent:var(--burgundy); --accent2:var(--burgundy);
+    --ok:var(--sage); --bad:var(--crimson); --warn:var(--amber-ink); --gate:var(--ink-soft);
+    --cyan:var(--burgundy); --cyan-2:var(--burgundy-deep); --cyan-glow:var(--burgundy-tint);
+    --mint:var(--sage); --mint-glow:rgba(74,98,86,.20);
+    --coral:var(--crimson); --coral-glow:rgba(165,49,36,.22);
+    --indigo:var(--ink-soft); --indigo-glow:rgba(44,51,68,.18);
+    --violet:var(--ink-soft); --violet-glow:rgba(44,51,68,.18);
+    --amber:var(--amber-ink); --amber-glow:rgba(138,90,31,.22);
+    --slate:var(--ink-soft); --slate-glow:rgba(44,51,68,.18);
+    --bg:var(--cream); --bg2:var(--cream);
+    --bg-deepest:var(--cream); --bg-deep:var(--cream); --bg-mid:var(--cream-2); --bg-high:var(--paper);
+    --panel:var(--paper); --panel2:var(--cream-2);
+    --surface:var(--paper); --surface-2:var(--cream-2);
+    --brd:var(--line); --brd2:var(--line);
+    --hairline:var(--line); --hairline-2:var(--line); --hairline-3:var(--line-2);
+    --edge:var(--line);
+    --pDesign:var(--burgundy);
+    --pImplement:var(--sage);
+    --pSell:var(--gold);
+    --pOperate:var(--ink-soft);
+    --pScale:#7d5a8c;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;overflow:hidden}
+
+  body{
+    font-family:var(--sans);
+    font-size:13.5px;line-height:1.55;
+    color:var(--ink-soft);
+    background:var(--cream);
+    background-image:
+      radial-gradient(circle at 15% 10%,rgba(184,137,59,.06) 0%,transparent 40%),
+      radial-gradient(circle at 85% 90%,rgba(138,45,59,.05) 0%,transparent 45%);
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    letter-spacing:-.003em;
+    position:relative;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:radial-gradient(circle at 1px 1px,rgba(24,30,42,.035) 1px,transparent 0);
+    background-size:24px 24px;opacity:.85;
+  }
+  body::after{display:none}
+  .particles,.particle{display:none}
+
+  .app{position:relative;z-index:2;height:100vh;display:grid;
+    grid-template-rows:auto auto auto minmax(0,1fr);gap:14px;padding:0 0 18px}
+
+  /* ============================================================
+     HEADER — ink-dark bar, cream text
+     ============================================================ */
+  header{
+    display:grid;
+    grid-template-columns:auto 1fr auto auto auto;
+    align-items:center;gap:24px;padding:10px 28px;
+    background:var(--ink);
+    border-bottom:1px solid rgba(217,205,183,.15);
+    min-height:60px;
+  }
+  .logo{
+    width:42px;height:42px;border-radius:50%;display:grid;place-items:center;
+    background:var(--ink-soft);
+    border:1px solid rgba(212,178,122,.35);position:relative;
+    color:transparent;font-size:0;flex:none;
+    box-shadow:0 1px 2px rgba(0,0,0,.25) inset;
+  }
+  .logo::before{
+    content:"W";position:absolute;inset:0;display:grid;place-items:center;
+    font-family:var(--serif);font-style:italic;font-weight:500;font-size:20px;
+    color:var(--gold-soft);letter-spacing:0;
+    text-shadow:none;
+  }
+  .logo::after{display:none}
+  h1{
+    font-family:var(--serif);font-weight:400;font-size:20px;line-height:1.1;
+    margin:0;letter-spacing:-.01em;color:var(--cream);
+  }
+  h1 .tm{
+    font-family:var(--mono);
+    color:var(--gold-soft);font-weight:400;letter-spacing:.16em;font-size:9.5px;
+    text-transform:uppercase;margin-left:11px;vertical-align:2px;
+  }
+  .sub{
+    color:rgba(245,239,228,.55);font-family:var(--sans);font-size:11.5px;margin-top:4px;
+    font-weight:400;letter-spacing:.005em;max-width:680px;
+  }
+
+  /* Inline KPI strip in the dark header */
+  .kpis{
+    display:flex;align-items:center;gap:0;
+    border:1px solid rgba(217,205,183,.18);
+    background:rgba(245,239,228,.04);
+  }
+  .kpi{
+    display:flex;flex-direction:column;align-items:flex-start;padding:7px 14px;line-height:1;
+    border-right:1px solid rgba(217,205,183,.12);
+  }
+  .kpi:last-child{border-right:0}
+  .kpi .v{
+    font-family:var(--mono);font-weight:500;font-size:13px;
+    color:var(--gold-soft);letter-spacing:.01em;
+  }
+  .kpi .v.ok{color:var(--sage-soft)}
+  .kpi .l{
+    font-family:var(--mono);font-size:8.5px;color:rgba(245,239,228,.45);
+    text-transform:uppercase;letter-spacing:.16em;margin-top:6px;font-weight:400;
+  }
+
+  .badge{
+    font-family:var(--mono);font-size:10px;
+    padding:6px 12px;border-radius:2px;
+    border:1px solid rgba(217,205,183,.20);
+    background:rgba(245,239,228,.06);
+    display:flex;align-items:center;gap:8px;color:var(--cream);
+    font-weight:400;letter-spacing:.06em;text-transform:uppercase;
+  }
+  .badge .dot{width:6px;height:6px;border-radius:50%;background:rgba(245,239,228,.30)}
+  .badge.live .dot{background:var(--sage-soft);box-shadow:0 0 0 0 rgba(107,128,116,.5);animation:bp 2s infinite}
+  .badge b{color:var(--gold-soft);font-weight:500}
+  header .minibtn{
+    background:rgba(245,239,228,.06);border-color:rgba(217,205,183,.22);color:var(--cream);
+  }
+  header .minibtn:hover{
+    background:rgba(245,239,228,.12);border-color:rgba(217,205,183,.40);color:var(--cream);
+  }
+
+  /* ============================================================
+     ROADMAP — single row of phase chips on cream
+     ============================================================ */
+  .roadmap{
+    display:flex;align-items:center;gap:12px;
+    padding:10px 16px;border-radius:2px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    overflow-x:auto;scrollbar-width:none;position:relative;
+    margin:0 28px;
+  }
+  .roadmap::-webkit-scrollbar{display:none}
+  .roadmap::before{display:none}
+  .roadlabel{
+    font-family:var(--mono);font-weight:500;font-size:9.5px;
+    text-transform:uppercase;letter-spacing:.18em;
+    color:var(--grey);white-space:nowrap;display:flex;align-items:center;gap:8px;flex:none;
+    padding-right:12px;border-right:1px solid var(--line);
+  }
+  .roadlabel::before{
+    content:"";width:4px;height:4px;border-radius:50%;background:var(--burgundy);
+    box-shadow:none;
+  }
+  .roadphases{display:flex;align-items:center;gap:6px;flex:1;min-width:0;flex-wrap:nowrap}
+  .roadphase{
+    display:inline-flex;align-items:center;gap:7px;
+    font-family:var(--mono);font-weight:400;font-size:10px;
+    text-transform:uppercase;letter-spacing:.12em;
+    color:var(--grey);white-space:nowrap;
+    padding:5px 11px;border-radius:2px;border:1px solid var(--line);
+    background:var(--cream-2);
+    transition:color .18s,border-color .18s,background .18s;
+    cursor:default;
+  }
+  .roadphase .pn{
+    color:var(--grey-soft);font-weight:400;letter-spacing:.06em;
+  }
+  .roadphase .check{
+    width:0;height:0;display:none;
+  }
+  .roadphase::before{
+    content:"✓";color:var(--sage);font-size:10px;line-height:1;margin-right:-1px;
+    font-family:var(--mono);font-weight:700;
+  }
+  .roadphase:hover{
+    background:var(--paper);color:var(--ink-soft);border-color:var(--line-2);
+  }
+  .roadphase.now{
+    color:var(--gold);border-color:var(--gold);
+    background:var(--gold-tint);
+  }
+  .roadphase.now::before{content:"●";color:var(--gold);font-size:8px}
+  .roadsep{display:none}
+  .roadstats,.roadstat{display:none}
+  @keyframes pulseDot{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+  /* ============================================================
+     COMPOSER — input + the commanding Run WRATH button
+     ============================================================ */
+  .composer{
+    display:flex;gap:10px;align-items:stretch;
+    margin:0 28px;
+  }
+  .composer input{
+    flex:1;
+    background:var(--paper);
+    border:1px solid var(--line);border-radius:2px;color:var(--ink);
+    padding:12px 16px;
+    font-family:var(--sans);font-weight:400;font-size:13.5px;line-height:1.4;outline:none;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  .composer input::placeholder{color:var(--grey-soft);font-weight:400;font-style:italic}
+  .composer input:focus{
+    border-color:var(--burgundy);
+    box-shadow:0 0 0 3px rgba(138,45,59,.10);
+  }
+
+  /* THE button. Only solid burgundy element on the page. */
+  .run{
+    background:var(--burgundy);
+    color:var(--paper);
+    font-family:var(--sans);font-weight:600;font-size:13px;letter-spacing:.02em;
+    border:0;border-radius:2px;
+    padding:10px 26px;cursor:pointer;white-space:nowrap;
+    transition:background .18s ease;
+    display:inline-flex;align-items:center;gap:8px;
+    box-shadow:0 1px 0 var(--burgundy-deep);
+  }
+  .run::before,.run::after{display:none}
+  .run:hover{background:var(--burgundy-deep);transform:none;filter:none;}
+  .run:active{transform:translateY(1px);box-shadow:none}
+  .run:disabled{background:var(--grey-soft);cursor:not-allowed;color:var(--cream);box-shadow:none}
+
+  .run2{
+    background:var(--cream-2);
+    color:var(--ink-soft);border:1px solid var(--line);
+    font-family:var(--sans);font-weight:500;font-size:12.5px;letter-spacing:.005em;
+    padding:10px 18px;border-radius:2px;cursor:pointer;white-space:nowrap;transition:.15s;
+  }
+  .run2:hover:not(:disabled){
+    color:var(--burgundy);border-color:var(--burgundy);background:var(--paper);
+    transform:none;box-shadow:none;
+  }
+  .run2:disabled{opacity:.45;cursor:not-allowed}
+
+  .toggle{
+    display:flex;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:10px;color:var(--grey);
+    white-space:nowrap;font-weight:400;letter-spacing:.08em;text-transform:uppercase;
+  }
+  .switch{
+    position:relative;width:34px;height:18px;border-radius:999px;
+    background:var(--cream-2);cursor:pointer;
+    border:1px solid var(--line);transition:.18s;
+  }
+  .switch.on{background:var(--sage);border-color:var(--sage)}
+  .switch i{
+    position:absolute;top:1px;left:1px;width:14px;height:14px;border-radius:50%;
+    background:var(--paper);transition:.18s cubic-bezier(.65,0,.35,1);
+    box-shadow:0 1px 2px rgba(0,0,0,.20);
+  }
+  .switch.on i{left:17px;background:var(--paper)}
+  .pill{
+    font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:2px;
+    border:1px solid var(--line);color:var(--grey);
+    background:var(--paper);letter-spacing:.08em;text-transform:uppercase;font-weight:400;
+  }
+
+  .chips{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin:10px 28px 0}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{
+    font-family:var(--sans);font-weight:400;font-size:11.5px;
+    color:var(--grey);border:1px solid var(--line);
+    border-radius:2px;padding:6px 11px;cursor:pointer;white-space:nowrap;transition:.15s;
+    background:var(--cream-2);
+  }
+  .chip:hover{
+    color:var(--burgundy);border-color:var(--burgundy);background:var(--paper);
+    transform:none;box-shadow:none;
+  }
+
+  /* ============================================================
+     TOOLBAR — two contained rows separated by a hairline
+     ============================================================ */
+  .toolbar{
+    display:block;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:2px;
+    padding:0;margin:10px 28px 0;
+    overflow:hidden;
+  }
+  .tbrow{
+    display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+    width:100%;padding:7px 14px;
+  }
+  .tbrow + .tbrow{border-top:1px solid var(--line)}
+  .tbrow:first-child{border-bottom:0}
+  .tbgroup{display:contents}
+  .tbsep{display:none}
+  .toolbar .hist{margin-left:auto}
+  .tblabel{
+    font-family:var(--mono);font-weight:500;font-size:9.5px;
+    color:var(--grey);text-transform:uppercase;letter-spacing:.15em;
+    white-space:nowrap;padding-right:12px;margin-right:6px;
+    border-right:1px solid var(--line);
+  }
+  .tblabel::before{display:none}
+
+  .minibtn{
+    background:var(--cream-2);border:1px solid var(--line);color:var(--ink-soft);
+    border-radius:2px;
+    padding:5px 11px;
+    font-family:var(--sans);font-weight:500;font-size:11.5px;letter-spacing:.005em;
+    cursor:pointer;transition:.15s;white-space:nowrap;
+  }
+  .minibtn:hover:not(:disabled){
+    color:var(--burgundy);border-color:var(--burgundy);background:var(--paper);
+    transform:none;box-shadow:none;
+  }
+  .minibtn:disabled{opacity:.40;cursor:not-allowed}
+
+  .hist{
+    background:var(--paper);color:var(--grey);
+    border:1px solid var(--line);border-radius:2px;padding:5px 11px;
+    font-family:var(--mono);font-size:10.5px;font-weight:400;
+    cursor:pointer;max-width:240px;transition:.15s;
+  }
+  .hist:focus{outline:none;border-color:var(--burgundy);box-shadow:0 0 0 2px rgba(138,45,59,.10)}
+  .hist:hover{border-color:var(--burgundy);color:var(--ink-soft)}
+  select,select option{background:var(--paper);color:var(--ink)}
+  select option{padding:8px}
+
+  /* ============================================================
+     CARDS — paper surface, line border, no glow
+     ============================================================ */
+  .app-main{margin:0 28px}
+  .card{
+    background:var(--paper);
+    border:1px solid var(--line);border-radius:2px;padding:16px 18px;
+    box-shadow:0 1px 3px rgba(24,30,42,.04);
+    min-height:0;display:flex;flex-direction:column;position:relative;overflow:hidden;
+  }
+  .card::before{display:none}
+  .ct{
+    font-family:var(--mono);font-weight:500;font-size:9.5px;
+    text-transform:uppercase;letter-spacing:.16em;
+    color:var(--grey);margin:0 0 14px;flex:none;display:flex;gap:13px;align-items:center;
+  }
+  .ct .k{display:inline-flex;align-items:center;gap:8px;color:var(--ink-soft)}
+  .ct .k::before{
+    content:"";width:4px;height:4px;border-radius:50%;background:var(--burgundy);
+    box-shadow:none;
+  }
+
+  /* ============================================================
+     ORCHESTRATION PIPELINE
+     ============================================================ */
+  .railwrap{padding-bottom:8px}
+  .orch{display:flex;justify-content:center;margin-bottom:18px}
+  .orchpill{
+    display:inline-flex;align-items:center;gap:11px;
+    padding:8px 18px;border-radius:2px;
+    font-family:var(--mono);font-weight:500;font-size:10.5px;
+    letter-spacing:.12em;text-transform:uppercase;
+    color:var(--cream);
+    border:1px solid var(--ink-soft);position:relative;
+    background:var(--ink);
+  }
+  .orchpill svg{width:13px;height:13px;color:var(--gold-soft)}
+  .orchpill.running svg{animation:rot 6s linear infinite}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .orchpill b{font-family:var(--mono);font-weight:500;font-size:10.5px;letter-spacing:.16em;color:var(--cream)}
+  .orchpill .live{
+    font-family:var(--mono);font-size:9px;color:var(--gold-soft);font-weight:400;letter-spacing:.10em;
+    padding-left:10px;margin-left:3px;border-left:1px solid rgba(245,239,228,.18);
+    text-transform:uppercase;
+  }
+  .orchpill::after{
+    content:"";position:absolute;top:100%;left:50%;width:1px;height:16px;
+    background:var(--line);transform:translateX(-50%);
+  }
+
+  .flow{position:relative;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+  .flow::-webkit-scrollbar{height:6px}
+  .flow::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+
+  /* Edges — single 1.5px stroke, no glow */
+  .edges{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:visible}
+  .edge{fill:none;stroke:var(--line);stroke-width:1.5;transition:stroke .3s,opacity .3s;filter:none;}
+  .edge.live{
+    stroke:var(--burgundy);stroke-width:1.75;stroke-dasharray:6 5;
+    animation:march .55s linear infinite;filter:none;
+  }
+  .edge.done{
+    stroke:var(--sage);opacity:1;stroke-width:1.5;filter:none;
+  }
+  .edge.reject{
+    stroke:var(--crimson);stroke-width:1.75;stroke-dasharray:4 4;
+    animation:marchrev .5s linear infinite;filter:none;
+  }
+  @keyframes march{to{stroke-dashoffset:-22}}
+  @keyframes marchrev{to{stroke-dashoffset:22}}
+
+  /* Phase columns */
+  .rows{
+    display:flex;flex-wrap:nowrap;gap:46px;
+    align-items:flex-start;justify-content:center;
+    position:relative;z-index:2;
+    padding:6px 16px 30px;width:auto;margin:0 auto;
+  }
+  .group{
+    display:flex;flex-direction:column;gap:9px;
+    border:1px solid var(--line);border-radius:2px;
+    background:var(--cream-2);
+    padding:10px 12px 14px;position:relative;
+    transition:.18s;min-width:210px;
+  }
+  .group::before{display:none}
+  .ghead{
+    font-family:var(--mono);font-weight:500;font-size:10px;
+    letter-spacing:.20em;text-transform:uppercase;text-align:center;
+    color:var(--gold);display:flex;align-items:center;justify-content:center;gap:8px;
+    padding:3px 0 9px;margin-bottom:6px;
+    border-bottom:1px solid var(--line);
+  }
+  .ghead .dotp{
+    width:5px;height:5px;border-radius:50%;background:var(--gold);
+    box-shadow:none;
+  }
+  .gnodes{display:flex;flex-direction:column;gap:9px}
+
+  /* Pipeline node card */
+  .node{
+    position:relative;width:198px;
+    border:1px solid var(--line);
+    border-left:3px solid var(--line);
+    border-radius:2px;
+    padding:11px 13px 11px 13px;cursor:pointer;
+    background:var(--paper);
+    transition:border-color .18s,box-shadow .18s,filter .18s;
+    overflow:hidden;
+    animation:popUp .35s ease backwards;
+    display:flex;flex-direction:column;gap:7px;
+    box-shadow:0 1px 2px rgba(24,30,42,.04);
+  }
+  .node::after{display:none}
+  @keyframes popUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .node:hover{
+    border-color:var(--burgundy);
+    box-shadow:0 2px 8px rgba(24,30,42,.06);
+  }
+  .node .top{display:flex;align-items:center;gap:10px}
+  .node .ico{
+    width:28px;height:28px;flex:none;border-radius:2px;display:grid;place-items:center;
+    color:var(--burgundy);
+    background:var(--burgundy-tint);
+    border:1px solid rgba(138,45,59,.18);
+  }
+  .node .ico svg{width:14px;height:14px;filter:none;stroke-width:1.6}
+  .node .meta{min-width:0;flex:1}
+  .node .nm{
+    font-family:var(--sans);font-weight:600;font-size:13px;line-height:1.2;
+    letter-spacing:-.003em;color:var(--ink);
+  }
+  .node .ag{
+    font-family:var(--mono);font-size:9.5px;color:var(--grey);margin-top:3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.04em;
+    font-weight:400;
+  }
+  .node .b{
+    position:absolute;top:9px;right:9px;width:16px;height:16px;border-radius:50%;
+    display:grid;place-items:center;font-size:9px;font-weight:700;
+    background:var(--cream-2);color:var(--grey);transition:.2s;
+    border:1px solid var(--line);
+    font-family:var(--mono);
+  }
+
+  /* Status badge inside node */
+  .node .g{
+    font-family:var(--mono);font-weight:600;font-size:9px;letter-spacing:.12em;
+    display:none;border-radius:2px;
+    padding:3px 8px;width:fit-content;text-transform:uppercase;align-self:flex-start;
+    border:1px solid transparent;
+  }
+  .node .g.show{display:inline-block;animation:popUp .22s ease}
+  .g.grounded{color:var(--sage);background:var(--green-bg);border-color:rgba(74,98,86,.30);}
+  .g.flagged{color:var(--amber-ink);background:var(--amber-bg);border-color:rgba(138,90,31,.30);}
+  .g.blocked{color:var(--crimson);background:var(--crimson-bg);border-color:rgba(165,49,36,.30);}
+
+  /* Node lifecycle states */
+  .node.idle{opacity:.6;filter:none}
+  .node.run{
+    border-color:var(--line);
+    border-left-color:var(--burgundy);
+    box-shadow:0 0 0 1px var(--burgundy) inset, 0 2px 10px rgba(138,45,59,.10);
+  }
+  .node.run::before{
+    content:"";position:absolute;left:0;top:0;width:3px;height:100%;
+    background:var(--burgundy);
+    animation:runStripe 1.5s ease-in-out infinite;
+  }
+  @keyframes runStripe{
+    0%,100%{opacity:.55}
+    50%{opacity:1}
+  }
+  .node.run .b{
+    background:var(--burgundy);color:var(--paper);border-color:var(--burgundy);
+    animation:bp 1.4s infinite;
+  }
+  @keyframes bp{
+    0%{box-shadow:0 0 0 0 rgba(138,45,59,.45)}
+    70%{box-shadow:0 0 0 7px rgba(138,45,59,0)}
+    100%{box-shadow:0 0 0 0 transparent}
+  }
+  .node.done{opacity:1}
+  .node.done{border-left-color:var(--sage)}
+  .node.done .b{
+    background:var(--green-bg);color:var(--sage);border-color:rgba(74,98,86,.40);
+  }
+  .node.gate{border-left-color:var(--ink-soft)}
+  .node.gate.done{border-left-color:var(--ink-soft)}
+  .node.gate.done .b{background:var(--ink);color:var(--gold-soft);border-color:var(--ink-soft);}
+  .node.sel{outline:1px solid var(--burgundy);outline-offset:2px}
+  .node.reject{animation:rejflash .6s ease 2;border-left-color:var(--crimson);}
+  @keyframes rejflash{
+    0%,100%{box-shadow:none}
+    50%{box-shadow:0 0 0 2px rgba(165,49,36,.30)}
+  }
+
+  /* ============================================================
+     WORKSPACE — TWO floating cards pinned to bottom corners.
+     Bottom-LEFT  = Deliverable preview (cream/paper)
+     Bottom-RIGHT = Live activity preview (ink/dark)
+     Hidden when idle; slide up from below when a run starts.
+     ============================================================ */
+  .workspace{
+    position:fixed;left:0;right:0;bottom:0;height:0;
+    z-index:60;pointer-events:none;
+  }
+  .fpcard{
+    position:absolute;bottom:20px;width:300px;padding:11px 13px;
+    border-radius:3px;background:var(--paper);border:1px solid var(--line);
+    display:flex;flex-direction:column;gap:7px;pointer-events:all;
+    transform:translateY(calc(100% + 40px));opacity:0;
+    transition:transform .42s cubic-bezier(.22,.68,0,1.10),opacity .30s ease;
+    box-shadow:0 14px 44px rgba(24,30,42,.22),0 3px 12px rgba(24,30,42,.10);
+  }
+  .workspace.fp-show .fpcard{transform:translateY(0);opacity:1;}
+  .fpc-del{left:20px;}
+  .fpc-log{
+    right:20px;background:var(--ink);border-color:rgba(217,205,183,.18);
+    box-shadow:0 14px 44px rgba(0,0,0,.36),0 3px 12px rgba(0,0,0,.20);
+  }
+  .fpc-head{display:flex;align-items:center;gap:9px;}
+  .fpz-dot{width:5px;height:5px;border-radius:50%;flex:none;}
+  .fpz-dot.del{background:var(--burgundy);}
+  .fpz-dot.log{background:var(--gold-soft);}
+  .fpz-dot.live{
+    background:var(--burgundy);
+    box-shadow:0 0 0 0 rgba(138,45,59,.55);
+    animation:fpDotPulse 1.4s ease-out infinite;
+  }
+  .fpz-dot.done{background:var(--sage);}
+  @keyframes fpDotPulse{
+    0%{box-shadow:0 0 0 0 rgba(138,45,59,.55);}
+    70%{box-shadow:0 0 0 7px rgba(138,45,59,0);}
+    100%{box-shadow:0 0 0 0 rgba(138,45,59,0);}
+  }
+  .fpz-lbl{
+    font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--grey);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .fpz-lbl.running{color:var(--burgundy);}
+  .fpc-log .fpz-lbl{color:rgba(245,239,228,.55);}
+  .fpc-log .fpz-lbl.running{color:var(--gold-soft);}
+  .fpz-pre{
+    font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);line-height:1.55;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .fpc-log .fpz-pre{color:rgba(245,239,228,.72);}
+  .fpz-exp{
+    flex:none;background:var(--cream-2);border:1px solid var(--line);color:var(--ink-soft);
+    font-family:var(--mono);font-size:9px;letter-spacing:.07em;text-transform:uppercase;
+    padding:4px 9px;border-radius:2px;cursor:pointer;
+    transition:background .15s,color .15s,border-color .15s;
+  }
+  .fpz-exp:hover{background:var(--burgundy);color:var(--paper);border-color:var(--burgundy);}
+  .fpc-log .fpz-exp{
+    background:rgba(245,239,228,.06);border-color:rgba(217,205,183,.18);color:rgba(245,239,228,.72);
+  }
+  .fpc-log .fpz-exp:hover{background:rgba(245,239,228,.16);color:var(--cream);border-color:rgba(217,205,183,.40);}
+  .fpz-close{
+    flex:none;background:transparent;border:0;color:var(--grey-soft);
+    font-size:14px;cursor:pointer;padding:2px 6px;line-height:1;
+    border-radius:2px;transition:color .15s;
+  }
+  .fpz-close:hover{color:var(--burgundy);}
+  .fpc-log .fpz-close{color:rgba(245,239,228,.42);}
+  .fpc-log .fpz-close:hover{color:var(--cream);}
+  .detail,#log{display:none;}
+  .detailcard{min-height:0}
+  .detail{overflow:auto;flex:1;padding-right:6px}
+  .detail::-webkit-scrollbar{width:8px}
+  .detail::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+  .detail .dt{
+    font-family:var(--serif);font-weight:400;font-size:18px;line-height:1.3;
+    margin:0 0 14px;display:flex;align-items:center;gap:11px;
+    letter-spacing:-.01em;color:var(--ink);
+  }
+  .detail .dt .ico{
+    width:30px;height:30px;border-radius:2px;display:grid;place-items:center;
+    color:var(--burgundy);background:var(--burgundy-tint);
+    border:1px solid rgba(138,45,59,.20);box-shadow:none;
+  }
+  .detail .dt .ico svg{width:16px;height:16px}
+
+  .pv{
+    font-family:var(--mono);font-weight:500;font-size:9px;letter-spacing:.10em;
+    text-transform:uppercase;padding:4px 9px;border-radius:2px;border:1px solid transparent;
+  }
+  .pv-real{background:var(--green-bg);color:var(--sage);border-color:rgba(74,98,86,.30);box-shadow:none}
+  .pv-live{background:var(--burgundy-tint);color:var(--burgundy);border-color:rgba(138,45,59,.30);box-shadow:none}
+  .pv-demo{background:var(--cream-2);color:var(--grey);border-color:var(--line)}
+  .pvlegend{
+    display:flex;gap:14px;font-family:var(--sans);font-size:11px;color:var(--grey);
+    text-transform:none;letter-spacing:.005em;flex-wrap:wrap;font-weight:400;
+  }
+  .pvlegend b{font-weight:500;color:var(--ink-soft)}
+
+  .aud{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+  .aud .lbl{
+    font-family:var(--mono);font-weight:500;font-size:9.5px;color:var(--grey);
+    align-self:center;text-transform:uppercase;letter-spacing:.14em;margin-right:4px;
+  }
+  .audb{
+    background:var(--cream-2);border:1px solid var(--line);color:var(--ink-soft);
+    border-radius:2px;padding:7px 14px;
+    font-family:var(--sans);font-weight:500;font-size:11.5px;cursor:pointer;transition:.15s;
+  }
+  .audb:hover{color:var(--burgundy);border-color:var(--burgundy);background:var(--paper);transform:none}
+  .audb.on{
+    background:var(--burgundy);color:var(--paper);border-color:var(--burgundy);
+    box-shadow:none;
+  }
+
+  .detail .md{animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .md{font-family:var(--sans);font-size:13.5px;color:var(--ink-soft);line-height:1.7}
+  .md h2,.md h3{
+    color:var(--ink);margin:1em 0 .4em;
+    font-family:var(--serif);font-weight:400;font-size:17px;line-height:1.3;letter-spacing:-.005em;
+  }
+  .md p{margin:.6em 0}
+  .md strong{color:var(--ink);font-weight:600}
+  .md table{
+    border-collapse:collapse;width:100%;margin:.8em 0;font-size:12.5px;border-radius:2px;overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .md th,.md td{border:1px solid var(--line);padding:8px 12px;text-align:left}
+  .md th{background:var(--cream-2);color:var(--ink);font-weight:600;letter-spacing:.005em;font-family:var(--sans)}
+  .md tr:nth-child(even) td{background:var(--cream-2)}
+  .md code{
+    background:var(--cream-2);padding:2px 7px;border-radius:2px;
+    font-family:var(--mono);font-size:12px;color:var(--burgundy);border:1px solid var(--line);
+  }
+  .md pre{
+    background:var(--ink);padding:14px;border-radius:2px;
+    overflow:auto;border:1px solid var(--ink-soft);
+  }
+  .md pre code{background:none;padding:0;border:0;color:var(--cream)}
+  .md .mermaid{
+    background:var(--cream-2);border:1px solid var(--line);border-radius:2px;padding:16px;
+    margin:.7em 0;text-align:center;overflow:auto;
+  }
+  .md a{color:var(--burgundy);text-decoration:underline;text-underline-offset:2px;border-bottom:none}
+  .md a:hover{color:var(--burgundy-deep)}
+
+  .grnd{border-radius:2px;padding:10px 13px;margin:0 0 14px;font-size:12.5px;border:1px solid var(--line)}
+  .grnd.grounded{background:var(--green-bg);border-color:rgba(74,98,86,.32);color:var(--sage);box-shadow:none}
+  .grnd.flagged{background:var(--amber-bg);border-color:rgba(138,90,31,.32);color:var(--amber-ink);box-shadow:none}
+  .grnd.blocked{background:var(--crimson-bg);border-color:rgba(165,49,36,.32);color:var(--crimson);box-shadow:none}
+  .grnd ul{margin:7px 0 0;padding-left:19px}
+  .grnd li{margin:3px 0}
+
+  /* Live Activity panel — INK dark, cream text per spec */
+  .logcard{min-height:0;background:var(--ink);border-color:var(--ink-soft);}
+  .logcard::before{display:none}
+  .logcard .ct{color:rgba(245,239,228,.55)}
+  .logcard .ct .k{color:var(--cream)}
+  .logcard .ct .k::before{background:var(--gold-soft)}
+  .logcard .exp{
+    background:rgba(245,239,228,.06);border-color:rgba(217,205,183,.20);color:var(--cream);
+  }
+  .logcard .exp:hover{background:rgba(245,239,228,.12);color:var(--cream);border-color:rgba(217,205,183,.40);}
+  .log{
+    font-family:var(--mono);font-size:11.5px;line-height:1.7;
+    background:transparent;
+    border:0;padding:6px 4px;overflow:auto;
+    color:rgba(245,239,228,.75);flex:1;
+  }
+  .log::-webkit-scrollbar{width:8px}
+  .log::-webkit-scrollbar-thumb{background:rgba(245,239,228,.15);border-radius:9px}
+  .log .l{white-space:pre-wrap;word-break:break-word;padding:1px 0;animation:fade .22s ease}
+  .log .s{color:var(--gold-soft);font-weight:500}
+
+  .placeholder{
+    color:var(--grey);display:grid;place-items:center;height:100%;text-align:center;font-size:13px;
+    padding:26px;line-height:1.75;font-family:var(--sans);
+  }
+  .placeholder .big{
+    font-family:var(--serif);font-weight:400;font-size:19px;line-height:1.3;
+    color:var(--ink);margin-bottom:9px;letter-spacing:-.005em;
+  }
+  kbd{
+    background:var(--cream-2);border:1px solid var(--line);border-bottom-width:2px;border-radius:2px;
+    padding:3px 9px;font-family:var(--mono);font-weight:500;font-size:11px;color:var(--burgundy);
+  }
+
+  /* Expand button + modal */
+  .exp{
+    margin-left:auto;background:var(--cream-2);border:1px solid var(--line);color:var(--grey);
+    border-radius:2px;cursor:pointer;font-family:var(--sans);font-size:11.5px;line-height:1;padding:6px 11px;transition:.15s;
+    display:inline-flex;align-items:center;gap:7px;text-transform:none;letter-spacing:0;font-weight:500;
+  }
+  .exp:hover{color:var(--burgundy);border-color:var(--burgundy);background:var(--paper);transform:none}
+  .exp .lab{font-family:var(--mono);font-weight:500;font-size:9.5px;letter-spacing:.12em}
+  .modal{
+    position:fixed;inset:0;background:rgba(24,30,42,.55);backdrop-filter:blur(4px);z-index:60;display:none;
+    align-items:center;justify-content:center;padding:42px;animation:fade .22s ease;
+  }
+  .modal.show{display:flex}
+  .sheet{
+    width:min(1180px,93vw);height:min(89vh,980px);
+    background:var(--paper);
+    border:1px solid var(--line);border-radius:2px;display:flex;flex-direction:column;
+    box-shadow:0 30px 90px rgba(24,30,42,.30);
+    animation:popin .25s ease;
+  }
+  @keyframes popin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .sheethead{
+    display:flex;align-items:center;gap:13px;padding:18px 24px;border-bottom:1px solid var(--line);flex:none;
+    background:var(--cream-2);
+  }
+  .sheethead .t{
+    font-family:var(--serif);font-weight:400;font-size:17px;line-height:1.3;
+    display:flex;align-items:center;gap:12px;letter-spacing:-.005em;color:var(--ink);
+  }
+  .sheethead .t .ico{
+    width:28px;height:28px;border-radius:2px;display:grid;place-items:center;color:var(--burgundy);
+    background:var(--burgundy-tint);border:1px solid rgba(138,45,59,.22);box-shadow:none;
+  }
+  .sheethead .t .ico svg{width:15px;height:15px}
+  .sheetclose{
+    margin-left:auto;background:var(--paper);border:1px solid var(--line);color:var(--grey);
+    width:32px;height:32px;border-radius:2px;cursor:pointer;font-size:14px;transition:.18s;
+  }
+  .sheetclose:hover{
+    color:var(--crimson);border-color:var(--crimson);background:var(--paper);transform:none;
+  }
+  .sheetbody{overflow:auto;padding:22px 26px;flex:1;background:var(--paper);color:var(--ink-soft)}
+  .sheetbody::-webkit-scrollbar{width:9px}
+  .sheetbody::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+  .sheetbody .md{font-size:14px}
+  .sheetbody .md table{font-size:13px}
+
+  .logfull{
+    font-family:var(--mono);font-size:12.5px;line-height:1.7;
+    color:var(--ink-soft);white-space:pre-wrap;word-break:break-word;
+  }
+  .logfull .s{color:var(--burgundy);font-weight:500}
+
+  .cmpsel{display:flex;gap:10px;align-items:center;margin-bottom:15px;flex-wrap:wrap}
+  .cmpsel select{
+    background:var(--paper);border:1px solid var(--line);color:var(--ink);border-radius:2px;
+    padding:8px 12px;font-family:var(--sans);font-size:12px;max-width:350px;
+  }
+  .cmpchg{font-family:var(--mono);font-size:11px;color:var(--grey);margin-left:auto}
+  .cmpmetrics{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:9px}
+  .cmpm{border:1px solid var(--line);border-radius:2px;padding:12px 14px;background:var(--cream-2)}
+  .cmpm .p{font-size:12px;color:var(--ink);font-weight:600;margin-bottom:6px;font-family:var(--sans)}
+  .cmpm .s{font-size:11px;color:var(--grey);font-family:var(--mono)}
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:0 15px}
+  .cmpstage{
+    grid-column:1/-1;display:flex;align-items:center;gap:11px;margin:20px 0 10px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+  .cmpstage .nm{font-family:var(--sans);font-weight:600;font-size:13.5px;color:var(--ink)}
+  .cmpstage.changed .nm{color:var(--amber-ink)}
+  .cmpbadge{
+    font-family:var(--mono);font-weight:500;font-size:9.5px;text-transform:uppercase;letter-spacing:.10em;
+    padding:3px 8px;border-radius:2px;
+  }
+  .cmpbadge.same{background:var(--green-bg);color:var(--sage)}
+  .cmpbadge.changed{background:var(--amber-bg);color:var(--amber-ink)}
+  .cmpbadge.only{background:var(--burgundy-tint);color:var(--burgundy)}
+  .cmpdelta{font-family:var(--mono);font-size:10.5px;color:var(--grey)}
+  .cmpcell{
+    border:1px solid var(--line);border-radius:2px;padding:12px;
+    background:var(--paper);overflow:auto;
+  }
+  .cmpcell.changed{border-color:rgba(138,90,31,.40);background:var(--amber-bg)}
+  .cmpcell.empty{color:var(--grey);font-style:italic;display:grid;place-items:center;min-height:52px}
+
+  /* Ask sheet */
+  .ask{
+    position:fixed;inset:0;background:rgba(24,30,42,.50);backdrop-filter:blur(3px);z-index:80;display:flex;
+    align-items:center;justify-content:center;padding:32px;animation:fade .18s ease;
+  }
+  .asksheet{
+    width:min(520px,93vw);background:var(--paper);
+    border:1px solid var(--line);border-radius:2px;padding:22px 24px;
+    box-shadow:0 30px 90px rgba(24,30,42,.30);animation:popin .22s ease;
+  }
+  .askt{font-family:var(--serif);font-weight:400;font-size:16px;line-height:1.5;margin-bottom:14px;color:var(--ink);letter-spacing:-.005em}
+  .aski{
+    width:100%;background:var(--paper);border:1px solid var(--line);border-radius:2px;color:var(--ink);
+    padding:12px 14px;font-family:var(--sans);font-weight:400;font-size:13.5px;line-height:1.4;outline:none;
+  }
+  .aski:focus{border-color:var(--burgundy);box-shadow:0 0 0 3px rgba(138,45,59,.10)}
+  .askbtns{display:flex;justify-content:flex-end;gap:11px;margin-top:18px}
+  .askbtns button{
+    padding:10px 20px;border-radius:2px;cursor:pointer;
+    font-family:var(--sans);font-weight:600;font-size:12.5px;
+    border:1px solid var(--line);transition:.15s;
+  }
+  .askcancel{background:var(--cream-2);color:var(--ink-soft)}
+  .askcancel:hover{color:var(--ink);border-color:var(--line-2);background:var(--paper)}
+  .askok{background:var(--burgundy);color:var(--paper);border-color:var(--burgundy)}
+  .askok:hover{background:var(--burgundy-deep);border-color:var(--burgundy-deep);transform:none;filter:none}
+
+  /* Blueprint / example / inbox cards */
+  .bpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:15px}
+  .bpcard{
+    border:1px solid var(--line);border-radius:2px;padding:16px 17px;cursor:pointer;
+    background:var(--paper);
+    transition:.18s;position:relative;overflow:hidden;
+  }
+  .bpcard::after{display:none}
+  .bpcard:hover{
+    transform:none;border-color:var(--burgundy);
+    box-shadow:0 2px 10px rgba(24,30,42,.07);
+  }
+  .bpcard .h{display:flex;align-items:center;gap:13px;margin-bottom:10px}
+  .bpcard .ico{
+    width:36px;height:36px;flex:none;border-radius:2px;display:grid;place-items:center;color:var(--burgundy);
+    background:var(--burgundy-tint);border:1px solid rgba(138,45,59,.20);box-shadow:none;
+  }
+  .bpcard .ico svg{width:18px;height:18px;filter:none}
+  .bpcard .nm{font-family:var(--serif);font-weight:400;font-size:15px;line-height:1.25;letter-spacing:-.005em;color:var(--ink)}
+  .bpcard .cat{font-family:var(--mono);font-weight:500;font-size:9.5px;color:var(--grey);text-transform:uppercase;letter-spacing:.10em}
+  .bpcard .pr{font-size:12.5px;color:var(--ink-soft);line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .bpcard .go{
+    position:absolute;top:14px;right:16px;font-family:var(--mono);font-weight:500;font-size:11px;color:var(--burgundy);
+    opacity:0;transition:.18s;
+  }
+  .bpcard:hover .go{opacity:1;transform:translateX(3px)}
+
+  .antiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:22px}
+  .antile{
+    border:1px solid var(--line);border-radius:2px;padding:16px 17px;
+    background:var(--cream-2);
+  }
+  .antile .v{
+    font-family:var(--serif);font-weight:400;font-size:28px;line-height:1;letter-spacing:-.02em;
+    color:var(--burgundy);background:none;-webkit-background-clip:initial;background-clip:initial;
+    text-shadow:none;
+  }
+  .antile .l{
+    font-family:var(--mono);font-weight:500;font-size:10px;color:var(--grey);margin-top:8px;
+    letter-spacing:.10em;text-transform:uppercase;
+  }
+  .anrow{margin-bottom:22px}
+  .anrow h4{
+    margin:0 0 11px;font-family:var(--mono);font-weight:500;font-size:10.5px;
+    text-transform:uppercase;letter-spacing:.14em;color:var(--grey);
+  }
+  .anbar{display:flex;align-items:center;gap:12px;margin:8px 0;font-size:12px}
+  .anbar .nm{width:128px;color:var(--ink-soft);font-family:var(--sans)}
+  .anbar .tk{flex:1;height:10px;border-radius:2px;background:var(--cream-2);overflow:hidden;border:1px solid var(--line)}
+  .anbar .fl{
+    height:100%;border-radius:1px;background:var(--burgundy);box-shadow:none;
+  }
+  .anbar .ct{width:38px;text-align:right;color:var(--grey);font-family:var(--mono);font-size:11px}
+  .antags{display:flex;flex-wrap:wrap;gap:9px}
+  .antag{
+    font-family:var(--sans);font-size:11.5px;border:1px solid var(--line);border-radius:2px;
+    padding:5px 11px;color:var(--ink-soft);background:var(--cream-2);
+  }
+  .antag b{color:var(--burgundy);margin-left:6px;font-weight:600}
+
+  .ibtop{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .ibsave{
+    background:var(--burgundy);color:var(--paper);border:0;
+    font-family:var(--sans);font-weight:600;font-size:12.5px;
+    padding:9px 18px;border-radius:2px;cursor:pointer;box-shadow:none;
+  }
+  .ibsave:hover{background:var(--burgundy-deep);transform:none;filter:none}
+  .ibsave:disabled{background:var(--grey-soft);cursor:not-allowed;color:var(--cream)}
+  .ibrow{
+    display:flex;align-items:flex-start;gap:13px;border:1px solid var(--line);border-radius:2px;
+    padding:13px 15px;margin-bottom:10px;background:var(--paper);transition:.18s;
+  }
+  .ibrow:hover{border-color:var(--burgundy);background:var(--paper);transform:none}
+  .ibmain{flex:1;min-width:0}
+  .ibq{font-family:var(--sans);font-weight:600;font-size:13.5px;line-height:1.35;color:var(--ink);cursor:pointer;letter-spacing:-.005em}
+  .ibq:hover{color:var(--burgundy)}
+  .ibnote{font-size:12px;color:var(--ink-soft);margin-top:6px;white-space:pre-wrap;line-height:1.55}
+  .ibmeta{
+    display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none;
+    font-family:var(--mono);font-size:10px;color:var(--grey-soft);
+  }
+  .ibbadge{
+    font-family:var(--mono);font-weight:500;font-size:9px;text-transform:uppercase;letter-spacing:.10em;
+    padding:3px 8px;border-radius:2px;
+  }
+  .ibbadge.High{background:var(--green-bg);color:var(--sage)}
+  .ibbadge.Medium{background:var(--amber-bg);color:var(--amber-ink)}
+  .ibbadge.Guarded{background:var(--crimson-bg);color:var(--crimson)}
+  .ibacts{display:flex;gap:7px;flex:none}
+  .ibacts button{
+    background:var(--cream-2);border:1px solid var(--line);color:var(--grey);border-radius:2px;
+    cursor:pointer;font-size:11.5px;padding:6px 10px;transition:.15s;font-family:var(--sans);font-weight:500;
+  }
+  .ibacts button:hover{color:var(--burgundy);border-color:var(--burgundy);background:var(--paper)}
+  .ibacts button.del:hover{color:var(--crimson);border-color:var(--crimson);background:var(--paper)}
+
+  /* Empty-state cards */
+  .gs{max-width:600px;text-align:center}
+  .gstitle{
+    font-family:var(--serif);font-weight:400;font-size:24px;line-height:1.2;letter-spacing:-.01em;
+    color:var(--ink);
+  }
+  .gssub{color:var(--grey);font-family:var(--sans);font-size:13px;margin:11px 0 22px;line-height:1.65;font-weight:400}
+  .gscards{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:20px}
+  .gscard{
+    border:1px solid var(--line);border-radius:2px;padding:15px 15px;cursor:pointer;transition:.18s;
+    background:var(--cream-2);text-align:left;position:relative;overflow:hidden;
+  }
+  .gscard:hover{
+    transform:none;border-color:var(--burgundy);background:var(--paper);
+    box-shadow:0 2px 10px rgba(24,30,42,.06);
+  }
+  .gscard b{display:block;font-family:var(--sans);font-weight:600;font-size:13px;line-height:1.25;color:var(--ink);margin-bottom:5px;letter-spacing:-.003em}
+  .gscard span{font-family:var(--sans);font-size:11.5px;color:var(--ink-soft);line-height:1.55}
+  .gshint{font-family:var(--sans);font-size:11.5px;color:var(--grey);line-height:1.9}
+
+  .helpsec{margin:0 0 20px}
+  .helpsec h3{
+    margin:0 0 8px;font-family:var(--serif);font-weight:400;font-size:15px;line-height:1.3;
+    color:var(--burgundy);letter-spacing:-.005em;text-shadow:none;
+  }
+  .helpsec p,.helpsec li{font-family:var(--sans);font-size:13px;color:var(--ink-soft);line-height:1.7}
+  .helpsec ul{margin:5px 0;padding-left:22px}
+
+  /* OpsRAG Lab panel — port to old library */
+  .orgraph{
+    display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:22px;padding:13px 16px;
+    background:var(--cream-2);
+    border:1px solid var(--line);border-radius:2px;
+  }
+  .orgraph .ogtitle{font-family:var(--mono);font-weight:500;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--grey);width:100%;margin-bottom:8px}
+  .ogtype{
+    padding:4px 11px;border-radius:2px;font-family:var(--mono);font-weight:500;font-size:10.5px;
+    background:var(--burgundy-tint);border:1px solid rgba(138,45,59,.28);color:var(--burgundy);
+  }
+  .ogedge{font-family:var(--mono);font-size:10.5px;color:var(--grey);margin-left:6px}
+  .orfc{
+    border:1px solid var(--line);border-radius:2px;padding:16px 18px;margin-bottom:16px;
+    background:var(--paper);box-shadow:0 1px 3px rgba(24,30,42,.03);
+  }
+
+  @media(max-width:1300px){
+    header{grid-template-columns:auto 1fr auto auto;gap:18px}
+    .kpis{grid-column:1 / -1;order:5;width:100%;border-left:0;border-top:1px solid rgba(217,205,183,.18);margin-top:6px}
+  }
+  @media(max-width:1100px){
+    .workspace{grid-template-columns:1fr}
+    html,body{overflow:auto}
+    .app{height:auto;min-height:100vh}
+    .roadmap{flex-wrap:wrap}
+    header{grid-template-columns:auto 1fr auto;gap:14px}
+    .badge{order:3}
+    #helpBtn{order:4}
+    .kpis{order:5;grid-column:1 / -1;width:100%}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">W</div>
+    <div style="min-width:0">
+      <h1>WRATH <span class="tm">Console</span></h1>
+      <div class="sub">Workbench for Reasoned Architecture, Testing &amp; Handover — state a network problem, watch WRATH solve it.</div>
+    </div>
+    <div class="kpis" title="WRATH + OpsRAG build state (see SYSTEM.md)">
+      <div class="kpi"><span class="v ok">ALL GREEN</span><span class="l">47 batteries</span></div>
+      <div class="kpi"><span class="v">300</span><span class="l">benchmark Q</span></div>
+      <div class="kpi"><span class="v">10</span><span class="l">faults</span></div>
+      <div class="kpi"><span class="v">+0.856</span><span class="l">Δ coherence</span></div>
+    </div>
+    <div class="badge" id="modeBadge"><span class="dot"></span><span id="modeText">…</span></div>
+    <button class="minibtn" id="helpBtn" title="How WRATH works">❔ How it works</button>
+  </header>
+
+  <!-- ROADMAP — 8 build phases, all complete -->
+  <div class="roadmap" title="WRATH + OpsRAG build map (see SYSTEM.md and thesis/ROADMAP.md)">
+    <span class="roadlabel">Build phases</span>
+    <div class="roadphases">
+      <span class="roadphase" title="WRATH orchestrator + 16 specialist subagents"><span class="check">✓</span><span class="pn">P0</span>Foundation</span>
+      <span class="roadsep"></span>
+      <span class="roadphase" title="OpsRAG typed schema, bootstrap, oracle harness"><span class="check">✓</span><span class="pn">P1</span>OpsRAG kernel</span>
+      <span class="roadsep"></span>
+      <span class="roadphase" title="Deterministic BGP simulator + fault library (10 faults)"><span class="check">✓</span><span class="pn">P2</span>Sandbox</span>
+      <span class="roadsep"></span>
+      <span class="roadphase" title="Typed ingestion: RFC + CLI corpus -> nodes"><span class="check">✓</span><span class="pn">P3</span>Ingestion</span>
+      <span class="roadsep"></span>
+      <span class="roadphase" title="LLM synth + Dense-RAG baseline + CLI grammar gate (26 OK / 12 REJECT)"><span class="check">✓</span><span class="pn">P4</span>Synth + gate</span>
+      <span class="roadsep"></span>
+      <span class="roadphase" title="Execution-gated feedback loop. Coherence Δ +0.856"><span class="check">✓</span><span class="pn">P5</span>Feedback</span>
+      <span class="roadsep"></span>
+      <span class="roadphase" title="300-question benchmark, 5 SUTs, Welch t-test, Cohen d"><span class="check">✓</span><span class="pn">P6</span>Evaluation</span>
+      <span class="roadsep"></span>
+      <span class="roadphase" title="Thesis written (8 chapters + 3 appendices + references)"><span class="check">✓</span><span class="pn">P7</span>Thesis</span>
+      <span class="roadsep"></span>
+      <span class="roadphase now" title="SYSTEM.md — complete cold-readable system map"><span class="check">✓</span><span class="pn">P8</span>System map</span>
+    </div>
+  </div>
+
+  <div>
+    <div class="composer">
+      <input id="problem" placeholder="Design an SR-MPLS core for a 3-DC service provider, multi-vendor; HLD + BoM + CTO one-pager."/>
+      <div class="toggle"><span>Demo</span><div class="switch" id="modeSwitch"><i></i></div><span>Live <span class="pill" id="livePill">Claude API</span></span></div>
+      <div class="toggle" title="How hard the Critic red-teams the design"><span>Critic</span>
+        <select id="critic" class="hist" style="max-width:130px"><option value="low">Lenient</option><option value="standard" selected>Standard</option><option value="high">Aggressive</option><option value="max">Max · 2 passes</option></select></div>
+      <button class="run" id="runBtn">▶ Run WRATH</button>
+      <button class="run2" id="exportBtn" disabled title="Download the deliverable stack as Markdown">⬇ Export</button>
+    </div>
+    <div class="chips" id="chips" style="margin-top:10px"></div>
+    <div class="toolbar">
+      <!-- Row 1: THIS RUN — context actions, enabled only after a run -->
+      <div class="tbrow">
+        <span class="tblabel">This run</span>
+        <button class="minibtn" id="whatifBtn" disabled title="Re-run with one changed constraint, then compare">⤳ What-if</button>
+        <button class="minibtn" id="patternBtn" disabled title="Accept this run and distil it into a reusable pattern in memory">★ Save pattern</button>
+        <button class="minibtn" id="compareBtn" title="Compare two saved runs side by side">⇄ Compare</button>
+        <button class="minibtn" id="shareBtn" disabled title="Open a self-contained shareable HTML report of this run">🔗 Share</button>
+        <select id="history" class="hist" title="Reload a saved run"><option value="">↺ Recent runs…</option></select>
+      </div>
+      <!-- Row 2: LIBRARY — permanent tools always available -->
+      <div class="tbrow">
+        <span class="tblabel">Library</span>
+        <button class="minibtn" id="blueprintBtn" title="Start from a ready-made engagement blueprint">⊞ Blueprints</button>
+        <button class="minibtn" id="examplesBtn" title="Browse the worked-example engagements (reference)">📚 Examples</button>
+        <button class="minibtn" id="complianceBtn" title="Standalone NIST/CIS/PCI/HIPAA compliance pack">🛡 Compliance</button>
+        <button class="minibtn" id="assuranceBtn" title="Telemetry/SLO catalog + drift check vs live read-only state">📡 Assurance</button>
+        <button class="minibtn" id="rcaBtn" title="Root-cause analysis: isolate a fault from the read-only network state">🔧 Troubleshoot</button>
+        <button class="minibtn" id="opsragBtn" title="OpsRAG Lab — action-grounded BGP diagnosis: inject a fault, run the synthesiser, see the oracle verdict">🧪 OpsRAG Lab</button>
+        <button class="minibtn" id="analyticsBtn" title="Cross-run analytics dashboard">📊 Analytics</button>
+        <button class="minibtn" id="inboxBtn" title="Saved-results inbox — bookmark runs with a note">📥 Inbox</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-main" style="display:grid;grid-template-rows:minmax(0,1fr);gap:13px;min-height:0">
+    <div class="card railwrap">
+      <p class="ct"><span class="k">Orchestration pipeline</span>
+        <span class="pvlegend"><span class="pv pv-real">REAL</span><b>deterministic gate ran</b> · <span class="pv pv-live">LIVE</span><b>Opus/Sonnet/Haiku · routed by tier</b> · <span class="pv pv-demo">DEMO</span><b>representative</b></span></p>
+      <div class="orch" id="orch" style="display:none">
+        <span class="orchpill"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><circle cx="8" cy="2" r="1.2"/><circle cx="2.5" cy="12.5" r="1.2"/><circle cx="13.5" cy="12.5" r="1.2"/><path d="M8 6V3.2M6.6 9.2l-3 2.6M9.4 9.2l3 2.6"/></svg>
+          <b>ORCHESTRATOR</b><span class="live" id="orchLive">routing live</span></span>
+      </div>
+      <div class="flow" id="flow"><div class="placeholder"><div><div class="big">Ready when you are.</div>Type a network problem and hit <kbd>Run&nbsp;WRATH</kbd> — the orchestrator decomposes it and routes the work across specialist agents, gate by gate.</div></div></div>
+    </div>
+    <div class="workspace" id="workspace">
+      <!-- Bottom-LEFT — deliverable preview card -->
+      <div class="fpcard fpc-del">
+        <div class="fpc-head">
+          <span class="fpz-dot del"></span>
+          <span class="fpz-lbl">Deliverable</span>
+          <button class="fpz-exp" id="expDetail" title="Expand deliverable">⤢ Expand</button>
+          <button class="fpz-close fphide" title="Hide">✕</button>
+        </div>
+        <div class="fpz-pre" id="fpDelPrev">run WRATH to see output</div>
+      </div>
+      <!-- Bottom-RIGHT — live activity card -->
+      <div class="fpcard fpc-log">
+        <div class="fpc-head">
+          <span class="fpz-dot log" id="fpLogDot"></span>
+          <span class="fpz-lbl" id="fpStageLbl">Live</span>
+          <button class="fpz-exp" id="expLog" title="Expand live log">⤢ Expand</button>
+          <button class="fpz-close fphide" title="Hide">✕</button>
+        </div>
+        <div class="fpz-pre" id="fpLogPrev">—</div>
+      </div>
+      <!-- data stores — JS writes here; Expand modal reads from here -->
+      <div class="detail" id="detail"></div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div class="sheethead"><span class="t" id="modalTitle"></span><button class="sheetclose" id="modalClose" title="Close (Esc)">✕</button></div>
+    <div class="sheetbody" id="modalBody"></div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" onerror="window.__noMermaid=1"></script>
+<script>
+let LIVE=false,hasKey=false,running=false,outputs={},grounds={},selected=null,order=[],edgeState={},rejectArcs=[],autoFollow=true,stageMeta={};
+const $=s=>document.querySelector(s), SVGNS="http://www.w3.org/2000/svg";
+function withTok(u){const t=localStorage.getItem("wrathTok");return t?u+(u.includes("?")?"&":"?")+"token="+encodeURIComponent(t):u;}
+function askInput(title,placeholder,value){return new Promise(res=>{
+  const wrap=document.createElement("div");wrap.className="ask";
+  wrap.innerHTML=`<div class="asksheet"><div class="askt">${title}</div>
+    <input class="aski" type="text" placeholder="${(placeholder||"").replace(/"/g,'&quot;')}"/>
+    <div class="askbtns"><button class="askcancel">Cancel</button><button class="askok">OK</button></div></div>`;
+  document.body.appendChild(wrap);const inp=wrap.querySelector(".aski");if(value)inp.value=value;
+  const close=v=>{wrap.remove();res(v);};setTimeout(()=>inp.focus(),30);
+  wrap.querySelector(".askok").onclick=()=>close(inp.value.trim());
+  wrap.querySelector(".askcancel").onclick=()=>close(null);
+  wrap.addEventListener("click",e=>{if(e.target===wrap)close(null);});
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();close(inp.value.trim());}if(e.key==="Escape")close(null);});});}
+const PHC={Design:"--pDesign",Implement:"--pImplement",Sell:"--pSell",Operate:"--pOperate",Scale:"--pScale"};
+const ICONS={
+  discovery:'<circle cx="6.8" cy="6.8" r="4.6"/><line x1="10.2" y1="10.2" x2="14.5" y2="14.5"/>',
+  hld:'<polygon points="8 2 14 5.5 8 9 2 5.5"/><polyline points="2 9.5 8 13 14 9.5"/>',
+  critic:'<path d="M8 1.4 L13.6 4 V8.2 C13.6 11.6 8 14.6 8 14.6 C8 14.6 2.4 11.6 2.4 8.2 V4 Z"/><polyline points="5.6 8 7.2 9.6 10.5 6.2"/>',
+  lld:'<rect x="2.2" y="2.2" width="11.6" height="11.6" rx="1.4"/><line x1="2.2" y1="8" x2="13.8" y2="8"/><line x1="8" y1="2.2" x2="8" y2="13.8"/>',
+  config:'<rect x="2" y="3" width="12" height="10" rx="1.4"/><polyline points="4.8 6.8 6.8 8.8 4.8 10.8"/><line x1="8" y1="10.8" x2="11.4" y2="10.8"/>',
+  validate:'<path d="M8 1.4 L13.6 4 V8.2 C13.6 11.6 8 14.6 8 14.6 C8 14.6 2.4 11.6 2.4 8.2 V4 Z"/><polyline points="5.6 8 7.2 9.6 10.5 6.2"/>',
+  bom:'<path d="M8 1.8 L14 5 V11 L8 14.2 L2 11 V5 Z"/><line x1="2" y1="5" x2="8" y2="8"/><line x1="14" y1="5" x2="8" y2="8"/><line x1="8" y1="8" x2="8" y2="14.2"/>',
+  cost:'<path d="M2.4 8.4 L8.2 2.6 H13.6 V8 L7.8 13.8 Z"/><circle cx="11" cy="5" r="1.1"/>',
+  sow:'<path d="M4 2 H9.6 L12.4 4.8 V14 H4 Z"/><line x1="6" y1="8" x2="10.4" y2="8"/><line x1="6" y1="10.4" x2="10.4" y2="10.4"/>',
+  exec:'<line x1="2.6" y1="2.4" x2="2.6" y2="13.4"/><line x1="2.6" y1="13.4" x2="13.6" y2="13.4"/><polyline points="4.4 11 7.2 8 9.2 9.8 13 5"/>',
+  migration:'<path d="M13 8 A5 5 0 1 1 11.2 4.2"/><polyline points="11 1.6 11.4 4.4 8.4 4.6"/>',
+  standards:'<path d="M3 3 H7.6 V13 H3 Z"/><path d="M8.4 3 H13 V13 H8.4 Z"/>',
+  trust:'<circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.6"/>',
+  _def:'<circle cx="8" cy="8" r="6"/>'};
+function ico(id){return `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[id]||ICONS._def}</svg>`;}
+const examples=[
+  "Design an SR-MPLS core for a 3-DC service provider, multi-vendor; HLD + BoM + CTO one-pager.",
+  "Secure internet edge for a hospital: dual ISP, DDoS, segmented for medical devices (PCI/HIPAA).",
+  "2-DC EVPN-VXLAN data-center interconnect, encrypted, sub-second failover, no single point of failure.",
+  "Migrate a live OSPF core to IS-IS with zero downtime."];
+function initChips(){const c=$("#chips");examples.forEach(x=>{const e=document.createElement("span");e.className="chip";e.textContent=x.length>52?x.slice(0,50)+"…":x;e.title=x;e.onclick=()=>$("#problem").value=x;c.appendChild(e);});}
+let MODELNAME="claude-opus-4-7";
+function prettyModel(m){return /opus/.test(m)?"Claude Opus 4.7":/sonnet/.test(m)?"Claude Sonnet 4.6":/haiku/.test(m)?"Claude Haiku 4.5":m;}
+function setMode(l){LIVE=l&&hasKey;$("#modeSwitch").classList.toggle("on",LIVE);
+  $("#modeBadge").classList.toggle("live",LIVE);
+  $("#modeText").innerHTML=LIVE?('Mode <b>LIVE</b> · '+prettyModel(MODELNAME)):'Mode <b>DEMO</b>';}
+
+const md=(function(){
+ function il(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+   .replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
+   .replace(/\[([^\]]+)\]\(([^)]+)\)/g,(m,t,u)=>'<a href="'+u.replace(/"/g,"%22")+'" target="_blank" rel="noopener">'+t+'</a>');}
+ return function(src){const L=src.split("\n");let o=[],i=0;while(i<L.length){let ln=L[i];
+  if(ln.startsWith("```")){let lang=ln.slice(3).trim().toLowerCase();let c=[];i++;
+    while(i<L.length&&!L[i].startsWith("```")){c.push(L[i]);i++;}i++;
+    let raw=c.join("\n");
+    if(lang==="mermaid"){o.push('<div class="mermaid">'+raw.replace(/&/g,"&amp;").replace(/</g,"&lt;")+'</div>');}
+    else{o.push("<pre><code>"+raw.replace(/&/g,"&amp;").replace(/</g,"&lt;")+"</code></pre>");}continue;}
+  if(/^#{2,4}\s/.test(ln)){let lv=Math.min(ln.match(/^#+/)[0].length,3);o.push(`<h${lv}>`+il(ln.replace(/^#+\s/,""))+`</h${lv}>`);i++;continue;}
+  if(ln.trim().startsWith("|")&&i+1<L.length&&/^\s*\|?[\s:|-]+\|?\s*$/.test(L[i+1])){let r=[];while(i<L.length&&L[i].trim().startsWith("|")){r.push(L[i]);i++;}
+   let cl=x=>x.trim().replace(/^\||\|$/g,"").split("|").map(c=>c.trim());let t="<table><thead><tr>"+cl(r[0]).map(c=>"<th>"+il(c)+"</th>").join("")+"</tr></thead><tbody>";
+   for(let k=2;k<r.length;k++)t+="<tr>"+cl(r[k]).map(c=>"<td>"+il(c)+"</td>").join("")+"</tr>";o.push(t+"</tbody></table>");continue;}
+  if(/^\s*[-*]\s/.test(ln)){let it=[];while(i<L.length&&/^\s*[-*]\s/.test(L[i])){it.push("<li>"+il(L[i].replace(/^\s*[-*]\s/,""))+"</li>");i++;}o.push("<ul>"+it.join("")+"</ul>");continue;}
+  if(ln.trim()===""){i++;continue;}o.push("<p>"+il(ln)+"</p>");i++;}return o.join("");};})();
+
+let mermaidReady=false;
+function initMermaid(){if(window.__noMermaid||!window.mermaid)return;try{window.mermaid.initialize({startOnLoad:false,theme:"dark",
+  themeVariables:{background:"transparent",primaryColor:"#16203a",primaryBorderColor:"#6ea8ff",primaryTextColor:"#eef2fb",
+    lineColor:"#36e0c8",fontSize:"13px"}});mermaidReady=true;}catch(e){}}
+function renderMermaid(scope){if(!mermaidReady||window.__noMermaid||!window.mermaid)return;
+  const blocks=scope.querySelectorAll(".mermaid");if(!blocks.length)return;
+  blocks.forEach((b,k)=>{const code=b.textContent;b.removeAttribute("data-processed");
+    try{window.mermaid.render("mmd-"+Date.now()+"-"+k,code).then(({svg})=>{b.innerHTML=svg;}).catch(()=>{});}catch(e){}});}
+
+function buildPipeline(stages){
+  outputs={};grounds={};selected=null;order=stages.map(s=>s.id);edgeState={};rejectArcs=[];autoFollow=true;
+  stageMeta={};stages.forEach(s=>stageMeta[s.id]=s);
+  $("#orch").style.display="flex";
+  const flow=$("#flow");flow.innerHTML="";
+  const svg=document.createElementNS(SVGNS,"svg");svg.setAttribute("class","edges");svg.id="edges";flow.appendChild(svg);
+  const wrap=document.createElement("div");wrap.className="rows";wrap.id="rows";
+  const phases=[...new Set(stages.map(s=>s.phase))];
+  let n=0;
+  phases.forEach(ph=>{
+    const c=`var(${PHC[ph]})`;
+    const group=document.createElement("div");group.className="group";
+    group.style.setProperty("--gc",`color-mix(in srgb, ${c} 38%, transparent)`);
+    group.style.setProperty("--gb",`color-mix(in srgb, ${c} 7%, transparent)`);
+    group.style.setProperty("--gh",c);
+    const head=document.createElement("div");head.className="ghead";head.innerHTML=`<span class="dotp"></span>${ph}`;
+    group.appendChild(head);
+    const nodes=document.createElement("div");nodes.className="gnodes";
+    stages.filter(s=>s.phase===ph).forEach(s=>{const nd=document.createElement("div");
+      nd.className="node idle"+(s.kind==="gate"?" gate":"");nd.id="n-"+s.id;
+      nd.style.setProperty("--nc",c);nd.style.animationDelay=(n++*55)+"ms";
+      nd.innerHTML=`<div class="top"><div class="ico">${ico(s.id)}</div><div class="meta"><div class="nm">${s.label}</div><div class="ag">${s.agent}</div></div></div><div class="b"></div><div class="g" id="g-${s.id}"></div>`;
+      nd.onclick=()=>{autoFollow=false;showDetail(s.id);};nodes.appendChild(nd);});
+    group.appendChild(nodes);wrap.appendChild(group);
+  });
+  flow.appendChild(wrap);requestAnimationFrame(drawEdges);
+}
+function center(r,fr,sl,st){return {l:r.left-fr.left+sl,t:r.top-fr.top+st,w:r.width,h:r.height};}
+/* Clean cubic Bezier between two nodes. Horizontal-first: exits the right edge of A,
+   enters the left edge of B, with control points pushed laterally so curves never
+   cross diagonally. If B is left of A (back-edge), uses a downward arc. */
+function curve(a,b){
+  const ay=a.t+a.h/2, by=b.t+b.h/2;
+  const ax=a.l+a.w,  bx=b.l;            // exit right of A, enter left of B
+  if(bx>=ax-2){
+    const dx=Math.max(36,(bx-ax)*0.55);
+    return `M${ax},${ay} C${ax+dx},${ay} ${bx-dx},${by} ${bx},${by}`;
+  }
+  // back-edge: route under the row
+  const x1=a.l+a.w/2, x2=b.l+b.w/2, dip=Math.max(a.t+a.h,b.t+b.h)+46;
+  return `M${x1},${a.t+a.h} C${x1},${dip} ${x2},${dip} ${x2},${b.t+b.h}`;
+}
+function drawEdges(){
+  const flow=$("#flow"),svg=$("#edges");if(!svg)return;svg.innerHTML="";
+  svg.setAttribute("width",flow.scrollWidth);svg.setAttribute("height",flow.scrollHeight);
+  const fr=flow.getBoundingClientRect(),sl=flow.scrollLeft,st=flow.scrollTop;
+  const defs=document.createElementNS(SVGNS,"defs");
+  defs.innerHTML=
+    '<marker id="ah" markerWidth="7" markerHeight="7" refX="6.2" refY="2.5" orient="auto" markerUnits="userSpaceOnUse">'+
+      '<path d="M0,0 L6,2.5 L0,5 Z" fill="#9A8A6E"/></marker>'+
+    '<marker id="ahg" markerWidth="7" markerHeight="7" refX="6.2" refY="2.5" orient="auto" markerUnits="userSpaceOnUse">'+
+      '<path d="M0,0 L6,2.5 L0,5 Z" fill="#4A6256"/></marker>'+
+    '<marker id="ahc" markerWidth="7" markerHeight="7" refX="6.2" refY="2.5" orient="auto" markerUnits="userSpaceOnUse">'+
+      '<path d="M0,0 L6,2.5 L0,5 Z" fill="#8A2D3B"/></marker>'+
+    '<marker id="ahb" markerWidth="7" markerHeight="7" refX="6.2" refY="2.5" orient="auto" markerUnits="userSpaceOnUse">'+
+      '<path d="M0,0 L6,2.5 L0,5 Z" fill="#A53124"/></marker>';
+  svg.appendChild(defs);
+  for(let i=0;i<order.length-1;i++){
+    const A=$("#n-"+order[i]),B=$("#n-"+order[i+1]);if(!A||!B)continue;
+    const a=center(A.getBoundingClientRect(),fr,sl,st),b=center(B.getBoundingClientRect(),fr,sl,st);
+    const st_=edgeState[i]||"";const p=document.createElementNS(SVGNS,"path");
+    p.setAttribute("d",curve(a,b));p.setAttribute("id","e"+i);
+    p.setAttribute("class","edge"+(st_?" "+st_:""));
+    p.setAttribute("marker-end",st_==="done"?"url(#ahg)":(st_==="live"?"url(#ahc)":"url(#ah)"));
+    svg.appendChild(p);
+    if(st_==="live"){
+      const c=document.createElementNS(SVGNS,"circle");
+      c.setAttribute("r","3.2");c.setAttribute("fill","#8A2D3B");
+      const am=document.createElementNS(SVGNS,"animateMotion");
+      am.setAttribute("dur","1.4s");am.setAttribute("repeatCount","indefinite");am.setAttribute("rotate","auto");
+      const mp=document.createElementNS(SVGNS,"mpath");
+      mp.setAttributeNS("http://www.w3.org/1999/xlink","href","#e"+i);mp.setAttribute("href","#e"+i);
+      am.appendChild(mp);c.appendChild(am);svg.appendChild(c);
+    }
+  }
+  rejectArcs.forEach(ar=>{
+    const G=$("#n-"+ar.gate),P=$("#n-"+ar.producer);if(!G||!P)return;
+    const g=center(G.getBoundingClientRect(),fr,sl,st),p=center(P.getBoundingClientRect(),fr,sl,st);
+    const x1=g.l+g.w/2,y1=g.t+g.h,x2=p.l+p.w/2,y2=p.t+p.h,dip=Math.max(y1,y2)+46;
+    const path=document.createElementNS(SVGNS,"path");
+    path.setAttribute("d",`M${x1},${y1} C${x1},${dip} ${x2},${dip} ${x2},${y2}`);
+    path.setAttribute("class","edge reject");path.setAttribute("marker-end","url(#ahb)");svg.appendChild(path);
+  });
+}
+function setEdge(i,state){if(i<0)return;edgeState[i]=state;drawEdges();}
+function setStage(id,status){const n=$("#n-"+id);if(!n)return;const idx=order.indexOf(id);
+  n.classList.remove("idle","run","done");n.classList.add(status==="running"?"run":status);const b=n.querySelector(".b");
+  if(status==="running"){b.textContent="";if(idx>0)setEdge(idx-1,"live");if(autoFollow)showDetail(id,true);
+    n.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"});
+    const sl=$("#fpStageLbl"),sd=$("#fpLogDot");
+    if(sl){sl.textContent=id;sl.classList.add("running");}
+    if(sd){sd.classList.remove("log","done");sd.classList.add("live");}}
+  if(status==="done"){b.textContent=n.classList.contains("gate")?"⚑":"✓";if(idx>0)setEdge(idx-1,"done");}}
+function logLine(t,stage){const l=$("#log");const d=document.createElement("div");d.className="l";d.innerHTML=(stage&&stage!=="_"?`<span class="s">[${stage}]</span> `:"")+t.replace(/&/g,"&amp;").replace(/</g,"&lt;");l.appendChild(d);l.scrollTop=l.scrollHeight;
+  const lp=$("#fpLogPrev");if(lp)lp.textContent=(stage&&stage!=="_"?"["+stage+"] ":"")+t;}
+function showGround(m){grounds[m.stage]=m;const g=$("#g-"+m.stage);if(g){g.textContent={grounded:"grounded",flagged:"verify",blocked:"blocked"}[m.status];g.className="g show "+m.status;}if(selected===m.stage)showDetail(m.stage);}
+function groundHtml(g){if(!g)return"";const lbl={grounded:"✓ Grounded — every claim checked",flagged:"⚠ Needs verification",blocked:"⛔ Blocked — unverified claim"}[g.status];const mk={verified:"✅",PASS:"✅",flag:"⚠",BLOCKED:"⛔",FAIL:"⛔"};
+  const items=(g.checks||[]).map(c=>{const it=c.url?`<a href="${c.url}" target="_blank" rel="noopener" style="color:var(--accent2);text-decoration:underline">${c.item}</a>`:`<b>${c.item}</b>`;return `<li>${mk[c.verdict]||"•"} ${it} — ${c.note}</li>`;}).join("");
+  return `<div class="grnd ${g.status}"><b>${lbl}</b>${items?`<ul>${items}</ul>`:""}</div>`;}
+function showDetail(id,isRun){selected=id;document.querySelectorAll(".node").forEach(n=>n.classList.remove("sel"));$("#n-"+id)?.classList.add("sel");
+  const d=$("#detail"),o=outputs[id];
+  if(o){const icHtml=stageMeta[id]?`<span class="ico">${ico(id)}</span>`:"";
+    const tabs=id==="exec"?`<div class="aud" id="audTabs"><span class="lbl">Re-voice for</span>`+
+      [["exec","Board"],["cfo","CFO"],["ciso","CISO"],["noc","NOC"]].map((x,i)=>`<button class="audb${i===0?" on":""}" data-aud="${x[0]}">${x[1]}</button>`).join("")+`</div>`:"";
+    const dl=id==="hld"?`<div style="margin:0 0 12px;display:flex;gap:8px"><a class="minibtn" style="text-decoration:none" href="/api/topology.svg?problem=${encodeURIComponent(currentProblem)}" target="_blank" download="wrath-topology.svg">⬇ Topology SVG</a><button class="minibtn" onclick="downloadTopologyPng()">⬇ Topology PNG</button></div>`:"";
+    d.innerHTML=`<div class="dt">${icHtml}${o.title}<span style="margin-left:auto;display:flex;gap:7px;align-items:center">${pvBadge(id)}<button class="exp" id="copyDel" title="Copy this deliverable as Markdown">⧉ <span class="lab">COPY</span></button></span></div>${tabs}${groundHtml(grounds[id])}${dl}<div class="md" id="dmd">${md(o.content)}</div>`;
+    const cb=$("#copyDel");if(cb)cb.onclick=()=>{navigator.clipboard.writeText(o.content).then(()=>{cb.innerHTML="✓ COPIED";setTimeout(()=>cb.innerHTML='⧉ <span class="lab">COPY</span>',1200);}).catch(()=>{});};
+    renderMermaid(d);
+    if(id==="exec")bindAudience(o.content);}
+  else if(isRun)d.innerHTML='<div class="placeholder">⏳ Stage running… output appears here.</div>';}
+function bindAudience(execContent){const tabs=document.querySelectorAll("#audTabs .audb");if(!tabs.length)return;
+  tabs.forEach(b=>b.onclick=async()=>{tabs.forEach(x=>x.classList.remove("on"));b.classList.add("on");
+    const mdEl=$("#dmd");const aud=b.dataset.aud;
+    if(aud==="exec"){mdEl.innerHTML=md(execContent);return;}
+    mdEl.innerHTML='<p style="color:var(--muted)">re-voicing…</p>';
+    try{const r=await(await fetch("/api/reframe?audience="+aud+"&problem="+encodeURIComponent(currentProblem))).json();
+      mdEl.innerHTML=md(r.markdown);}catch(e){mdEl.innerHTML='<p style="color:var(--bad)">reframe failed</p>';}});}
+function storeOutput(o){outputs[o.stage]={title:o.title,content:o.content};if(autoFollow||selected===o.stage)showDetail(o.stage);
+  const dp=$("#fpDelPrev");if(dp)dp.textContent=o.title||o.stage;}
+function onReject(m){const g=$("#n-"+m.gate);if(g){g.classList.add("reject");setTimeout(()=>g.classList.remove("reject"),1500);}
+  rejectArcs.push({gate:m.gate,producer:m.producer});drawEdges();
+  setTimeout(()=>{rejectArcs=rejectArcs.filter(a=>!(a.gate===m.gate&&a.producer===m.producer));drawEdges();},3200);
+  logLine("↩ "+m.reason,m.gate);}
+function savePrefs(){try{localStorage.setItem("wrathPrefs",JSON.stringify({problem:$("#problem").value,live:LIVE,intensity:$("#critic").value}));}catch(e){}}
+async function run(){if(running)return;const problem=$("#problem").value.trim();if(!problem){$("#problem").focus();return;}savePrefs();
+  running=true;$("#runBtn").disabled=true;$("#runBtn").textContent="● Running…";$("#log").innerHTML="";$("#detail").innerHTML='<div class="placeholder">Booting orchestrator…</div>';
+  document.querySelector(".workspace")?.classList.add("fp-show");
+  const _sl=$("#fpStageLbl"),_sd=$("#fpLogDot"),_dp=$("#fpDelPrev"),_lp=$("#fpLogPrev");
+  if(_sl){_sl.textContent="booting";_sl.classList.add("running");}
+  if(_sd){_sd.classList.remove("log","done");_sd.classList.add("live");}
+  if(_dp)_dp.textContent="waiting for first deliverable…";
+  if(_lp)_lp.textContent="—";
+  document.querySelector(".orchpill")?.classList.add("running");$("#orchLive").textContent="routing live";
+  let res;try{res=await fetch(withTok("/api/run"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({problem,mode:LIVE?"live":"demo",intensity:$("#critic").value})});}catch(e){logLine("connection failed: "+e);return finish();}
+  if(res.status===401){const t=await askInput("This console requires an access token","paste your token");if(t){localStorage.setItem("wrathTok",t);}running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";if(t)return run();return finish();}
+  const {run_id}=await res.json();const es=new EventSource(withTok("/api/stream?run_id="+run_id));
+  es.onmessage=ev=>{const m=JSON.parse(ev.data);
+    if(m.type==="meta"){runMode=m.mode;currentProblem=m.problem||"";buildPipeline(m.stages);logLine("orchestrator booted — mode: "+m.mode,"_");}
+    else if(m.type==="stage")setStage(m.id,m.status);
+    else if(m.type==="log")logLine(m.text,m.stage);
+    else if(m.type==="output")storeOutput(m);
+    else if(m.type==="grounding")showGround(m);
+    else if(m.type==="reject")onReject(m);
+    else if(m.type==="recall")logLine("🧠 recalled "+m.matches.length+" item(s) from memory","_");
+    else if(m.type==="trust")logLine("🎯 trust: "+m.confidence+" — "+m.headline,"_");
+    else if(m.type==="saved"){lastSavedId=m.id;loadHistory();}
+    else if(m.type==="done"){es.close();finish();}};
+  es.onerror=()=>{es.close();finish();};}
+function finish(){running=false;$("#runBtn").disabled=false;$("#runBtn").textContent="▶ Run WRATH";
+  $("#exportBtn").disabled=!order.some(s=>outputs[s]);$("#orchLive").textContent="idle";
+  document.querySelector(".orchpill")?.classList.remove("running");
+  const sl=$("#fpStageLbl"),sd=$("#fpLogDot");
+  if(sl){sl.textContent="Complete";sl.classList.remove("running");}
+  if(sd){sd.classList.remove("live","log");sd.classList.add("done");}
+  $("#whatifBtn").disabled=!lastSavedId;$("#patternBtn").disabled=!lastSavedId;$("#shareBtn").disabled=!lastSavedId;
+  if(pendingFork&&lastSavedId&&lastSavedId!==pendingFork.base){const a=pendingFork.base,b=lastSavedId;pendingFork=null;setTimeout(()=>openCompareUI(a,b),350);}}
+function exportRun(){if(!order.length)return;let md_="# WRATH run\n\n**Problem:** "+($("#problem").value||"")+"\n\n";
+  order.forEach(sid=>{const o=outputs[sid];if(!o)return;const g=grounds[sid];md_+="## "+o.title+"\n\n";
+    if(g){md_+="> Grounding: "+g.status+"\n";(g.checks||[]).forEach(c=>{md_+=">  - "+c.item+" — "+c.note+(c.url?" ("+c.url+")":"")+"\n";});md_+="\n";}md_+=o.content+"\n\n---\n\n";});
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([md_],{type:"text/markdown"}));a.download="wrath-run.md";a.click();URL.revokeObjectURL(a.href);}
+async function loadHistory(){try{const runs=await(await fetch(withTok("/api/runs"))).json();const h=$("#history");h.innerHTML='<option value="">↺ Recent runs ('+runs.length+')…</option>'+runs.map(r=>`<option value="${r.id}">${(r.problem||"").slice(0,40)} · ${r.mode}</option>`).join("");}catch(e){}}
+async function openSaved(id){if(!id)return;let rec;try{rec=await(await fetch(withTok("/api/run?id="+id))).json();}catch(e){return;}if(!rec||!rec.stages)return;
+  runMode=rec.mode||"demo";currentProblem=rec.problem||"";buildPipeline(rec.stages);autoFollow=false;lastSavedId=id;$("#whatifBtn").disabled=false;$("#patternBtn").disabled=false;$("#shareBtn").disabled=false;
+  document.querySelector(".workspace")?.classList.add("fp-show");
+  setTimeout(()=>{order.forEach((sid,i)=>{const n=$("#n-"+sid);if(n){n.classList.remove("idle","run");n.classList.add("done");const b=n.querySelector(".b");if(b)b.textContent=n.classList.contains("gate")?"⚑":"✓";}if(i>0)setEdge(i-1,"done");});
+    Object.entries(rec.deliverables||{}).forEach(([sid,o])=>{outputs[sid]=o;});
+    Object.entries(rec.grounding||{}).forEach(([sid,g])=>showGround({stage:sid,status:g.status,checks:g.checks}));
+    const first=order.find(s=>outputs[s]);if(first)showDetail(first);
+    const lastDel=order.slice().reverse().find(s=>outputs[s]);
+    const dp=$("#fpDelPrev");if(dp&&lastDel)dp.textContent=outputs[lastDel].title||lastDel;
+    const sl=$("#fpStageLbl"),sd=$("#fpLogDot");
+    if(sl){sl.textContent="Loaded · "+id.slice(0,8);sl.classList.remove("running");}
+    if(sd){sd.classList.remove("live","log");sd.classList.add("done");}
+    logLine("loaded saved run "+id.slice(0,8),"_");$("#exportBtn").disabled=false;},90);}
+function openModal(titleHtml,bodyHtml,isDeliverable){const m=$("#modal");$("#modalTitle").innerHTML=titleHtml;
+  $("#modalBody").innerHTML=bodyHtml;m.classList.add("show");if(isDeliverable)renderMermaid($("#modalBody"));}
+function closeModal(){$("#modal").classList.remove("show");}
+function expandDetail(){const o=selected&&outputs[selected];
+  if(!o){openModal("Deliverable",'<div class="placeholder">No deliverable selected yet — run WRATH or click a completed stage.</div>');return;}
+  const icHtml=stageMeta[selected]?`<span class="ico">${ico(selected)}</span>`:"";
+  openModal(`${icHtml}${o.title} ${pvBadge(selected)}`,`${groundHtml(grounds[selected])}<div class="md">${md(o.content)}</div>`,true);}
+function expandLog(){openModal("🛰 Live activity",`<div class="logfull">${$("#log").innerHTML||'<span style="color:var(--muted)">No activity yet.</span>'}</div>`);}
+
+let lastSavedId=null,pendingFork=null,runMode="demo",currentProblem="";
+const TIERNAME={opus:"Opus 4.7",sonnet:"Sonnet 4.6",haiku:"Haiku 4.5"};
+function provenance(id){const m=stageMeta[id]||{};const k=m.kind||"";
+  if(["tool-validate","tool-standards","tool-cost","report"].includes(k))return{t:"REAL",c:"pv-real",tip:"Deterministic gate — real code ran (config_lint / citation-guard / computed)"};
+  if(runMode==="live"){const tn=TIERNAME[m.tier]||"Opus 4.7";return{t:"LIVE · "+tn,c:"pv-live",tip:"Generated by Claude "+tn+" (routed by agent tier)"};}
+  return{t:"DEMO",c:"pv-demo",tip:"Representative content (set ANTHROPIC_API_KEY for live reasoning)"};}
+function pvBadge(id){const p=provenance(id);return `<span class="pv ${p.c}" title="${p.tip}">${p.t}</span>`;}
+function runOptions(list,sel){return list.map(r=>`<option value="${r.id}" ${r.id===sel?"selected":""}>${(r.problem||"").slice(0,46)} · ${r.mode}</option>`).join("");}
+async function openCompareUI(presetA,presetB){let list=[];try{list=await(await fetch(withTok("/api/runs"))).json();}catch(e){}
+  if(list.length<2){openModal("⇄ Compare runs",'<div class="placeholder">Run WRATH at least twice (or use ⤳ What-if) to have two runs to compare.</div>');return;}
+  const a=presetA||list[1].id,b=presetB||list[0].id;
+  openModal("⇄ Compare runs",`<div class="cmpsel"><span style="font-size:11px;color:var(--muted)">A</span>
+    <select id="cmpA">${runOptions(list,a)}</select><span style="font-size:11px;color:var(--muted)">B</span>
+    <select id="cmpB">${runOptions(list,b)}</select><span class="cmpchg" id="cmpChg"></span></div><div id="cmpResult"></div>`);
+  $("#cmpA").onchange=doCompare;$("#cmpB").onchange=doCompare;doCompare();}
+async function doCompare(){const a=$("#cmpA").value,b=$("#cmpB").value,r=$("#cmpResult");
+  if(a===b){r.innerHTML='<div class="placeholder">Pick two different runs to compare.</div>';$("#cmpChg").textContent="";return;}
+  let data;try{data=await(await fetch(withTok("/api/compare?a="+a+"&b="+b))).json();}catch(e){r.innerHTML='<div class="placeholder">compare failed</div>';return;}
+  if(data.error){r.innerHTML='<div class="placeholder">'+data.error+'</div>';return;}renderCompare(data);}
+function metricCard(m){const c=m.counts||{};return `<div class="cmpm"><div class="p">${(m.problem||"—").replace(/</g,"&lt;")}</div>
+  <div class="s">trust <b style="color:var(--ink)">${m.confidence||"—"}</b> · grounded ${c.verified||0} · flag ${c.flagged||0} · blocked ${c.blocked||0} · recalled ${m.recall||0}</div></div>`;}
+function renderCompare(data){const d=data.diff;$("#cmpChg").innerHTML=`<b style="color:var(--ink)">${d.changed_count}</b> of ${d.total} stages differ`;
+  const da=(data.a.deliverables||{}),db=(data.b.deliverables||{});
+  let h=`<div class="cmpmetrics">${metricCard(d.a)}${metricCard(d.b)}</div><div class="cmp">`;
+  d.stages.forEach(s=>{const cls=s.changed?"changed":"";
+    const badge=s.status==="same"?'<span class="cmpbadge same">same</span>':
+      (s.status==="changed"?'<span class="cmpbadge changed">changed</span>':`<span class="cmpbadge only">${s.status==="only-a"?"only A":"only B"}</span>`);
+    const delta=s.status==="changed"?`<span class="cmpdelta">+${s.added} / −${s.removed}</span>`:"";
+    h+=`<div class="cmpstage ${cls}"><span class="nm">${s.label}</span>${badge}${delta}</div>`;
+    const ca=da[s.id],cb=db[s.id];
+    h+=ca?`<div class="cmpcell ${cls}"><div class="md">${md(ca.content)}</div></div>`:'<div class="cmpcell empty">not produced</div>';
+    h+=cb?`<div class="cmpcell ${cls}"><div class="md">${md(cb.content)}</div></div>`:'<div class="cmpcell empty">not produced</div>';});
+  h+="</div>";$("#cmpResult").innerHTML=h;renderMermaid($("#cmpResult"));}
+async function openInbox(){let items=[];try{items=await(await fetch(withTok("/api/inbox"))).json();}catch(e){}
+  const saveBtn=`<button class="ibsave" id="ibSave" ${lastSavedId?"":"disabled"}>＋ Save current run</button>`;
+  const hint=lastSavedId?'<span style="font-size:11px;color:var(--muted)">bookmark the run you just did, with a note</span>'
+    :'<span style="font-size:11px;color:var(--muted)">run WRATH first, then save it here</span>';
+  let rows=items.length?items.map(it=>{const conf=it.confidence||"";
+    return `<div class="ibrow" data-id="${it.run_id}">
+      <div class="ibmain"><div class="ibq" data-open="${it.run_id}">${(it.problem||"(run)").replace(/</g,"&lt;")}</div>
+        <div class="ibnote">${(it.note||"—").replace(/</g,"&lt;")}</div></div>
+      <div class="ibmeta">${conf?`<span class="ibbadge ${conf}">${conf}</span>`:""}<span>${(it.saved_at||"").slice(0,10)}</span><span>${it.mode||""}</span></div>
+      <div class="ibacts"><button data-open="${it.run_id}" title="Open">↗</button><button data-note="${it.run_id}" title="Edit note">✎</button><button class="del" data-del="${it.run_id}" title="Remove">✕</button></div></div>`;}).join("")
+    :'<div class="placeholder">Inbox empty — run something, then ＋ Save current run.</div>';
+  openModal("📥 Saved-results inbox",`<div class="ibtop">${saveBtn}${hint}</div><div id="ibList">${rows}</div>`);
+  const sb=$("#ibSave");if(sb)sb.onclick=async()=>{const note=(await askInput("Save to inbox — add a note","what were you testing? (optional)"))||"";
+    await fetch(withTok("/api/inbox"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"save",run_id:lastSavedId,note})});openInbox();};
+  document.querySelectorAll("[data-open]").forEach(el=>el.onclick=()=>{closeModal();openSaved(el.dataset.open);});
+  document.querySelectorAll("[data-note]").forEach(el=>el.onclick=async()=>{const note=(await askInput("Edit note",""))||"";
+    await fetch(withTok("/api/inbox"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"note",run_id:el.dataset.note,note})});openInbox();});
+  document.querySelectorAll("[data-del]").forEach(el=>el.onclick=async()=>{
+    await fetch(withTok("/api/inbox"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"delete",run_id:el.dataset.del})});openInbox();});}
+async function downloadTopologyPng(){
+  const svgUrl="/api/topology.svg?problem="+encodeURIComponent(currentProblem||"");
+  try{
+    const svgText=await(await fetch(svgUrl)).text();
+    const m=svgText.match(/width="(\d+)" height="(\d+)"/);const w=m?+m[1]:900,h=m?+m[2]:520,scale=2;
+    const blob=new Blob([svgText],{type:"image/svg+xml;charset=utf-8"});const u=URL.createObjectURL(blob);
+    const img=new Image();
+    img.onload=()=>{const c=document.createElement("canvas");c.width=w*scale;c.height=h*scale;
+      const x=c.getContext("2d");x.fillStyle="#0b1120";x.fillRect(0,0,c.width,c.height);x.scale(scale,scale);x.drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(u);
+      c.toBlob(b=>{if(!b){window.open(svgUrl,"_blank");return;}const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="wrath-topology.png";a.click();URL.revokeObjectURL(a.href);},"image/png");};
+    img.onerror=()=>{URL.revokeObjectURL(u);window.open(svgUrl,"_blank");};
+    img.src=u;
+  }catch(e){window.open(svgUrl,"_blank");}}
+async function openOpsRAGLab(tab){
+  let faults=[],graph={},bm={};
+  try{[faults,graph,bm]=await Promise.all([
+    fetch("/api/opsrag/faults").then(r=>r.json()),
+    fetch("/api/opsrag/graph").then(r=>r.json()),
+    fetch("/api/opsrag/benchmark").then(r=>r.json())
+  ]);}catch(e){}
+  const byType=graph.by_type||{};
+  const typeOrder=["Concept","Runbook","Command","Configuration","Symptom","RootCause"];
+  const typeBadges=typeOrder.filter(t=>byType[t]>0).map(t=>`<span class="ogtype">${t} <b>${byType[t]}</b></span>`).join("");
+  const graphHtml=`<div class="orgraph"><span class="ogtitle">Typed knowledge graph</span>${typeBadges}<span class="ogedge">${graph.edges||0} edges</span></div>`;
+
+  // Tabs
+  const activeTab=tab||"faults";
+  const tabBar=`<div class="ortabs">
+    <button class="ortab${activeTab==="faults"?" on":""}" id="orTabFaults">Fault Library</button>
+    <button class="ortab${activeTab==="bench"?" on":""}" id="orTabBench">Benchmark <span class="orbcount">${bm.total||0} Q</span></button>
+    <button class="ortab${activeTab==="eval"?" on":""}" id="orTabEval">Evaluation</button>
+    <button class="ortab${activeTab==="ablation"?" on":""}" id="orTabAblation">Phase 5 Ablation</button>
+  </div>`;
+
+  // Faults panel
+  const scopeColor=s=>s==="bgp"?"orftag-bgp":s==="link"?"orftag-link":s==="tcp-auth"?"orftag-tcp-auth":"";
+  const faultHtml=faults.map(f=>{
+    const scopes=(f.scope||[]).map(s=>`<span class="orfscope ${scopeColor(s)}">${s}</span>`).join("");
+    return `<div class="orfc" id="orfc-${f.id}">
+      <div class="orfscopes">${scopes}</div>
+      <div class="orftitle">${f.title.replace(/</g,"&lt;")}</div>
+      <div class="orfsymptom">${(f.symptom||"").replace(/</g,"&lt;")}</div>
+      <button class="orfrunbtn" id="orbtn-${f.id}">▶ Run Loop</button>
+      <div class="orfresult" id="orres-${f.id}"></div>
+    </div>`;}).join("");
+
+  // Benchmark panel
+  const cats=bm.by_category||{};
+  const catBadges=Object.entries(cats).sort((a,b)=>b[1]-a[1])
+    .map(([c,n])=>`<span class="ogtype" style="font-size:10px">${c} <b>${n}</b></span>`).join("");
+  const bmStats=`<div class="orgraph" style="margin-bottom:14px">
+    <span class="ogtitle">Benchmark stats</span>
+    <span class="ogtype" style="background:rgba(61,220,151,.14);color:var(--ok)">${bm.total||0} questions</span>
+    <span class="ogtype" style="background:rgba(255,206,107,.12);color:var(--warn)">${bm.executable_count||0} executable</span>
+    ${catBadges}
+  </div>`;
+  const diffColor=d=>d==="recall"?"color:#6ea8ff":d==="apply"?"color:var(--warn)":"color:#c084fc";
+  const bmRows=(bm.questions||[]).slice(0,30).map(q=>`<div class="orbqrow">
+    <div class="orbqhdr">
+      <span class="orbqid">${q.id}</span>
+      <span class="orfscope">${q.category}</span>
+      <span class="orbqdiff" style="${diffColor(q.difficulty)}">${q.difficulty}</span>
+      ${q.ground_truth.executable?'<span class="orfvok" style="font-size:10px">⚡ executable</span>':''}
+    </div>
+    <div class="orbqtext">${q.question.replace(/</g,"&lt;")}</div>
+    <div class="orbqans"><b>Ground truth:</b> ${q.ground_truth.answer.replace(/</g,"&lt;")}</div>
+    <div class="orbqsrc">${(q.ground_truth.grounded_in||[]).join(" · ")}</div>
+  </div>`).join("");
+
+  openModal("🧪 OpsRAG Lab",`<p style="font-size:12px;color:var(--muted);margin:0 0 12px">
+    Action-grounded BGP retrieval benchmark — inject faults, synthesise runbooks, score with the execution oracle. <b>No Docker required.</b></p>
+    ${graphHtml}${tabBar}
+    <div id="orPanelFaults" style="display:${activeTab==="faults"?"block":"none"}">${faultHtml}</div>
+    <div id="orPanelBench" style="display:${activeTab==="bench"?"block":"none"}">${bmStats}<div class="orbqlist">${bmRows}
+      ${(bm.total||0)>30?`<div style="font-size:11px;color:var(--muted);padding:10px 0">…${(bm.total||0)-30} more questions in thesis/benchmark/</div>`:""}
+    </div></div>
+    <div id="orPanelEval" style="display:${activeTab==="eval"?"block":"none"}">
+      <p style="font-size:12px;color:var(--muted);margin:0 0 14px">Score a system-under-test against the full benchmark with RAGAs-shape metrics (answer_relevance, faithfulness, context_relevance) <b>+ action-grounded metrics (executability, diagnostic accuracy)</b> — the two metrics RAGAs does not provide.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="orfrunbtn" id="orEvalNaive">▶ Naive floor</button>
+        <button class="orfrunbtn" id="orEvalOpsrag">▶ OpsRAG (deterministic)</button>
+        <button class="orfrunbtn" id="orEvalDense" style="background:rgba(147,112,219,.18);color:#b39ddb">▶ Dense-RAG (BM25)</button>
+        <button class="orfrunbtn" id="orEvalGraph" style="background:rgba(38,198,218,.18);color:#80deea">▶ Graph SUT (typed-graph retrieval)</button>
+        <button class="orfrunbtn" id="orEvalLLM" style="background:rgba(255,167,38,.18);color:#ffb74d">▶ LLM (Opus 4.7)</button>
+        <button class="orfrunbtn" id="orEvalReport" style="background:rgba(61,220,151,.14);color:var(--ok);border:1px solid var(--ok)">📊 Full Phase 6 Report (all SUTs)</button>
+      </div>
+      <div id="orEvalResult"></div>
+    </div>
+    <div id="orPanelAblation" style="display:${activeTab==="ablation"?"block":"none"}">
+      <p style="font-size:12px;color:var(--muted);margin:0 0 14px">
+        <b>Phase 5 ablation:</b> execution-gated graph admission vs user-feedback-only.
+        The popularity-bias stream shows that users accept plausible-but-wrong answers —
+        the execution oracle does not. Run either stream to produce the thesis ablation table.
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="orfrunbtn" id="orAblationBias" style="background:rgba(239,83,80,.18);color:#ef9a9a">▶ Popularity-bias stream (n=200)</button>
+        <button class="orfrunbtn" id="orAblationUniform" style="background:rgba(41,182,246,.14);color:#81d4fa">▶ Uniform stream (n=200)</button>
+      </div>
+      <div id="orAblationResult"></div>
+    </div></div>`);
+  faults.forEach(f=>{const btn=document.getElementById("orbtn-"+f.id);if(btn)btn.onclick=()=>runOpsRAGFault(f.id);});
+  const tf=document.getElementById("orTabFaults"),tb=document.getElementById("orTabBench"),te=document.getElementById("orTabEval"),ta=document.getElementById("orTabAblation");
+  const showTab=which=>{[tf,tb,te,ta].forEach(t=>t&&t.classList.remove("on"));
+    ["orPanelFaults","orPanelBench","orPanelEval","orPanelAblation"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none";});
+    if(which==="faults"){tf&&tf.classList.add("on");document.getElementById("orPanelFaults").style.display="block";}
+    if(which==="bench"){tb&&tb.classList.add("on");document.getElementById("orPanelBench").style.display="block";}
+    if(which==="eval"){te&&te.classList.add("on");document.getElementById("orPanelEval").style.display="block";}
+    if(which==="ablation"){ta&&ta.classList.add("on");document.getElementById("orPanelAblation").style.display="block";}};
+  if(tf)tf.onclick=()=>showTab("faults");
+  if(tb)tb.onclick=()=>showTab("bench");
+  if(te)te.onclick=()=>showTab("eval");
+  if(ta)ta.onclick=()=>showTab("ablation");
+  const en=document.getElementById("orEvalNaive"),eo=document.getElementById("orEvalOpsrag");
+  const ed=document.getElementById("orEvalDense"),eg=document.getElementById("orEvalGraph"),el=document.getElementById("orEvalLLM");
+  if(en)en.onclick=()=>runEvaluation("naive");
+  if(eo)eo.onclick=()=>runEvaluation("opsrag");
+  if(ed)ed.onclick=()=>runEvaluation("dense");
+  if(eg)eg.onclick=()=>runEvaluation("graph");
+  if(el)el.onclick=()=>runEvaluation("llm");
+  const er=document.getElementById("orEvalReport");
+  if(er)er.onclick=()=>runPhase6Report();
+  const eab=document.getElementById("orAblationBias"),eau=document.getElementById("orAblationUniform");
+  if(eab)eab.onclick=()=>runAblation("bias");
+  if(eau)eau.onclick=()=>runAblation("uniform");}
+async function runEvaluation(sutName){
+  const r=document.getElementById("orEvalResult");
+  r.innerHTML='<div class="placeholder">running benchmark sweep…</div>';
+  let rep;try{rep=await fetch("/api/opsrag/evaluate?sut="+sutName).then(x=>x.json());}
+  catch(e){r.innerHTML='<div class="placeholder">eval failed</div>';return;}
+  const hl=rep.headline||{};
+  const mv=(m,k)=>(m&&m[k]!==null&&m[k]!==undefined)?(typeof m[k]==="number"?m[k].toFixed(3):m[k]):"—";
+  const sutLabel={"naive":"Naive floor","opsrag":"OpsRAG (deterministic)","dense":"Dense-RAG BM25","graph":"Graph SUT (typed-graph)","llm":"LLM Opus 4.7"}[rep.sut||sutName]||sutName.toUpperCase();
+  const cells=`<div class="orgraph" style="background:rgba(54,224,200,.06)"><span class="ogtitle">${sutLabel} · n=${rep.n}</span>
+    <span class="ogtype">answer_relevance <b>${mv(hl.answer_relevance,"mean")}</b></span>
+    <span class="ogtype">faithfulness <b>${mv(hl.faithfulness,"mean")}</b></span>
+    <span class="ogtype">context_relevance <b>${mv(hl.context_relevance,"mean")}</b></span>
+    <span class="ogtype" style="background:rgba(255,206,107,.16);color:var(--warn)">executability_rate <b>${(hl.executability_rate||0).toFixed(3)}</b></span>
+    <span class="ogtype" style="background:rgba(61,220,151,.16);color:var(--ok)">diagnostic_accuracy <b>${mv(hl,"diagnostic_accuracy")}</b></span></div>`;
+  // Per-category breakdown
+  const catRows=Object.entries(rep.by_category||{}).sort((a,b)=>b[1].n-a[1].n).map(([cat,bk])=>{
+    return `<tr><td>${cat}</td><td>${bk.n}</td><td>${mv(bk.answer_relevance,"mean")}</td><td>${(bk.executability_rate||0).toFixed(3)}</td><td>${mv(bk,"diagnostic_accuracy")}</td></tr>`;
+  }).join("");
+  const catTbl=`<h3 style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:18px 0 8px">By category</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="border-bottom:1px solid var(--brd);text-align:left;color:var(--muted)">
+    <th style="padding:6px 8px">Category</th><th style="padding:6px 8px">n</th><th style="padding:6px 8px">ans_rel</th><th style="padding:6px 8px">exec</th><th style="padding:6px 8px">dx</th></tr></thead>
+    <tbody style="font-family:ui-monospace,Menlo,Consolas,monospace">${catRows}</tbody></table>`;
+  r.innerHTML=cells+catTbl;}
+async function runPhase6Report(){
+  const r=document.getElementById("orEvalResult");
+  r.innerHTML='<div class="placeholder">generating Phase 6 report (all 4 SUTs × 170 questions)…</div>';
+  let rep;
+  try{rep=await fetch("/api/opsrag/report").then(x=>x.json());}
+  catch(e){r.innerHTML='<div class="placeholder">report failed</div>';return;}
+  const mv=v=>v!==null&&v!==undefined?Number(v).toFixed(3):"—";
+  const t2rows=Object.entries(rep.table2?.rows||{}).map(([sut,row])=>`<tr>
+    <td>${row.label}</td><td>${row.n}</td>
+    <td>${mv((row.answer_relevance||{}).mean)}</td>
+    <td><b>${mv(row.executability_rate)}</b></td>
+    <td><b>${mv(row.diagnostic_accuracy)}</b></td></tr>`).join("");
+  const tbl=`<h3 style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:14px 0 8px">Table 2 — Headline (n=${rep.n_questions} questions)</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px">
+    <thead><tr style="border-bottom:1px solid var(--brd);color:var(--muted);text-align:left">
+    <th style="padding:5px 8px">SUT</th><th style="padding:5px 8px">n</th><th style="padding:5px 8px">ans_rel</th>
+    <th style="padding:5px 8px;color:var(--warn)">exec_rate</th><th style="padding:5px 8px;color:var(--ok)">diag_acc</th></tr></thead>
+    <tbody style="font-family:ui-monospace,Menlo,Consolas,monospace">${t2rows}</tbody></table>`;
+  const pre=`<pre style="font-size:10px;background:var(--bg2);padding:12px;border-radius:6px;margin-top:14px;overflow-x:auto;white-space:pre-wrap">${((rep.text||{}).table3||"").replace(/</g,"&lt;")}</pre>`;
+  r.innerHTML=tbl+pre;}
+async function runAblation(mode){
+  const r=document.getElementById("orAblationResult");
+  r.innerHTML='<div class="placeholder">running ablation (200 interactions)…</div>';
+  let ab;
+  try{ab=await fetch("/api/opsrag/ablation?n=200&mode="+mode).then(x=>x.json());}
+  catch(e){r.innerHTML='<div class="placeholder">ablation failed</div>';return;}
+  const eg=ab.execution_gated||{},ug=ab.user_gated||{},d=ab.delta||{};
+  const sign=v=>(v>0?"+":"")+v.toFixed(3);
+  const bar=`<div class="orgraph" style="background:rgba(61,220,151,.06)">
+    <span class="ogtitle">Phase 5 Ablation — ${mode==="bias"?"Popularity-bias":"Uniform"} stream · n=200</span>
+    <span class="ogtype" style="background:rgba(61,220,151,.18);color:var(--ok)">Exec-gated coherence <b>${eg.final_coherence}</b></span>
+    <span class="ogtype" style="background:rgba(239,83,80,.18);color:#ef9a9a">User-gated coherence <b>${ug.final_coherence}</b></span>
+    <span class="ogtype" style="background:rgba(255,206,107,.14);color:var(--warn)">Δ coherence <b>${sign(d.coherence||0)}</b></span>
+    <span class="ogtype">Exec admitted <b>${eg.admitted||0}</b></span>
+    <span class="ogtype">User admitted <b>${ug.admitted||0}</b></span>
+    <span class="ogtype" style="color:var(--ok)">Verdict: <b>${ab.verdict||"—"}</b></span>
+  </div>`;
+  const pre=`<pre style="font-size:10.5px;font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--bg2);padding:12px;border-radius:6px;overflow-x:auto;margin-top:12px;white-space:pre-wrap">${(ab.table||"").replace(/</g,"&lt;")}</pre>`;
+  r.innerHTML=bar+pre;}
+async function runOpsRAGFault(faultId){
+  const btn=document.getElementById("orbtn-"+faultId);
+  const resEl=document.getElementById("orres-"+faultId);
+  btn.disabled=true;btn.textContent="…running";
+  let data;
+  try{data=await fetch("/api/opsrag/run?fault_id="+encodeURIComponent(faultId)).then(r=>r.json());}
+  catch(e){resEl.innerHTML='<div class="placeholder">request failed</div>';resEl.classList.add("show");
+    btn.disabled=false;btn.textContent="▶ Run Loop";return;}
+  const rb=data.runbook||{},res=data.result||{},fault=data.fault||{};
+  const cmds=(rb.commands||[]).map(c=>`<code>${c.device}: ${c.cmd}</code>`).join(" · ");
+  const terminals=(res.command_outputs||[]).map(o=>`<div class="orfterm">
+    <span class="orfdev">${(o.device||"?").replace(/</g,"&lt;")} # ${(o.cmd||"").replace(/</g,"&lt;")}</span>
+    <pre>${(o.stdout||"").replace(/</g,"&lt;")}</pre></div>`).join("");
+  const verd=(k,lbl)=>`<span class="${res[k]?"orfvok":"orfvbad"}">${res[k]?"✓":"✗"} ${lbl}</span>`;
+  const verdict=`<div class="orfverdict">${verd("executable","executable")}${verd("evidence_hit","evidence hit")}${verd("diagnosis_correct","diagnosis correct")}</div>`;
+  const gtrc=((fault.ground_truth||{}).root_cause||"(unknown)").replace(/</g,"&lt;");
+  const synRC=(rb.concluded_root_cause||"(no signal)").replace(/</g,"&lt;");
+  const fixCmd=((fault.ground_truth||{}).fix||"").replace(/</g,"&lt;");
+  resEl.innerHTML=`<div class="orfcmds">Discovery commands: ${cmds}</div>${terminals}${verdict}
+    <div class="orfrc"><b>Synthesised root cause</b><br>
+      <span class="${res.diagnosis_correct?"orfvok":""}">${synRC}</span><br><br>
+      <b>Ground truth</b><br><span style="color:var(--muted)">${gtrc}</span>
+      ${fixCmd?`<br><br><b>Fix</b><br><code style="font-size:11px;color:var(--accent2)">${fixCmd}</code>`:""}
+    </div>`;
+  resEl.classList.add("show");
+  btn.disabled=false;btn.textContent="↺ Re-run";}
+function openHelp(){openModal("❔ How WRATH works",`
+  <div class="helpsec"><h3>The idea</h3><p>WRATH turns a plain-language network problem into a validated, customer-ready solution stack. It's a <b>reasoning graph</b>, not a chatbot: the Orchestrator decomposes the problem and routes it across 16 specialist agents.</p></div>
+  <div class="helpsec"><h3>A run, step by step</h3><ul>
+    <li><b>Discovery</b> asks the right missing questions (scale, SLA, brownfield, platform) before designing — it won't guess.</li>
+    <li><b>HLD → Critic gate</b> — the design is red-teamed by a fresh Critic; weak designs bounce back and are revised.</li>
+    <li><b>LLD → Config → Validator gate</b> — config is audited by the real <code>config_lint</code>; nothing ships until it passes.</li>
+    <li><b>BoM · Cost &amp; Risk · SoW · Exec · Migration · Standards</b> — the commercial + operate + compliance layers.</li>
+    <li><b>Trust report</b> — a closing scorecard: grounded / flagged / blocked, with a confidence level that never exceeds the evidence.</li>
+  </ul></div>
+  <div class="helpsec"><h3>What the badges mean</h3><ul>
+    <li><span class="pv pv-real">REAL</span> a deterministic gate actually ran (Validator/Standards/Cost/Trust) — true even in Demo.</li>
+    <li><span class="pv pv-live">LIVE</span> produced by Claude Opus/Sonnet/Haiku (routed by agent tier) — set <code>ANTHROPIC_API_KEY</code>.</li>
+    <li><span class="pv pv-demo">DEMO</span> representative content (no key) — the gates are still real.</li>
+  </ul></div>
+  <div class="helpsec"><h3>The toolbar</h3><ul>
+    <li><b>This run:</b> ⤳ What-if (re-run with one change, diff side-by-side) · ★ Save pattern (learn it to memory + git) · ⇄ Compare · 🔗 Share (HTML report).</li>
+    <li><b>Library &amp; reports:</b> ⊞ Blueprints (starters) · 📚 Examples · 🛡 Compliance · 📡 Assurance (telemetry + drift) · 🔧 Troubleshoot (RCA) · 📊 Analytics · 📥 Inbox.</li>
+    <li><b>Critic dial</b> sets red-team intensity (Lenient → Max·2-passes). <b>⬇ Export</b> / ⧉ Copy / ⤢ Expand on each deliverable.</li>
+  </ul></div>
+  <div class="helpsec"><h3>Why it's trustworthy</h3><p>House Rules: trade-offs not verdicts · no config ships unvalidated · brownfield always has a rollback · claims are grounded (no invented RFCs) · security designed in · the irreversible needs a human · honest about confidence · compounding memory.</p></div>`);}
+async function openExamples(){let list=[];try{list=await(await fetch("/api/examples")).json();}catch(e){}
+  if(!list.length){openModal("📚 Worked examples",'<div class="placeholder">No worked examples found.</div>');return;}
+  const blocks=list.map(e=>`<div style="margin-bottom:14px"><div style="font-weight:700;font-size:13px;margin-bottom:7px">${e.name}</div><div style="display:flex;flex-wrap:wrap;gap:7px">`+
+    e.files.map(f=>`<button class="minibtn exfile" data-path="${e.name}/${f}">${f}</button>`).join("")+`</div></div>`).join("");
+  openModal("📚 Worked examples",`<p style="color:var(--muted);font-size:12px;margin:0 0 14px">Reference engagements threaded through every phase. Click a file to read it.</p>${blocks}<div id="exView" style="margin-top:6px"></div>`);
+  document.querySelectorAll(".exfile").forEach(b=>b.onclick=async()=>{const p=b.dataset.path;
+    const v=$("#exView");v.innerHTML='<div class="placeholder">loading…</div>';
+    try{const t=await(await fetch("/api/example?path="+encodeURIComponent(p))).text();
+      v.innerHTML=p.endsWith(".cfg")?`<h3 style="margin:.4em 0">${p}</h3><pre><code>${t.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</code></pre>`:`<h3 style="margin:.4em 0">${p}</h3><div class="md">${md(t)}</div>`;
+      renderMermaid(v);v.scrollIntoView({behavior:"smooth",block:"nearest"});}catch(e){v.innerHTML='<div class="placeholder">failed</div>';}});}
+async function openTroubleshoot(){const sym=await askInput("Troubleshoot — describe the symptom","e.g. Customer A lost connectivity · BGP session down · link flapping");
+  if(!sym)return;openModal("🔧 Root-cause analysis",'<div class="placeholder">walking the hypothesis tree against read-only state…</div>');
+  try{const r=await(await fetch(withTok("/api/rca?symptom="+encodeURIComponent(sym)))).json();
+    $("#modalBody").innerHTML=`<div class="md">${md(r.markdown)}</div>`;}catch(e){$("#modalBody").innerHTML='<div class="placeholder">failed</div>';}}
+async function openCompliance(){const prob=currentProblem||$("#problem").value.trim();
+  if(!prob){openModal("🛡 Compliance pack",'<div class="placeholder">State a problem (or run one) first — the pack maps the design to the relevant frameworks.</div>');return;}
+  openModal("🛡 Compliance pack",'<div class="placeholder">building…</div>');
+  try{const r=await(await fetch("/api/compliance?problem="+encodeURIComponent(prob))).json();
+    $("#modalBody").innerHTML=`<div class="md">${md(r.markdown)}</div>`;}catch(e){$("#modalBody").innerHTML='<div class="placeholder">failed</div>';}}
+async function openAssurance(){const prob=currentProblem||$("#problem").value.trim();
+  if(!prob){openModal("📡 Service assurance",'<div class="placeholder">State a problem (or run one) first — assurance is generated from the design.</div>');return;}
+  openModal("📡 Service assurance",'<div class="placeholder">building telemetry/SLO catalog + drift check…</div>');
+  try{const r=await(await fetch(withTok("/api/assurance?problem="+encodeURIComponent(prob)))).json();
+    $("#modalBody").innerHTML=`<div class="md">${md(r.markdown)}</div>`;}catch(e){$("#modalBody").innerHTML='<div class="placeholder">failed</div>';}}
+function bar(nm,val,max,color){const pct=max>0?Math.round(val/max*100):0;
+  return `<div class="anbar"><span class="nm">${nm}</span><span class="tk"><span class="fl" style="width:${pct}%;background:${color}"></span></span><span class="ct">${val}</span></div>`;}
+async function openAnalytics(){let s;try{s=await(await fetch(withTok("/api/analytics"))).json();}catch(e){openModal("📊 Analytics",'<div class="placeholder">analytics unavailable</div>');return;}
+  if(!s.runs){openModal("📊 Analytics",'<div class="placeholder">No runs yet — run WRATH a few times, then come back to see cross-run analytics.</div>');return;}
+  const gt=s.grounding_totals,cg=s.config_gate,tr=s.trust;
+  const trMax=Math.max(tr.High,tr.Medium,tr.Guarded,1),gMax=Math.max(gt.verified,gt.flagged,gt.blocked,1);
+  let h=`<div class="antiles">
+    <div class="antile"><div class="v">${s.runs}</div><div class="l">runs analyzed</div></div>
+    <div class="antile"><div class="v" style="color:var(--accent2)">${(s.by_mode.live||0)}</div><div class="l">live · ${(s.by_mode.demo||0)} demo</div></div>
+    <div class="antile"><div class="v" style="color:var(--ok)">${gt.verified}</div><div class="l">claims grounded</div></div>
+    <div class="antile"><div class="v" style="color:var(--bad)">${gt.blocked}</div><div class="l">hallucinations caught</div></div>
+    <div class="antile"><div class="v" style="color:var(--gate)">${s.patterns||0}</div><div class="l">patterns learned</div></div>
+    <div class="antile"><div class="v">${s.avg_stages}</div><div class="l">avg stages / run</div></div></div>`;
+  h+=`<div class="anrow"><h4>Trust confidence distribution</h4>
+    ${bar("High",tr.High,trMax,"var(--ok)")}${bar("Medium",tr.Medium,trMax,"var(--warn)")}${bar("Guarded",tr.Guarded,trMax,"var(--bad)")}</div>`;
+  h+=`<div class="anrow"><h4>Grounding net (all runs)</h4>
+    ${bar("Grounded",gt.verified,gMax,"var(--ok)")}${bar("Flagged",gt.flagged,gMax,"var(--warn)")}${bar("Blocked",gt.blocked,gMax,"var(--bad)")}
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">Config gate: <b style="color:var(--ink)">${cg.pass}</b> pass · <b style="color:var(--ink)">${cg.fail}</b> fail</div></div>`;
+  if(s.top_tags&&s.top_tags.length)h+=`<div class="anrow"><h4>Most-worked technologies</h4><div class="antags">${s.top_tags.map(t=>`<span class="antag">${t[0]}<b>${t[1]}</b></span>`).join("")}</div></div>`;
+  openModal("📊 Cross-run analytics",h);}
+async function openBlueprints(){let list=[];try{list=await(await fetch("/api/blueprints")).json();}catch(e){}
+  if(!list.length){openModal("⊞ Engagement blueprints",'<div class="placeholder">No blueprints available.</div>');return;}
+  const cards=list.map(b=>`<div class="bpcard" data-id="${b.id}"><span class="go">run ▶</span>
+    <div class="h"><span class="ico">${ico(b.icon)}</span><div><div class="nm">${b.name}</div><div class="cat">${b.category}</div></div></div>
+    <div class="pr">${b.problem.replace(/</g,"&lt;")}</div></div>`).join("");
+  openModal("⊞ Engagement blueprints",`<p style="color:var(--muted);font-size:12px;margin:0 0 14px">Ready-to-run starters — each is complete enough to clear the clarify-gate and go straight to design. Click one to load and run it.</p><div class="bpgrid">${cards}</div>`);
+  document.querySelectorAll(".bpcard").forEach(c=>c.onclick=()=>{const b=list.find(x=>x.id===c.dataset.id);if(!b)return;$("#problem").value=b.problem;closeModal();run();});}
+async function savePattern(){if(!lastSavedId)return;let r;
+  try{r=await(await fetch(withTok("/api/distill?id="+lastSavedId),{method:"POST"})).json();}catch(e){logLine("pattern save failed: "+e,"_");return;}
+  if(!r||!r.ok){logLine("pattern save failed","_");return;}
+  const p=r.persist||{};const git=p.committed?` · committed to git (${p.sha})`:(p.ok===false?" · git commit skipped (not a repo)":"");
+  logLine("★ distilled to memory → wrath/memory/patterns/"+r.slug+".md"+git+" — will be recalled next time","_");
+  const gitNote=p.committed?`<span style="color:var(--ok)"> · committed to git (<code>${p.sha}</code>) so it survives restarts</span>`:"";
+  openModal("★ Pattern distilled — saved to memory",`<p style="color:var(--muted);font-size:12px;margin:0 0 12px">Saved to <code>wrath/memory/patterns/${r.slug}.md</code>${gitNote}. WRATH will recall this on the next similar problem (House Rule 8 — compounding memory).</p><div class="md">${md(r.markdown)}</div>`,true);}
+async function forkWhatIf(){if(!lastSavedId)return;
+  const tweak=await askInput("What-if — re-run with one changed constraint","e.g. use SRv6 instead of SR-MPLS · 4 route reflectors · add HIPAA");
+  if(!tweak)return;pendingFork={base:lastSavedId};const cur=$("#problem").value.replace(/\s*—\s*what-if:.*$/,"");$("#problem").value=cur+" — what-if: "+tweak;run();}
+let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(drawEdges,120);});
+(async function(){initChips();initMermaid();try{const c=await(await fetch("/api/config")).json();hasKey=c.hasKey;MODELNAME=c.model||MODELNAME;
+    if(c.auth&&!localStorage.getItem("wrathTok")){const t=await askInput("This console requires an access token","paste your token");if(t)localStorage.setItem("wrathTok",t);}}catch(e){}
+  if(!hasKey)$("#livePill").textContent="set ANTHROPIC_API_KEY";setMode(false);
+  try{const pf=JSON.parse(localStorage.getItem("wrathPrefs")||"{}");if(pf.problem&&!$("#problem").value)$("#problem").value=pf.problem;if(pf.intensity)$("#critic").value=pf.intensity;if(pf.live)setMode(true);}catch(e){}
+  $("#modeSwitch").onclick=()=>{if(hasKey)setMode(!LIVE);};$("#runBtn").onclick=run;$("#exportBtn").onclick=exportRun;
+  $("#history").onchange=e=>openSaved(e.target.value);
+  $("#expDetail").onclick=expandDetail;$("#expLog").onclick=expandLog;$("#modalClose").onclick=closeModal;
+  document.querySelectorAll(".fphide").forEach(b=>b.onclick=()=>document.querySelector(".workspace")?.classList.remove("fp-show"));
+  $("#compareBtn").onclick=()=>openCompareUI();$("#whatifBtn").onclick=forkWhatIf;$("#blueprintBtn").onclick=openBlueprints;$("#examplesBtn").onclick=openExamples;$("#patternBtn").onclick=savePattern;
+  $("#helpBtn").onclick=openHelp;
+  $("#analyticsBtn").onclick=openAnalytics;$("#inboxBtn").onclick=openInbox;$("#complianceBtn").onclick=openCompliance;$("#assuranceBtn").onclick=openAssurance;$("#rcaBtn").onclick=openTroubleshoot;$("#opsragBtn").onclick=openOpsRAGLab;
+  $("#shareBtn").onclick=()=>{if(lastSavedId)window.open(withTok("/api/export.html?id="+lastSavedId),"_blank");};
+  $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+  $("#problem").addEventListener("keydown",e=>{if(e.key==="Enter")run();});loadHistory();})();
+</script>
+</body>
+</html>

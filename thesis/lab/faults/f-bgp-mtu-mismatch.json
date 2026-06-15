@@ -1,0 +1,23 @@
+{
+  "id": "f-bgp-mtu-mismatch",
+  "title": "BGP forms but large UPDATEs are dropped — MTU asymmetry on R2<->R3",
+  "scope": ["bgp", "mtu", "session"],
+  "symptom": "eBGP session R2 -> R3 establishes, then resets repeatedly; small prefixes propagate, large UPDATEs cause flaps. CustA reachability is intermittent.",
+  "inject": {
+    "device": "R2",
+    "kind": "interface-patch",
+    "patch": ["interface eth2", " ip mtu 1500"],
+    "note": "R3 side is mtu 9000; PMTU is broken because some hops drop DF and ICMP."
+  },
+  "expected_evidence": [
+    "show interface eth2",
+    "show ip bgp neighbors 192.0.2.2"
+  ],
+  "ground_truth": {
+    "root_cause": "MTU mismatch on the R2<->R3 link (1500 vs 9000) — large BGP UPDATEs are dropped, session resets",
+    "layer": "link",
+    "fix": "interface eth2 / ip mtu 9000 on R2 (or align both ends to 1500)",
+    "verify": "BGP session stays Established under load; no further resets in 5 minutes"
+  },
+  "provenance": {"source": "thesis/lab/faults/f-bgp-mtu-mismatch.json", "authored": true, "confidence": 1.0}
+}
